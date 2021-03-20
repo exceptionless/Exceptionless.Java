@@ -8,11 +8,8 @@ import com.prashantchaubey.exceptionlessclient.models.Event;
 import com.prashantchaubey.exceptionlessclient.models.UserDescription;
 import com.prashantchaubey.exceptionlessclient.models.submission.SubmissionResponse;
 import com.prashantchaubey.exceptionlessclient.settings.SettingsManager;
-import lombok.AccessLevel;
 import lombok.Builder;
-import lombok.Data;
-import lombok.experimental.FieldDefaults;
-import lombok.experimental.SuperBuilder;
+import lombok.Getter;
 
 import java.io.IOException;
 import java.net.URI;
@@ -27,16 +24,14 @@ import java.util.OptionalLong;
 
 import static com.prashantchaubey.exceptionlessclient.configuration.ConfigurationSettings.USER_AGENT;
 
-@SuperBuilder(toBuilder = true)
-@Data
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+@Builder
+@Getter
 public class DefaultSubmissionClient implements SubmissionClientIF {
   private static final String CONFIGURATION_VERSION_HEADER = "x-exceptionless-configversion";
 
   private ConfigurationSettings settings;
   private LogIF log;
   private SettingsManager settingsManager;
-  @Builder.Default private long timeoutInMillis = 100;
 
   // Lombok ignored fields
   private ObjectMapper $objectMapper = new ObjectMapper();
@@ -58,7 +53,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
               .POST(HttpRequest.BodyPublishers.ofString(requestJSON))
               .header("Content-Type", "application/json")
               .header("X-Exceptionless-Client", USER_AGENT)
-              .timeout(Duration.ofMillis(timeoutInMillis))
+              .timeout(Duration.ofMillis(settings.getSubmissionClientTimeoutInMillis()))
               .build();
 
       HttpResponse<String> response =

@@ -1,14 +1,10 @@
 package com.prashantchaubey.exceptionlessclient.configuration;
 
-import lombok.AccessLevel;
 import lombok.Builder;
-import lombok.Data;
-import lombok.experimental.FieldDefaults;
-import lombok.experimental.SuperBuilder;
+import lombok.Getter;
 
-@SuperBuilder(toBuilder = true)
-@Data
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+@Builder(toBuilder = true)
+@Getter
 public class ConfigurationSettings {
   public static final String USER_AGENT = "exceptionless-java/1.0";
 
@@ -19,6 +15,8 @@ public class ConfigurationSettings {
   @Builder.Default private long updateSettingsWhenIdleInterval = 120000;
   @Builder.Default private boolean includePrivateInformation = true;
   @Builder.Default private int submissionBatchSize = 50;
+  @Builder.Default private int submissionClientTimeoutInMillis = 100;
+  @Builder.Default private int settingsClientTimeoutInMillis = 100;
 
   public boolean isApiKeyValid() {
     return apiKey != null && apiKey.length() > 10;

@@ -5,11 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationSettings;
 import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
 import com.prashantchaubey.exceptionlessclient.models.submission.SettingsResponse;
-import lombok.AccessLevel;
 import lombok.Builder;
-import lombok.Data;
-import lombok.experimental.FieldDefaults;
-import lombok.experimental.SuperBuilder;
+import lombok.Getter;
 
 import java.io.IOException;
 import java.net.URI;
@@ -21,12 +18,10 @@ import java.time.Duration;
 
 import static com.prashantchaubey.exceptionlessclient.configuration.ConfigurationSettings.USER_AGENT;
 
-@SuperBuilder(toBuilder = true)
-@Data
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+@Builder
+@Getter
 public class DefaultSettingsClient implements SettingsClientIF {
   private ConfigurationSettings settings;
-  @Builder.Default private long timeoutInMillis = 100;
 
   // lombok ignored fields
   private ObjectMapper $objectMapper = new ObjectMapper();
@@ -46,7 +41,7 @@ public class DefaultSettingsClient implements SettingsClientIF {
               .uri(uri)
               .GET()
               .header("X-Exceptionless-Client", USER_AGENT)
-              .timeout(Duration.ofMillis(timeoutInMillis))
+              .timeout(Duration.ofMillis(settings.getSettingsClientTimeoutInMillis()))
               .build();
 
       HttpResponse<String> response =
