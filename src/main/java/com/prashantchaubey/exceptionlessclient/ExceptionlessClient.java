@@ -1,27 +1,37 @@
 package com.prashantchaubey.exceptionlessclient;
 
 import com.prashantchaubey.exceptionlessclient.configuration.Configuration;
-import lombok.AccessLevel;
 import lombok.Builder;
-import lombok.Data;
-import lombok.experimental.FieldDefaults;
-import lombok.experimental.SuperBuilder;
+import lombok.Getter;
 
-@SuperBuilder(toBuilder = true)
-@Data
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+@Builder(builderClassName = "ExceptionlessClientInternalBuilder")
+@Getter
 public class ExceptionlessClient {
-  private static ExceptionlessClient INSTANCE;
+  private Configuration config;
+  // todo I moved it from configuration; check we can remove this
+  @Builder.Default private boolean enabled = true;
 
-  public static ExceptionlessClient defaultInstance() {
-    if (INSTANCE == null) {
-      INSTANCE = ExceptionlessClient.builder().build();
-    }
-
-    return INSTANCE;
+  public static ExceptionlessClient from(String apiKey, String serverUrl) {
+    return ExceptionlessClient.builder().config(Configuration.from(apiKey, serverUrl)).build();
   }
 
-  private Configuration config;
-  //todo I moved it from configuration; check we can remove this
-  @Builder.Default private boolean enabled = true;
+  private void init() {}
+
+  public static ExceptionlessClientBuilder builder() {
+    return new ExceptionlessClientBuilder();
+  }
+
+  public static class ExceptionlessClientBuilder extends ExceptionlessClientInternalBuilder {
+    ExceptionlessClientBuilder() {
+      super();
+    }
+
+    @Override
+    public ExceptionlessClient build() {
+      ExceptionlessClient client = super.build();
+      client.init();
+
+      return client;
+    }
+  }
 }
