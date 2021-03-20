@@ -1,7 +1,7 @@
 package com.prashantchaubey.exceptionlessclient.queue;
 
 import com.prashantchaubey.exceptionlessclient.models.Event;
-import com.prashantchaubey.exceptionlessclient.submission.SubmissionResponse;
+import com.prashantchaubey.exceptionlessclient.models.submission.SubmissionResponse;
 
 import java.util.List;
 import java.util.function.BiConsumer;

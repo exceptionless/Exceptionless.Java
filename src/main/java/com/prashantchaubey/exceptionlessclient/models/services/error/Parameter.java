@@ -1,4 +1,4 @@
-package com.prashantchaubey.exceptionlessclient.models;
+package com.prashantchaubey.exceptionlessclient.models.services.error;
 
 import com.prashantchaubey.exceptionlessclient.models.base.Model;
 import lombok.AccessLevel;
@@ -7,17 +7,15 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
 
-import java.time.LocalDate;
+import java.util.List;
 
 @SuperBuilder(toBuilder = true)
 @Data
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @EqualsAndHashCode(callSuper = true)
-public class Module extends Model {
-    private long moduleId;
+public class Parameter extends Model {
+    private List<String> genericArguments;
     private String name;
-    private String version;
-    private boolean isEntry;
-    private LocalDate createdDate;
-    private LocalDate modifiedDate;
+    private String type;
+    private String typeNamespace;
 }

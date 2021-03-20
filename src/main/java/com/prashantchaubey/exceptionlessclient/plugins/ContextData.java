@@ -3,6 +3,7 @@ package com.prashantchaubey.exceptionlessclient.plugins;
 import java.util.HashMap;
 import java.util.Map;
 
+// todo think about moving it to models as it only contains presentation logic
 public class ContextData {
   private Map<String, Object> data;
 

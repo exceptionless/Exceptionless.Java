@@ -1,4 +1,4 @@
-package com.prashantchaubey.exceptionlessclient.submission;
+package com.prashantchaubey.exceptionlessclient.models.submission;
 
 import lombok.AccessLevel;
 import lombok.Data;

@@ -1,26 +1,19 @@
 package com.prashantchaubey.exceptionlessclient.submission;
 
-import com.prashantchaubey.exceptionlessclient.configuration.Configuration;
 import com.prashantchaubey.exceptionlessclient.models.Event;
 import com.prashantchaubey.exceptionlessclient.models.UserDescription;
+import com.prashantchaubey.exceptionlessclient.models.submission.SubmissionResponse;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 public interface SubmissionClientIF {
-  void postEvents(
+  SubmissionResponse postEvents(
       List<Event> events,
-      Configuration config,
-      Consumer<SubmissionResponse> responseHandler,
       boolean isAppExiting);
 
-  void postUserDescription(
+  SubmissionResponse postUserDescription(
       String referenceId,
-      UserDescription description,
-      Configuration config,
-      Consumer<SubmissionResponse> responseHandler);
+      UserDescription description);
 
-  void getSettings(Configuration config, int version, Consumer<SettingsResponse> responseHandler);
-
-  void sendHeartBeat(String sessionIdOrUserId, boolean closeSession, Configuration config);
+  void sendHeartBeat(String sessionIdOrUserId, boolean closeSession);
 }

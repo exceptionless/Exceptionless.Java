@@ -1,4 +1,4 @@
-package com.prashantchaubey.exceptionlessclient.models;
+package com.prashantchaubey.exceptionlessclient.models.services;
 
 import com.prashantchaubey.exceptionlessclient.models.base.Model;
 import lombok.AccessLevel;
@@ -7,17 +7,17 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
 
-import java.util.List;
+import java.time.LocalDate;
 
 @SuperBuilder(toBuilder = true)
 @Data
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @EqualsAndHashCode(callSuper = true)
-public class InnerError extends Model {
-    private String message;
-    private String type;
-    private String code;
-    private InnerError inner;
-    private List<StackFrame> stackTrace;
-    private Method targetMethod;
+public class Module extends Model {
+    private long moduleId;
+    private String name;
+    private String version;
+    private boolean isEntry;
+    private LocalDate createdDate;
+    private LocalDate modifiedDate;
 }

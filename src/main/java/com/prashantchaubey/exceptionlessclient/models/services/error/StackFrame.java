@@ -1,4 +1,4 @@
-package com.prashantchaubey.exceptionlessclient.models;
+package com.prashantchaubey.exceptionlessclient.models.services.error;
 
 import lombok.AccessLevel;
 import lombok.Data;

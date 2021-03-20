@@ -1,6 +1,6 @@
 package com.prashantchaubey.exceptionlessclient.services;
 
-import com.prashantchaubey.exceptionlessclient.models.Module;
+import com.prashantchaubey.exceptionlessclient.models.services.Module;
 
 import java.util.List;
 

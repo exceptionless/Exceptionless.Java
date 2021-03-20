@@ -4,6 +4,7 @@ import com.prashantchaubey.exceptionlessclient.ExceptionlessClient;
 import com.prashantchaubey.exceptionlessclient.logging.LogIF;
 import com.prashantchaubey.exceptionlessclient.models.Event;
 
+// todo think about moving it to models as it only contains presentation logic
 public class EventPluginContext {
   private boolean cancelled;
   private ExceptionlessClient client;

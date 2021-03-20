@@ -1,4 +1,4 @@
-package com.prashantchaubey.exceptionlessclient.models;
+package com.prashantchaubey.exceptionlessclient.models.services.error;
 
 import com.prashantchaubey.exceptionlessclient.models.base.Model;
 import lombok.AccessLevel;
@@ -13,12 +13,11 @@ import java.util.List;
 @Data
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @EqualsAndHashCode(callSuper = true)
-public class Method extends Model {
-    private List<String> genericArguments;
-    private List<Parameter> parameters;
-    private boolean isSignatureTarget;
-    private String declaringNamespace;
-    private String declaringType;
-    private String name;
-    private long moduleId;
+public class InnerError extends Model {
+    private String message;
+    private String type;
+    private String code;
+    private InnerError inner;
+    private List<StackFrame> stackTrace;
+    private Method targetMethod;
 }

@@ -1,11 +1,11 @@
 package com.prashantchaubey.exceptionlessclient.logging;
 
 public interface LogIF {
-    String getTrace(String message);
+    void trace(String message);
 
-    String getInfo(String message);
+    void info(String message);
 
-    String getWarn(String message);
+    void warn(String message);
 
-    String getError(String message);
+    void error(String message);
 }
