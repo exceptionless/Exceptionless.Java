@@ -2,11 +2,11 @@ package com.prashantchaubey.exceptionlessclient.models.submission;
 
 import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.SuperBuilder;
 
-@SuperBuilder(toBuilder = true)
+@Builder(toBuilder = true)
 @Data
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class SettingsResponse {
