@@ -1,1 +1,5 @@
-I am using `google-java-format` for this project for code formatting
+# Exceptionless.Java
+Exceptionless Java client
+
+### Code formatting
+`google-java-format`
