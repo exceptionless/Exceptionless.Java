@@ -2,7 +2,7 @@ package com.prashantchaubey.exceptionlessclient.settings;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationSettings;
+import com.prashantchaubey.exceptionlessclient.configuration.Configuration;
 import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
 import com.prashantchaubey.exceptionlessclient.models.submission.SettingsResponse;
 import lombok.Builder;
@@ -16,12 +16,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
-import static com.prashantchaubey.exceptionlessclient.configuration.ConfigurationSettings.USER_AGENT;
+import static com.prashantchaubey.exceptionlessclient.configuration.Configuration.USER_AGENT;
 
 @Builder
 @Getter
 public class DefaultSettingsClient implements SettingsClientIF {
-  private ConfigurationSettings settings;
+  private Configuration configuration;
 
   // lombok ignored fields
   private ObjectMapper $objectMapper = new ObjectMapper();
@@ -34,14 +34,14 @@ public class DefaultSettingsClient implements SettingsClientIF {
           new URI(
               String.format(
                   "%s/api/v2/projects/config?v=%s&access_token=%s",
-                  version, settings.getServerUrl(), settings.getApiKey()));
+                  version, configuration.getServerUrl(), configuration.getApiKey()));
 
       HttpRequest request =
           HttpRequest.newBuilder()
               .uri(uri)
               .GET()
               .header("X-Exceptionless-Client", USER_AGENT)
-              .timeout(Duration.ofMillis(settings.getSettingsClientTimeoutInMillis()))
+              .timeout(Duration.ofMillis(configuration.getSettingsClientTimeoutInMillis()))
               .build();
 
       HttpResponse<String> response =

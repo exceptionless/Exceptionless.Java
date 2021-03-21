@@ -1,13 +1,13 @@
 package com.prashantchaubey.exceptionlessclient.submission;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationSettings;
+import com.prashantchaubey.exceptionlessclient.configuration.Configuration;
 import com.prashantchaubey.exceptionlessclient.exceptions.ClientException;
 import com.prashantchaubey.exceptionlessclient.logging.LogIF;
 import com.prashantchaubey.exceptionlessclient.models.Event;
 import com.prashantchaubey.exceptionlessclient.models.UserDescription;
 import com.prashantchaubey.exceptionlessclient.models.submission.SubmissionResponse;
 import com.prashantchaubey.exceptionlessclient.settings.SettingsManager;
+import com.prashantchaubey.exceptionlessclient.utils.JsonUtils;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -22,19 +22,18 @@ import java.time.Duration;
 import java.util.List;
 import java.util.OptionalLong;
 
-import static com.prashantchaubey.exceptionlessclient.configuration.ConfigurationSettings.USER_AGENT;
+import static com.prashantchaubey.exceptionlessclient.configuration.Configuration.USER_AGENT;
 
 @Builder
 @Getter
 public class DefaultSubmissionClient implements SubmissionClientIF {
   private static final String CONFIGURATION_VERSION_HEADER = "x-exceptionless-configversion";
 
-  private ConfigurationSettings settings;
+  private Configuration configuration;
   private LogIF log;
   private SettingsManager settingsManager;
 
   // Lombok ignored fields
-  private ObjectMapper $objectMapper = new ObjectMapper();
   private HttpClient $httpClient = HttpClient.newHttpClient();
 
   @Override
@@ -44,8 +43,8 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
           new URI(
               String.format(
                   "%s/api/v2/events?access_token=%s",
-                  settings.getServerUrl(), settings.getApiKey()));
-      String requestJSON = $objectMapper.writeValueAsString(events);
+                  configuration.getServerUrl(), configuration.getApiKey()));
+      String requestJSON = JsonUtils.JSON_MAPPER.writeValueAsString(events);
 
       HttpRequest request =
           HttpRequest.newBuilder()
@@ -53,7 +52,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
               .POST(HttpRequest.BodyPublishers.ofString(requestJSON))
               .header("Content-Type", "application/json")
               .header("X-Exceptionless-Client", USER_AGENT)
-              .timeout(Duration.ofMillis(settings.getSubmissionClientTimeoutInMillis()))
+              .timeout(Duration.ofMillis(configuration.getSubmissionClientTimeoutInMillis()))
               .build();
 
       HttpResponse<String> response =

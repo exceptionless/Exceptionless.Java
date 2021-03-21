@@ -1,6 +1,6 @@
 package com.prashantchaubey.exceptionlessclient.settings;
 
-import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationSettings;
+import com.prashantchaubey.exceptionlessclient.configuration.Configuration;
 import com.prashantchaubey.exceptionlessclient.logging.LogIF;
 import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
 import com.prashantchaubey.exceptionlessclient.models.storage.StorageItem;
@@ -18,7 +18,7 @@ public class SettingsManager {
   private static final long DEFAULT_VERSION = 0;
 
   private LogIF log;
-  private ConfigurationSettings settings;
+  private Configuration configuration;
   private StorageProviderIF storageProvider;
   private SettingsClientIF settingsClient;
 
@@ -62,7 +62,7 @@ public class SettingsManager {
   }
 
   private void updateSettings() {
-    if (!settings.isApiKeyValid()) {
+    if (!configuration.isApiKeyValid()) {
       log.error("Unable to update settings: ApiKey is not valid");
       return;
     }

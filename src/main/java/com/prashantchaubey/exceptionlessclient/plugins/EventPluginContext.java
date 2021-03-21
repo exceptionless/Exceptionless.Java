@@ -24,6 +24,6 @@ public class EventPluginContext {
   }
 
   public LogIF log() {
-    return this.client.getConfig().getLog();
+    return this.client.getConfigurationManager().getLog();
   }
 }
