@@ -204,8 +204,4 @@ public class ExceptionlessClient {
         UPDATE_SETTINGS_TIMER_INITIAL_DELAY,
         configurationManager.getConfiguration().getUpdateSettingsWhenIdleInterval());
   }
-
-  public static void main(String[] args) {
-    System.out.println("Hello World!");
-  }
 }
