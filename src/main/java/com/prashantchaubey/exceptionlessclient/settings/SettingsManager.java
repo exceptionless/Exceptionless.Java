@@ -62,11 +62,6 @@ public class SettingsManager {
   }
 
   private void updateSettings() {
-    if (!configuration.isApiKeyValid()) {
-      log.error("Unable to update settings: ApiKey is not valid");
-      return;
-    }
-
     long currentVersion = getVersion();
     log.info(String.format("Checking for updated settings  from: v%s", currentVersion));
 

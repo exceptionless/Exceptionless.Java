@@ -21,4 +21,8 @@ public class Configuration {
   public boolean isApiKeyValid() {
     return apiKey != null && apiKey.length() > 10;
   }
+
+  public static Configuration defaultConfiguration() {
+    return Configuration.builder().build();
+  }
 }

@@ -11,5 +11,5 @@ import java.util.Map;
 @Data
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class Model {
-  private Map<String, Object> data;
+  protected Map<String, Object> data;
 }

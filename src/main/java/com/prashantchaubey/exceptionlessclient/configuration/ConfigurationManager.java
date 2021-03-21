@@ -1,5 +1,6 @@
 package com.prashantchaubey.exceptionlessclient.configuration;
 
+import com.prashantchaubey.exceptionlessclient.exceptions.ClientException;
 import com.prashantchaubey.exceptionlessclient.lastreferenceidmanager.DefaultLastReferenceIdManager;
 import com.prashantchaubey.exceptionlessclient.lastreferenceidmanager.LastReferenceIdManagerIF;
 import com.prashantchaubey.exceptionlessclient.logging.LogIF;
@@ -38,7 +39,7 @@ public class ConfigurationManager {
   private SettingsClientIF settingsClient;
   private StorageProviderIF storageProvider;
   private EventQueueIF queue;
-  private Configuration configuration;
+  @Builder.Default private Configuration configuration = Configuration.defaultConfiguration();
 
   // lombok ignored fields
   private SettingsManager $settingsManager;
@@ -86,6 +87,10 @@ public class ConfigurationManager {
 
   // Order of field initialization is very important
   private void init() {
+    if (!configuration.isApiKeyValid()) {
+      throw new ClientException("Api key is not valid");
+    }
+
     if (settingsClient == null) {
       settingsClient = DefaultSettingsClient.builder().configuration(configuration).build();
     }

@@ -1,9 +1,9 @@
 package com.prashantchaubey.exceptionlessclient.models;
 
-import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationManager;
 import com.prashantchaubey.exceptionlessclient.models.base.Model;
+import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
+import com.prashantchaubey.exceptionlessclient.models.enums.EventTag;
 import com.prashantchaubey.exceptionlessclient.models.services.RequestInfo;
-import com.prashantchaubey.exceptionlessclient.plugins.ContextData;
 import com.prashantchaubey.exceptionlessclient.queue.EventDataFilter;
 import com.prashantchaubey.exceptionlessclient.queue.EventValidator;
 import lombok.AccessLevel;
@@ -29,24 +29,20 @@ public class Event extends Model {
   private final long value;
   private final String referenceId;
   private final Long count;
+  private final PluginContext pluginContext;
 
-  public static EventBuilder<?, ?> builder(
-      ContextData contextData, ConfigurationManager configurationManager) {
-    return new EventBuilderImpl(contextData, configurationManager);
+  public static EventBuilderImpl builder(Set<String> dataExclusions) {
+    return new EventBuilderImpl(dataExclusions);
   }
 
-  private static final class EventBuilderImpl extends EventBuilder<Event, EventBuilderImpl> {
-
-    private ContextData contextData;
+  public static final class EventBuilderImpl extends EventBuilder<Event, EventBuilderImpl> {
     private EventDataFilter eventDataFilter;
-    // We can't access properties of parent class from the child class builder using lobmok. So this
-    // object will keep track of it
+    // lombok builder create private fields in the builder class so we can't access `data` from
+    // `Model` even though it is `protected`. So we will use this object as an proxy.
     private Map<String, Object> data = new HashMap<>();
 
-    EventBuilderImpl(ContextData contextData, ConfigurationManager configurationManager) {
-      this.contextData = contextData;
-      this.eventDataFilter =
-          EventDataFilter.builder().exclusions(configurationManager.getDataExclusions()).build();
+    EventBuilderImpl(Set<String> dataExclusions) {
+      this.eventDataFilter = EventDataFilter.builder().exclusions(dataExclusions).build();
     }
 
     @Override
@@ -59,10 +55,10 @@ public class Event extends Model {
     public EventBuilderImpl eventReference(String name, String id) {
       EventValidator.validateIdentifier(id);
 
-      return property(String.format("@ref:%s", name), id);
+      return property(String.format("%s:%s", EventPropertyKey.REF.value(), name), id);
     }
 
-    private EventBuilderImpl property(String name, Object value) {
+    public EventBuilderImpl property(String name, Object value) {
       value = eventDataFilter.filter(value);
       data.put(name, value);
       return super.data(data);
@@ -75,7 +71,7 @@ public class Event extends Model {
     }
 
     public EventBuilderImpl userIdentity(UserInfo userInfo) {
-      return property("@user", userInfo);
+      return property(EventPropertyKey.USER.value(), userInfo);
     }
 
     public EventBuilderImpl userIdentity(String identity) {
@@ -88,13 +84,14 @@ public class Event extends Model {
 
     public EventBuilderImpl userDescription(String emailAddress, String descripton) {
       return property(
-          "@user_description",
+          EventPropertyKey.USER_DESCRIPTION.value(),
           UserDescription.builder().emailAddress(emailAddress).description(descripton).build());
     }
 
     public EventBuilderImpl manualStackingInfo(Map<String, String> signatureData, String title) {
       return property(
-          "@stack", ManualStackingInfo.builder().title(title).signatureData(signatureData).build());
+          EventPropertyKey.STACK.value(),
+          ManualStackingInfo.builder().title(title).signatureData(signatureData).build());
     }
 
     public EventBuilderImpl manualStackingKey(String manualStackingKey, String title) {
@@ -102,17 +99,16 @@ public class Event extends Model {
     }
 
     public EventBuilderImpl addTags(String... tags) {
-      Set<String> tagSet = new HashSet<>(Arrays.asList(tags));
-      tagSet.addAll(super.tags);
-      return super.tags(tagSet);
+      super.tags.addAll(new HashSet<>(Arrays.asList(tags)));
+      return this;
     }
 
     public EventBuilderImpl markAsCritical() {
-      return addTags("Critical");
+      return addTags(EventTag.CRITICAL.value());
     }
 
     public EventBuilderImpl requestInfo(RequestInfo requestInfo) {
-      contextData.addRequestInfo(requestInfo);
+      super.pluginContext.addRequestInfo(requestInfo);
       return this;
     }
 
