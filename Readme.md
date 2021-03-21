@@ -1,5 +1,4 @@
 # Exceptionless.Java
 Exceptionless Java client
 
-### Code formatting
-`google-java-format`
+`google-code-format` is used for formatting.
