@@ -51,6 +51,24 @@ public class Configuration {
     return $settingsManager;
   }
 
+  public static class ConfigurationBuilder extends ConfigurationInternalBuilder {
+    ConfigurationBuilder() {
+      super();
+    }
+
+    @Override
+    public Configuration build() {
+      Configuration config = super.build();
+      config.init();
+
+      return config;
+    }
+  }
+
+  public static ConfigurationBuilder builder() {
+    return new ConfigurationBuilder();
+  }
+
   // Order of field initialization is very important
   private void init() {
     if (settingsClient == null) {
@@ -71,27 +89,5 @@ public class Configuration {
               .settingsManager($settingsManager)
               .build();
     }
-  }
-
-  public static ConfigurationBuilder builder() {
-    return new ConfigurationBuilder();
-  }
-
-  public static class ConfigurationBuilder extends ConfigurationInternalBuilder {
-    ConfigurationBuilder() {
-      super();
-    }
-
-    @Override
-    public Configuration build() {
-      Configuration config = super.build();
-      config.init();
-
-      return config;
-    }
-  }
-
-  public static void main(String[] args) {
-    Configuration.builder().build();
   }
 }
