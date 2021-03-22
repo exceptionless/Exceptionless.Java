@@ -38,13 +38,26 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
 
   @Override
   public SubmissionResponse postEvents(List<Event> events, boolean isAppExiting) {
+    return postSubmission(
+        String.format(
+            "%s/api/v2/events?access_token=%s",
+            configuration.getServerUrl(), configuration.getApiKey()),
+        events);
+  }
+
+  @Override
+  public SubmissionResponse postUserDescription(String referenceId, UserDescription description) {
+    return postSubmission(
+        String.format(
+            "%s/api/v2/events/by-ref/%s/user-description?access_token=%s",
+            configuration.getServerUrl(), referenceId, configuration.getApiKey()),
+        description);
+  }
+
+  private SubmissionResponse postSubmission(String url, Object data) {
     try {
-      URI uri =
-          new URI(
-              String.format(
-                  "%s/api/v2/events?access_token=%s",
-                  configuration.getServerUrl(), configuration.getApiKey()));
-      String requestJSON = JsonUtils.JSON_MAPPER.writeValueAsString(events);
+      URI uri = new URI(url);
+      String requestJSON = JsonUtils.JSON_MAPPER.writeValueAsString(data);
 
       HttpRequest request =
           HttpRequest.newBuilder()
@@ -78,10 +91,35 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
   }
 
   @Override
-  public SubmissionResponse postUserDescription(String referenceId, UserDescription description) {
-    return null;
-  }
+  public void sendHeartBeat(String sessionIdOrUserId, boolean closeSession) {
+    try {
+      URI uri =
+          new URI(
+              String.format(
+                  "%s/api/v2/events/session/heartbeat?id=%s&close=%s&access_token=%s",
+                  configuration.getHeartbeatServerUrl(),
+                  sessionIdOrUserId,
+                  closeSession,
+                  configuration.getApiKey()));
+      HttpRequest request =
+          HttpRequest.newBuilder()
+              .uri(uri)
+              .GET()
+              .header("X-Exceptionless-Client", USER_AGENT)
+              .timeout(Duration.ofMillis(configuration.getSettingsClientTimeoutInMillis()))
+              .build();
 
-  @Override
-  public void sendHeartBeat(String sessionIdOrUserId, boolean closeSession) {}
+      HttpResponse<String> response =
+          $httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+      if (response.statusCode() != 200) {
+        log.error(
+            String.format(
+                "Error in submitting heartbeat to the server for sessionOrUserId: %s",
+                sessionIdOrUserId));
+      }
+    } catch (URISyntaxException | InterruptedException | IOException e) {
+      throw new ClientException(e);
+    }
+  }
 }

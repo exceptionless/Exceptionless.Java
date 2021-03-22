@@ -13,4 +13,5 @@ public class SettingsResponse {
   private boolean success;
   private ServerSettings settings;
   private Exception exception;
+  private String message;
 }

@@ -46,6 +46,11 @@ public class DefaultSettingsClient implements SettingsClientIF {
 
       HttpResponse<String> response =
           $httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+      if (response.statusCode() != 200) {
+        return SettingsResponse.builder().success(false).message(response.body()).build();
+      }
+
       ServerSettings serverSettings =
           $objectMapper.readValue(response.body(), new TypeReference<ServerSettings>() {});
 
