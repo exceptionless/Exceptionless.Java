@@ -67,11 +67,11 @@ public class ConfigurationManager {
     return combinedExclusions;
   }
 
-  public static class ConfigurationBuilder extends ConfigurationInternalBuilder {
-    ConfigurationBuilder() {
-      super();
-    }
+  public static ConfigurationBuilder builder() {
+    return new ConfigurationBuilder();
+  }
 
+  public static class ConfigurationBuilder extends ConfigurationInternalBuilder {
     @Override
     public ConfigurationManager build() {
       ConfigurationManager configurationManager = super.build();
@@ -79,10 +79,6 @@ public class ConfigurationManager {
 
       return configurationManager;
     }
-  }
-
-  public static ConfigurationBuilder builder() {
-    return new ConfigurationBuilder();
   }
 
   // Order of field initialization is very important

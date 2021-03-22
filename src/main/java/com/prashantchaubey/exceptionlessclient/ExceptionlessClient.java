@@ -175,11 +175,11 @@ public class ExceptionlessClient {
     return configurationManager.getLastReferenceIdManager().getLast();
   }
 
-  public static class ExceptionlessClientBuilder extends ExceptionlessClientInternalBuilder {
-    ExceptionlessClientBuilder() {
-      super();
-    }
+  public static ExceptionlessClientBuilder builder() {
+    return new ExceptionlessClientBuilder();
+  }
 
+  public static class ExceptionlessClientBuilder extends ExceptionlessClientInternalBuilder {
     @Override
     public ExceptionlessClient build() {
       ExceptionlessClient client = super.build();
@@ -187,10 +187,6 @@ public class ExceptionlessClient {
 
       return client;
     }
-  }
-
-  public static ExceptionlessClientBuilder builder() {
-    return new ExceptionlessClientBuilder();
   }
 
   private void init() {
