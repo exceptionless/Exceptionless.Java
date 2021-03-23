@@ -9,7 +9,6 @@ import com.prashantchaubey.exceptionlessclient.storage.StorageProviderIF;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.util.List;
 import java.util.Map;
 
 @Builder
@@ -40,12 +39,12 @@ public class SettingsManager {
   }
 
   private ServerSettings getSavedServerSettings() {
-    List<StorageItem<ServerSettings>> storageItems = storageProvider.getSettings().get();
-    if (storageItems.isEmpty()) {
+    StorageItem<ServerSettings> storageItem = storageProvider.getSettings().peek();
+    if (storageItem == null) {
       return ServerSettings.builder().version(DEFAULT_VERSION).settings(Map.of()).build();
     }
 
-    return storageItems.get(0).getValue();
+    return storageItem.getValue();
   }
 
   public synchronized void updateSettingsThreadSafe() {
