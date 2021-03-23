@@ -12,4 +12,7 @@ public class NullLog implements LogIF {
 
   @Override
   public void error(String message) {}
+
+  @Override
+  public void error(String message, Exception e) {}
 }

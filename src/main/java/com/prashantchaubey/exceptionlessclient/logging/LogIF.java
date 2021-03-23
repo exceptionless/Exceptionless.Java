@@ -8,4 +8,6 @@ public interface LogIF {
     void warn(String message);
 
     void error(String message);
+
+    void error(String message, Exception e);
 }
