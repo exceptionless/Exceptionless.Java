@@ -3,19 +3,14 @@ package com.prashantchaubey.exceptionlessclient.models;
 import com.prashantchaubey.exceptionlessclient.models.base.Model;
 import com.prashantchaubey.exceptionlessclient.models.enums.PluginContextKey;
 import com.prashantchaubey.exceptionlessclient.models.services.RequestInfo;
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.experimental.FieldDefaults;
+import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@SuperBuilder(toBuilder = true)
-@Data
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
+@Getter
 public class PluginContext extends Model {
   private boolean eventCancelled;
 

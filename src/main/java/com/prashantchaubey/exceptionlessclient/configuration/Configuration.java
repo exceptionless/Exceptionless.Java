@@ -3,7 +3,7 @@ package com.prashantchaubey.exceptionlessclient.configuration;
 import lombok.Builder;
 import lombok.Getter;
 
-@Builder(toBuilder = true)
+@Builder
 @Getter
 public class Configuration {
   public static final String USER_AGENT = "exceptionless-java/1.0";

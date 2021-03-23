@@ -9,16 +9,15 @@ import com.prashantchaubey.exceptionlessclient.queue.EventValidator;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
 import java.util.*;
 
-@SuperBuilder(toBuilder = true)
-@Data
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
+@Getter
 public class Event extends Model {
   private final String type;
   private final String source;
