@@ -14,15 +14,15 @@ import java.util.*;
 @SuperBuilder
 @Getter
 public class Event extends Model {
-  private final String type;
-  private final String source;
-  private final LocalDate date;
-  private final Set<String> tags;
-  private final String message;
-  private final String geo;
-  private final long value;
-  private final String referenceId;
-  private final Long count;
+  private String type;
+  private String source;
+  private LocalDate date;
+  private Set<String> tags;
+  private String message;
+  private String geo;
+  private long value;
+  private String referenceId;
+  private Long count;
 
   public static EventBuilderImpl builder(Set<String> dataExclusions) {
     return new EventBuilderImpl(dataExclusions);

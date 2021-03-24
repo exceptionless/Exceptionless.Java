@@ -25,7 +25,7 @@ public class ExceptionlessClient {
   private ConfigurationManager configurationManager;
 
   // lombok ignored fields
-  private Timer $updateSettingsTimer;
+  private Timer $updateSettingsTimer = new Timer();
 
   public static ExceptionlessClient from(String apiKey, String serverUrl) {
     return ExceptionlessClient.builder()

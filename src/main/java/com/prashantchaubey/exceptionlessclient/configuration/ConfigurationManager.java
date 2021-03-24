@@ -79,6 +79,7 @@ public class ConfigurationManager {
     }
   }
 
+  // todo try to inject the dependencies using spring
   // Order of field initialization is very important
   private void init() {
     if (!configuration.isApiKeyValid()) {

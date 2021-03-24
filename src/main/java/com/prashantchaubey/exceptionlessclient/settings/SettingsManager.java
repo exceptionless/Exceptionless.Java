@@ -47,6 +47,8 @@ public class SettingsManager {
     return storageItem.getValue();
   }
 
+  // This method is thread safe as settings are updated both by the users and by the client at
+  // regular intervals
   public synchronized void updateSettingsThreadSafe() {
     if ($updatingSettings) {
       return;

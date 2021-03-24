@@ -25,19 +25,15 @@ public class SubmissionResponse {
     return statusCode == 402;
   }
 
-  private boolean isUnauthenticated() {
-    return statusCode == 401;
+  public boolean unableToAuthenticate() {
+    return statusCode == 401 || statusCode == 403;
   }
 
-  private boolean isForbidden() {
-    return statusCode == 403;
-  }
-
-  private boolean isNotFound() {
+  public boolean isNotFound() {
     return statusCode == 404;
   }
 
-  private boolean isRequestEntityTooLarge() {
+  public boolean isRequestEntityTooLarge() {
     return statusCode == 413;
   }
 }
