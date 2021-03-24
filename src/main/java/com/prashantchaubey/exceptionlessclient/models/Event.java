@@ -3,14 +3,9 @@ package com.prashantchaubey.exceptionlessclient.models;
 import com.prashantchaubey.exceptionlessclient.models.base.Model;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventTag;
-import com.prashantchaubey.exceptionlessclient.models.services.RequestInfo;
 import com.prashantchaubey.exceptionlessclient.queue.EventDataFilter;
 import com.prashantchaubey.exceptionlessclient.queue.EventValidator;
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
@@ -28,7 +23,6 @@ public class Event extends Model {
   private final long value;
   private final String referenceId;
   private final Long count;
-  private final PluginContext pluginContext;
 
   public static EventBuilderImpl builder(Set<String> dataExclusions) {
     return new EventBuilderImpl(dataExclusions);
@@ -104,11 +98,6 @@ public class Event extends Model {
 
     public EventBuilderImpl markAsCritical() {
       return addTags(EventTag.CRITICAL.value());
-    }
-
-    public EventBuilderImpl requestInfo(RequestInfo requestInfo) {
-      super.pluginContext.addRequestInfo(requestInfo);
-      return this;
     }
 
     @Override

@@ -18,10 +18,6 @@ public class PluginContext extends Model {
     return new PluginContextBuilderImpl();
   }
 
-  public void addRequestInfo(RequestInfo requestInfo) {
-    data.put(PluginContextKey.REQUEST_INFO.value(), requestInfo);
-  }
-
   public boolean hasException() {
     return data.get(PluginContextKey.EXCEPTION.value()) != null;
   }
@@ -57,6 +53,11 @@ public class PluginContext extends Model {
 
     public PluginContextBuilderImpl submissionMethod(String method) {
       data.put(PluginContextKey.SUBMISSION_METHOD.value(), method);
+      return super.data(data);
+    }
+
+    public PluginContextBuilderImpl requestInfo(RequestInfo requestInfo) {
+      data.put(PluginContextKey.REQUEST_INFO.value(), requestInfo);
       return super.data(data);
     }
 

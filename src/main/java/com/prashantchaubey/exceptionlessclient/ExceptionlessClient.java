@@ -2,6 +2,7 @@ package com.prashantchaubey.exceptionlessclient;
 
 import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationManager;
 import com.prashantchaubey.exceptionlessclient.models.Event;
+import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
 import com.prashantchaubey.exceptionlessclient.models.PluginContext;
 import com.prashantchaubey.exceptionlessclient.models.UserDescription;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
@@ -32,53 +33,49 @@ public class ExceptionlessClient {
         .build();
   }
 
-  public void submitException(Exception exception, Consumer<Event> handler) {
-    Event event = createException(exception).build();
-    submitEvent(event, handler);
+  public void submitException(Exception exception, Consumer<EventPluginContext> handler) {
+    Event event = createException().build();
+    PluginContext pluginContext = PluginContext.builder().exception(exception).build();
+    submitEvent(EventPluginContext.builder().event(event).context(pluginContext).build(), handler);
   }
 
-  private Event.EventBuilderImpl createException(Exception exception) {
-    return createEvent(PluginContext.builder().exception(exception).build())
-        .type(EventType.ERROR.value());
+  private Event.EventBuilderImpl createException() {
+    return createEvent().type(EventType.ERROR.value());
   }
 
   public void submitUnhandledException(
-      Exception exception, String submissionMethod, Consumer<Event> handler) {
-    Event event = createUnhandledException(exception, submissionMethod).build();
-    submitEvent(event, handler);
+      Exception exception, String submissionMethod, Consumer<EventPluginContext> handler) {
+    Event event = createException().build();
+    PluginContext pluginContext =
+        PluginContext.builder()
+            .exception(exception)
+            .markAsUnhandledError()
+            .submissionMethod(submissionMethod)
+            .build();
+    submitEvent(EventPluginContext.builder().event(event).context(pluginContext).build(), handler);
   }
 
-  private Event.EventBuilderImpl createUnhandledException(
-      Exception exception, String submissionMethod) {
-    return createEvent(
-            PluginContext.builder()
-                .exception(exception)
-                .markAsUnhandledError()
-                .submissionMethod(submissionMethod)
-                .build())
-        .type(EventType.ERROR.value());
-  }
-
-  public void submitFeatureUsage(String feature, Consumer<Event> handler) {
+  public void submitFeatureUsage(String feature, Consumer<EventPluginContext> handler) {
     Event event = createFeatureUsage(feature).build();
-    submitEvent(event, handler);
+    submitEvent(EventPluginContext.from(event), handler);
   }
 
   private Event.EventBuilderImpl createFeatureUsage(String feature) {
     return createEvent().type(EventType.USAGE.value()).source(feature);
   }
 
-  public void submitLog(String message, Consumer<Event> handler) {
+  public void submitLog(String message, Consumer<EventPluginContext> handler) {
     submitLog(message, null, null, handler);
   }
 
-  public void submitLog(String message, String source, Consumer<Event> handler) {
+  public void submitLog(String message, String source, Consumer<EventPluginContext> handler) {
     submitLog(message, source, null, handler);
   }
 
-  public void submitLog(String message, String source, String level, Consumer<Event> handler) {
+  public void submitLog(
+      String message, String source, String level, Consumer<EventPluginContext> handler) {
     Event event = createLog(message, source, level).build();
-    submitEvent(event, handler);
+    submitEvent(EventPluginContext.from(event), handler);
   }
 
   private Event.EventBuilderImpl createLog(String message, String source, String level) {
@@ -96,18 +93,18 @@ public class ExceptionlessClient {
     return builder.property(EventPropertyKey.LOG_LEVEL.value(), level);
   }
 
-  public void submitNotFound(String resource, Consumer<Event> handler) {
+  public void submitNotFound(String resource, Consumer<EventPluginContext> handler) {
     Event event = createNotFound(resource).build();
-    submitEvent(event, handler);
+    submitEvent(EventPluginContext.from(event), handler);
   }
 
   private Event.EventBuilderImpl createNotFound(String resource) {
     return createEvent().type(EventType.NOT_FOUND.value()).source(resource);
   }
 
-  public void submitSessionStart(Consumer<Event> handler) {
+  public void submitSessionStart(Consumer<EventPluginContext> handler) {
     Event event = createSessionStart().build();
-    submitEvent(event, handler);
+    submitEvent(EventPluginContext.from(event), handler);
   }
 
   private Event.EventBuilderImpl createSessionStart() {
@@ -115,27 +112,24 @@ public class ExceptionlessClient {
   }
 
   private Event.EventBuilderImpl createEvent() {
-    return createEvent(PluginContext.builder().build());
+    return Event.builder(configurationManager.getDataExclusions()).date(LocalDate.now());
   }
 
-  private Event.EventBuilderImpl createEvent(PluginContext pluginContext) {
-    return Event.builder(configurationManager.getDataExclusions())
-        .pluginContext(pluginContext)
-        .date(LocalDate.now());
-  }
-
-  private void submitEvent(Event event, Consumer<Event> handler) {
+  private void submitEvent(
+      EventPluginContext eventPluginContext, Consumer<EventPluginContext> handler) {
     EventPluginManager.run(
-        event,
-        ev -> {
-          if (ev.getPluginContext().isEventCancelled()) {
+        eventPluginContext,
+        evc -> {
+          if (evc.getContext().isEventCancelled()) {
             return;
           }
-          configurationManager.getQueue().enqueue(ev);
-          if (ev.getReferenceId() != null) {
-            configurationManager.getLastReferenceIdManager().setLast(ev.getReferenceId());
+          configurationManager.getQueue().enqueue(evc.getEvent());
+          if (evc.getEvent().getReferenceId() != null) {
+            configurationManager
+                .getLastReferenceIdManager()
+                .setLast(evc.getEvent().getReferenceId());
           }
-          handler.accept(ev);
+          handler.accept(evc);
         });
   }
 

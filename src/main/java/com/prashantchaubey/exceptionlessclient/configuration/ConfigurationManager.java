@@ -9,7 +9,6 @@ import com.prashantchaubey.exceptionlessclient.queue.EventQueueIF;
 import com.prashantchaubey.exceptionlessclient.services.EnvironmentInfoCollectorIF;
 import com.prashantchaubey.exceptionlessclient.services.ErrorParserIF;
 import com.prashantchaubey.exceptionlessclient.services.ModuleCollectorIF;
-import com.prashantchaubey.exceptionlessclient.services.RequestInfoCollectorIF;
 import com.prashantchaubey.exceptionlessclient.settings.DefaultSettingsClient;
 import com.prashantchaubey.exceptionlessclient.settings.SettingsClientIF;
 import com.prashantchaubey.exceptionlessclient.settings.SettingsManager;
@@ -32,7 +31,6 @@ public class ConfigurationManager {
 
   @Builder.Default private LogIF log = new NullLog();
   private ModuleCollectorIF moduleCollector;
-  private RequestInfoCollectorIF requestInfoCollector;
   // By default `DefaultSubmissionClient` will be used; See `init()`
   private SubmissionClientIF submissionClient;
   // By default `DefaultSettingsClient` will be used; See `init()`
