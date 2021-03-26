@@ -5,6 +5,8 @@ import com.prashantchaubey.exceptionlessclient.lastreferenceidmanager.DefaultLas
 import com.prashantchaubey.exceptionlessclient.lastreferenceidmanager.LastReferenceIdManagerIF;
 import com.prashantchaubey.exceptionlessclient.logging.LogIF;
 import com.prashantchaubey.exceptionlessclient.logging.NullLog;
+import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
+import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import com.prashantchaubey.exceptionlessclient.queue.EventQueueIF;
 import com.prashantchaubey.exceptionlessclient.services.EnvironmentInfoCollectorIF;
 import com.prashantchaubey.exceptionlessclient.services.ErrorParserIF;
@@ -19,6 +21,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 
 @Builder(builderClassName = "ConfigurationInternalBuilder")
 @Getter
@@ -40,6 +43,7 @@ public class ConfigurationManager {
   @Builder.Default private Configuration configuration = Configuration.defaultConfiguration();
   @Builder.Default private Set<String> defaultTags = new HashSet<>();
   @Builder.Default private Map<String, Object> defaultData = new HashMap<>();
+  @Builder.Default private List<EventPluginIF> plugins = new ArrayList<>();
 
   // lombok ignored fields
   private SettingsManager $settingsManager;
@@ -70,6 +74,44 @@ public class ConfigurationManager {
   public void submitSessionHeartbeat(String sessionOrUserId) {
     log.info(String.format("Submitting session heartbeat: %s", sessionOrUserId));
     submissionClient.sendHeartBeat(sessionOrUserId, false);
+  }
+
+  public void addPlugin(EventPluginIF eventPlugin) {
+    if (plugins.stream().anyMatch(plugin -> plugin.getName().equals(eventPlugin.getName()))) {
+      log.info(
+          String.format(
+              "Can't add plugin, name: %s, priority: %s as a plugin with this name already configured",
+              eventPlugin.getName(), eventPlugin.getPriority()));
+    }
+    plugins.add(eventPlugin);
+  }
+
+  public void addPlugin(BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
+    addPlugin(UUID.randomUUID().toString(), 0, pluginAction);
+  }
+
+  public void addPlugin(
+      String name,
+      int priority,
+      BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
+    addPlugin(
+        new EventPluginIF() {
+          @Override
+          public int getPriority() {
+            return priority;
+          }
+
+          @Override
+          public String getName() {
+            return name;
+          }
+
+          @Override
+          public void run(
+              EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+            pluginAction.accept(eventPluginContext, configurationManager);
+          }
+        });
   }
 
   public static ConfigurationBuilder builder() {

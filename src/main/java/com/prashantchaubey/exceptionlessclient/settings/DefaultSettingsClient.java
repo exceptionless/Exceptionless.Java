@@ -56,7 +56,7 @@ public class DefaultSettingsClient implements SettingsClientIF {
 
       return SettingsResponse.builder().success(true).settings(serverSettings).build();
     } catch (URISyntaxException | InterruptedException | IOException e) {
-      return SettingsResponse.builder().success(false).exception(e).build();
+      return SettingsResponse.builder().success(false).exception(e).message(e.getMessage()).build();
     }
   }
 }

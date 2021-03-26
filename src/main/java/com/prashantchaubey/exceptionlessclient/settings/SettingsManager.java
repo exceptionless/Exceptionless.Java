@@ -67,6 +67,10 @@ public class SettingsManager {
     log.info(String.format("Checking for updated settings  from: v%s", currentVersion));
 
     SettingsResponse response = settingsClient.getSettings(currentVersion);
-    // todo implement
+    if (!response.isSuccess()) {
+      log.warn(String.format("Unable to update settings: %s:", response.getMessage()));
+      return;
+    }
+    storageProvider.getSettings().save(response.getSettings());
   }
 }
