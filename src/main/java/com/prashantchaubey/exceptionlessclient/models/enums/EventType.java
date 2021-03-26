@@ -6,6 +6,7 @@ public enum EventType {
   LOG("log"),
   SESSION("session"),
   NOT_FOUND("404");
+
   private String value;
 
   EventType(String value) {

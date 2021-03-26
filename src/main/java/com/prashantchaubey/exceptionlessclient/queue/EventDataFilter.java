@@ -4,19 +4,20 @@ import com.prashantchaubey.exceptionlessclient.utils.JsonUtils;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Builder
 @Getter
 public class EventDataFilter {
-  private Set<String> exclusions;
+  @Builder.Default private Set<String> exclusions = new HashSet<>();
   @Builder.Default private int maxDepth = 3;
 
   public Object filter(Object data) {
+    if (exclusions.isEmpty()) {
+      return data;
+    }
+
     return filter(data, 1);
   }
 
@@ -37,6 +38,7 @@ public class EventDataFilter {
     Map<String, Object> dataMap = (Map<String, Object>) data;
     Map<String, Object> result = new HashMap<>();
     for (String key : dataMap.keySet()) {
+      //todo check that wildcard match work with this or not
       if (exclusions.stream().anyMatch(key::matches)) {
         continue;
       }

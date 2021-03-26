@@ -38,6 +38,8 @@ public class ConfigurationManager {
   private StorageProviderIF storageProvider;
   private EventQueueIF queue;
   @Builder.Default private Configuration configuration = Configuration.defaultConfiguration();
+  @Builder.Default private Set<String> defaultTags = new HashSet<>();
+  @Builder.Default private Map<String, Object> defaultData = new HashMap<>();
 
   // lombok ignored fields
   private SettingsManager $settingsManager;
@@ -63,6 +65,11 @@ public class ConfigurationManager {
     Set<String> combinedExclusions = new HashSet<>(Arrays.asList(serverExclusions.split(",")));
     combinedExclusions.addAll($dataExclusions);
     return combinedExclusions;
+  }
+
+  public void submitSessionHeartbeat(String sessionOrUserId) {
+    log.info(String.format("Submitting session heartbeat: %s", sessionOrUserId));
+    submissionClient.sendHeartBeat(sessionOrUserId, false);
   }
 
   public static ConfigurationBuilder builder() {

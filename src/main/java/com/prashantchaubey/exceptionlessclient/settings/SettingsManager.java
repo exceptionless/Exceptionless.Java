@@ -38,7 +38,7 @@ public class SettingsManager {
     return getSavedServerSettings().getVersion();
   }
 
-  private ServerSettings getSavedServerSettings() {
+  public ServerSettings getSavedServerSettings() {
     StorageItem<ServerSettings> storageItem = storageProvider.getSettings().peek();
     if (storageItem == null) {
       return ServerSettings.builder().version(DEFAULT_VERSION).settings(Map.of()).build();

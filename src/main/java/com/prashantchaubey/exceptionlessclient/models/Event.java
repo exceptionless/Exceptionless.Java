@@ -3,26 +3,60 @@ package com.prashantchaubey.exceptionlessclient.models;
 import com.prashantchaubey.exceptionlessclient.models.base.Model;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventTag;
+import com.prashantchaubey.exceptionlessclient.models.services.EnvironmentInfo;
+import com.prashantchaubey.exceptionlessclient.models.services.error.Error;
 import com.prashantchaubey.exceptionlessclient.queue.EventDataFilter;
 import com.prashantchaubey.exceptionlessclient.queue.EventValidator;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.prashantchaubey.exceptionlessclient.utils.EventUtils.safeGetAs;
 
 @SuperBuilder
 @Getter
 public class Event extends Model {
-  private String type;
+  @Setter private String type;
   private String source;
-  private LocalDate date;
+  @Setter private LocalDate date;
   private Set<String> tags;
   private String message;
   private String geo;
   private long value;
-  private String referenceId;
-  private Long count;
+  @Setter private String referenceId;
+  @Setter private Long count;
+
+  public void addTags(String... tags) {
+    this.tags.addAll(Arrays.asList(tags));
+  }
+
+  public void addData(Map<String, Object> data) {
+    addData(data, new HashSet<>());
+  }
+
+  public void addData(Map<String, Object> data, Set<String> dataExclusions) {
+    EventDataFilter filter = EventDataFilter.builder().exclusions(dataExclusions).build();
+    data =
+        data.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, entry -> filter.filter(entry.getValue())));
+    this.data.putAll(data);
+  }
+
+  public void addEnvironmentInfo(EnvironmentInfo environmentInfo) {
+    data.put(EventPropertyKey.ENVIRONMENT.value(), environmentInfo);
+  }
+
+  public Error getError() {
+    return safeGetAs(data.get(EventPropertyKey.ERROR.value()), Error.class);
+  }
+
+  public void addSubmissionMethod(String submissionMethod) {
+    data.put(EventPropertyKey.SUBMISSION_METHOD.value(), submissionMethod);
+  }
 
   public static EventBuilderImpl builder(Set<String> dataExclusions) {
     return new EventBuilderImpl(dataExclusions);
@@ -47,7 +81,6 @@ public class Event extends Model {
 
     public EventBuilderImpl eventReference(String name, String id) {
       EventValidator.validateIdentifier(id);
-
       return property(String.format("%s:%s", EventPropertyKey.REF.value(), name), id);
     }
 
@@ -102,6 +135,11 @@ public class Event extends Model {
 
     @Override
     public EventBuilderImpl data(Map<String, Object> data) {
+      data =
+          data.entrySet().stream()
+              .collect(
+                  Collectors.toMap(
+                      Map.Entry::getKey, entry -> eventDataFilter.filter(entry.getValue())));
       this.data = data;
       return super.data(data);
     }

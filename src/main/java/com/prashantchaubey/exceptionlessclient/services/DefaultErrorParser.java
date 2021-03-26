@@ -1,6 +1,5 @@
 package com.prashantchaubey.exceptionlessclient.services;
 
-import com.prashantchaubey.exceptionlessclient.models.PluginContext;
 import com.prashantchaubey.exceptionlessclient.models.services.error.Error;
 import com.prashantchaubey.exceptionlessclient.models.services.error.StackFrame;
 
@@ -10,7 +9,7 @@ import java.util.stream.Collectors;
 
 public class DefaultErrorParser implements ErrorParserIF {
   @Override
-  public Error parse(PluginContext context, Exception exception) {
+  public Error parse(Exception exception) {
     return Error.builder()
         .type(exception.getClass().getCanonicalName())
         .message(exception.getMessage())

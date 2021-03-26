@@ -5,7 +5,11 @@ public enum EventPropertyKey {
   USER("@user"),
   USER_DESCRIPTION("@user_description"),
   STACK("@stack"),
-  LOG_LEVEL("@level");
+  LOG_LEVEL("@level"),
+  ERROR("@error"),
+  ENVIRONMENT("@environment"),
+  EXTRA("@ext"),
+  SUBMISSION_METHOD("@submission_method");
 
   private String value;
 

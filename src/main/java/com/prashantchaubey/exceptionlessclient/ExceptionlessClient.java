@@ -25,6 +25,7 @@ public class ExceptionlessClient {
   private ConfigurationManager configurationManager;
 
   // lombok ignored fields
+  private EventPluginManager $eventPluginManager;
   private Timer $updateSettingsTimer = new Timer();
 
   public static ExceptionlessClient from(String apiKey, String serverUrl) {
@@ -117,7 +118,7 @@ public class ExceptionlessClient {
 
   private void submitEvent(
       EventPluginContext eventPluginContext, Consumer<EventPluginContext> handler) {
-    EventPluginManager.run(
+    $eventPluginManager.run(
         eventPluginContext,
         evc -> {
           if (evc.getContext().isEventCancelled()) {
@@ -141,10 +142,7 @@ public class ExceptionlessClient {
   }
 
   public void submitSessionHeartbeat(String sessionOrUserId) {
-    configurationManager
-        .getLog()
-        .info(String.format("Submitting session heartbeat: %s", sessionOrUserId));
-    configurationManager.getSubmissionClient().sendHeartBeat(sessionOrUserId, false);
+    configurationManager.submitSessionHeartbeat(sessionOrUserId);
   }
 
   public void updateEmailAndDescription(
@@ -193,5 +191,7 @@ public class ExceptionlessClient {
         },
         UPDATE_SETTINGS_TIMER_INITIAL_DELAY,
         configurationManager.getConfiguration().getUpdateSettingsWhenIdleInterval());
+    $eventPluginManager =
+        EventPluginManager.builder().configurationManager(configurationManager).build();
   }
 }

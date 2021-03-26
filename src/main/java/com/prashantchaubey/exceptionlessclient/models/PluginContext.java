@@ -14,10 +14,6 @@ import java.util.Map;
 public class PluginContext extends Model {
   private boolean eventCancelled;
 
-  public static PluginContextBuilderImpl builder() {
-    return new PluginContextBuilderImpl();
-  }
-
   public boolean hasException() {
     return data.get(PluginContextKey.EXCEPTION.value()) != null;
   }
@@ -33,6 +29,14 @@ public class PluginContext extends Model {
 
   public String getSubmissionMethod() {
     return (String) data.get(PluginContextKey.SUBMISSION_METHOD.value());
+  }
+
+  public void markAsCancelled() {
+    eventCancelled = true;
+  }
+
+  public static PluginContextBuilderImpl builder() {
+    return new PluginContextBuilderImpl();
   }
 
   public static final class PluginContextBuilderImpl
