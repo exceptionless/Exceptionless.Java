@@ -1,11 +1,15 @@
 package com.prashantchaubey.exceptionlessclient.models.services;
 
 import com.prashantchaubey.exceptionlessclient.models.base.Model;
-import lombok.Getter;
+import lombok.EqualsAndHashCode;
+import lombok.Value;
+import lombok.experimental.NonFinal;
 import lombok.experimental.SuperBuilder;
 
 @SuperBuilder
-@Getter
+@Value
+@NonFinal
+@EqualsAndHashCode(callSuper = true)
 public class RequestInfo extends Model {
     private String userAgent;
     private String httpMethod;

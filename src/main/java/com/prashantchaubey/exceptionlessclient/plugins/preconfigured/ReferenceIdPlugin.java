@@ -6,13 +6,13 @@ import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventType;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
-import lombok.Getter;
 
 import java.util.UUID;
 
-@Builder
-@Getter
 public class ReferenceIdPlugin implements EventPluginIF {
+  @Builder
+  public ReferenceIdPlugin() {}
+
   @Override
   public int getPriority() {
     return 20;

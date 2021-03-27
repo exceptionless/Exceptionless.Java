@@ -10,15 +10,17 @@ import com.prashantchaubey.exceptionlessclient.models.services.error.InnerError;
 import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
-import lombok.Getter;
 
 import java.util.Optional;
 import java.util.OptionalInt;
 
-@Builder
-@Getter
 public class EventExclusionPlugin implements EventPluginIF {
   private LogIF log;
+
+  @Builder
+  public EventExclusionPlugin(LogIF log) {
+    this.log = log;
+  }
 
   @Override
   public int getPriority() {

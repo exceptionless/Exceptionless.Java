@@ -1,12 +1,17 @@
 package com.prashantchaubey.exceptionlessclient.models.base;
 
-import lombok.Getter;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.Singular;
 import lombok.experimental.SuperBuilder;
 
 import java.util.Map;
 
 @SuperBuilder
-@Getter
-public class Model {
+@NoArgsConstructor // So that `@Data` classes can extend this and we can call `super()` from normal
+                   // `@Builder` classes
+@Data
+public abstract class Model {
+  @Singular("property")
   protected Map<String, Object> data;
 }

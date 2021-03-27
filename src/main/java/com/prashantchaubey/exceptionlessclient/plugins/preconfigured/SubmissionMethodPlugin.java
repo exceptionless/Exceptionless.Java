@@ -4,11 +4,11 @@ import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationManage
 import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
-import lombok.Getter;
 
-@Builder
-@Getter
 public class SubmissionMethodPlugin implements EventPluginIF {
+  @Builder
+  public SubmissionMethodPlugin() {}
+
   @Override
   public int getPriority() {
     return 100;

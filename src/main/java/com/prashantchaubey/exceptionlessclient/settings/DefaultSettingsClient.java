@@ -1,12 +1,11 @@
 package com.prashantchaubey.exceptionlessclient.settings;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.prashantchaubey.exceptionlessclient.configuration.Configuration;
 import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
 import com.prashantchaubey.exceptionlessclient.models.submission.SettingsResponse;
+import com.prashantchaubey.exceptionlessclient.utils.JsonUtils;
 import lombok.Builder;
-import lombok.Getter;
 
 import java.io.IOException;
 import java.net.URI;
@@ -18,14 +17,15 @@ import java.time.Duration;
 
 import static com.prashantchaubey.exceptionlessclient.configuration.Configuration.USER_AGENT;
 
-@Builder
-@Getter
 public class DefaultSettingsClient implements SettingsClientIF {
   private Configuration configuration;
+  private HttpClient httpClient;
 
-  // lombok ignored fields
-  private ObjectMapper $objectMapper = new ObjectMapper();
-  private HttpClient $httpClient = HttpClient.newHttpClient();
+  @Builder
+  public DefaultSettingsClient(Configuration configuration) {
+    this.configuration = configuration;
+    this.httpClient = HttpClient.newHttpClient();
+  }
 
   @Override
   public SettingsResponse getSettings(long version) {
@@ -45,14 +45,14 @@ public class DefaultSettingsClient implements SettingsClientIF {
               .build();
 
       HttpResponse<String> response =
-          $httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
       if (response.statusCode() != 200) {
         return SettingsResponse.builder().success(false).message(response.body()).build();
       }
 
       ServerSettings serverSettings =
-          $objectMapper.readValue(response.body(), new TypeReference<ServerSettings>() {});
+          JsonUtils.JSON_MAPPER.readValue(response.body(), new TypeReference<ServerSettings>() {});
 
       return SettingsResponse.builder().success(true).settings(serverSettings).build();
     } catch (URISyntaxException | InterruptedException | IOException e) {

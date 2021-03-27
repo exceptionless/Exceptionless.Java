@@ -3,44 +3,27 @@ package com.prashantchaubey.exceptionlessclient.storage;
 import com.prashantchaubey.exceptionlessclient.models.Event;
 import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
 import lombok.Builder;
-import lombok.Getter;
 
-@Builder(builderClassName = "InMemoryStroageProviderInternalBuilder")
-@Getter
 public class InMemoryStorageProvider implements StorageProviderIF {
-  @Builder.Default private int maxQueueItems = 250;
+  private StorageIF<Event> eventQueue;
+  private StorageIF<ServerSettings> settingsStore;
 
-  // lombok ignored fields
-  private StorageIF<Event> $eventsQueue;
-  private StorageIF<ServerSettings> $settingsStore;
+  @Builder
+  private InMemoryStorageProvider(Integer maxQueueItems) {
+    this.eventQueue =
+        InMemoryStorage.<Event>builder()
+            .maxItems(maxQueueItems == null ? 250 : maxQueueItems)
+            .build();
+    this.settingsStore = InMemoryStorage.<ServerSettings>builder().maxItems(1).build();
+  }
 
   @Override
   public StorageIF<Event> getQueue() {
-    return $eventsQueue;
+    return eventQueue;
   }
 
   @Override
   public StorageIF<ServerSettings> getSettings() {
-    return $settingsStore;
-  }
-
-  public static InMemoryStorageProviderBuilder builder() {
-    return new InMemoryStorageProviderBuilder();
-  }
-
-  public static class InMemoryStorageProviderBuilder
-      extends InMemoryStroageProviderInternalBuilder {
-    @Override
-    public InMemoryStorageProvider build() {
-      InMemoryStorageProvider provider = super.build();
-      provider.init();
-
-      return provider;
-    }
-  }
-
-  private void init() {
-    $eventsQueue = InMemoryStorage.<Event>builder().maxItems(maxQueueItems).build();
-    $settingsStore = InMemoryStorage.<ServerSettings>builder().maxItems(1).build();
+    return settingsStore;
   }
 }

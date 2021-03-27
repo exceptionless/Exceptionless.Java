@@ -1,12 +1,14 @@
 package com.prashantchaubey.exceptionlessclient.models.settings;
 
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
+import lombok.experimental.NonFinal;
 
 import java.util.*;
 
 @Builder
-@Getter
+@Value
+@NonFinal
 public class ServerSettings {
   private long version;
   @Builder.Default private Map<String, String> settings = new HashMap<>();

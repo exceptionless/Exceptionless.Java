@@ -13,19 +13,25 @@ import lombok.Getter;
 
 import java.util.*;
 
-@Builder
-@Getter
 public class DuplicateCheckerPlugin implements EventPluginIF {
   private LogIF log;
-  @Builder.Default private int mergedEventsResubmissionTimerInSecs = 30;
-  @Builder.Default private int maxHashesCount = 50;
+  private int maxHashesCount;
+  private Queue<MergedEvent> mergedEvents;
+  private Timer mergedEventsResubmissionTimer;
+  private List<TimeStampedHash> hashes;
 
-  // lombok ignored fields;
-  @Builder.Default private Queue<MergedEvent> mergedEvents = new LinkedList<>();
-  @Builder.Default private Timer mergedEventsResubmissionTimer = new Timer();
-  @Builder.Default private List<TimeStampedHash> hashes = new ArrayList<>();
+  @Builder
+  public DuplicateCheckerPlugin(
+      LogIF log, Integer mergedEventsResubmissionTimerInSecs, Integer maxHashesCount) {
+    this.log = log;
+    this.maxHashesCount = maxHashesCount == null ? 50 : maxHashesCount;
+    this.mergedEvents = new ArrayDeque<>();
+    this.mergedEventsResubmissionTimer = new Timer();
+    this.hashes = new ArrayList<>();
+    init(mergedEventsResubmissionTimerInSecs == null ? 30 : mergedEventsResubmissionTimerInSecs);
+  }
 
-  {
+  private void init(Integer mergedEventsResubmissionTimerInSecs) {
     mergedEventsResubmissionTimer.schedule(
         new TimerTask() {
           @Override

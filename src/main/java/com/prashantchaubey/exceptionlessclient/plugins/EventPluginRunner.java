@@ -3,15 +3,17 @@ package com.prashantchaubey.exceptionlessclient.plugins;
 import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationManager;
 import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
 import lombok.Builder;
-import lombok.Getter;
 
 import java.util.List;
 import java.util.function.Consumer;
 
-@Builder
-@Getter
 public class EventPluginRunner {
   private ConfigurationManager configurationManager;
+
+  @Builder
+  public EventPluginRunner(ConfigurationManager configurationManager) {
+    this.configurationManager = configurationManager;
+  }
 
   public void run(EventPluginContext eventPluginContext, Consumer<EventPluginContext> handler) {
     List<EventPluginIF> plugins = configurationManager.getPlugins();
@@ -34,7 +36,8 @@ public class EventPluginRunner {
           }
         });
 
-    plugins.sort((o1, o2) -> o2.getPriority() - o1.getPriority());
+    plugins.sort(
+        (o1, o2) -> o2.getPriority() - o1.getPriority()); // todo move this to configuration manager
     plugins.forEach(
         plugin -> {
           if (eventPluginContext.getContext().isEventCancelled()) {

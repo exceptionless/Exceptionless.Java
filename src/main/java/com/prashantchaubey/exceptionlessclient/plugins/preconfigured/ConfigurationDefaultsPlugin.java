@@ -5,11 +5,11 @@ import com.prashantchaubey.exceptionlessclient.models.Event;
 import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
-import lombok.Getter;
 
-@Builder
-@Getter
 public class ConfigurationDefaultsPlugin implements EventPluginIF {
+  @Builder
+  public ConfigurationDefaultsPlugin() {}
+
   @Override
   public int getPriority() {
     return 10;

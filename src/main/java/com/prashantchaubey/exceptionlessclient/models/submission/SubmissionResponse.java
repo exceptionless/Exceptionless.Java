@@ -1,10 +1,12 @@
 package com.prashantchaubey.exceptionlessclient.models.submission;
 
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
+import lombok.experimental.NonFinal;
 
 @Builder
-@Getter
+@Value
+@NonFinal
 public class SubmissionResponse {
   private int statusCode;
   private String message;

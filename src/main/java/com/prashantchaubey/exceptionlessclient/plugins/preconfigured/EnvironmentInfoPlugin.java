@@ -7,11 +7,11 @@ import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
 import com.prashantchaubey.exceptionlessclient.models.services.EnvironmentInfoGetArgs;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
-import lombok.Getter;
 
-@Builder
-@Getter
 public class EnvironmentInfoPlugin implements EventPluginIF {
+  @Builder
+  public EnvironmentInfoPlugin() {}
+
   @Override
   public int getPriority() {
     return 80;

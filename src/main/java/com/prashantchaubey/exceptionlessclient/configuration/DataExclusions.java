@@ -1,14 +1,12 @@
 package com.prashantchaubey.exceptionlessclient.configuration;
 
 import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
 import java.util.Set;
 
 @Builder
-@Getter
-@Setter
+@Data
 public class DataExclusions {
   private boolean queryString;
   private boolean postData;

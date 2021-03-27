@@ -1,10 +1,14 @@
 package com.prashantchaubey.exceptionlessclient.models.services.error;
 
-import lombok.Getter;
+import lombok.EqualsAndHashCode;
+import lombok.Value;
+import lombok.experimental.NonFinal;
 import lombok.experimental.SuperBuilder;
 
 @SuperBuilder
-@Getter
+@Value
+@NonFinal
+@EqualsAndHashCode(callSuper = true)
 public class StackFrame extends Method {
   private String filename;
   private int lineNumber;

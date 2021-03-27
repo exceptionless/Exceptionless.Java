@@ -1,10 +1,10 @@
 package com.prashantchaubey.exceptionlessclient.configuration;
 
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
 
 @Builder
-@Getter
+@Value
 public class Configuration {
   public static final String USER_AGENT = "exceptionless-java";
 

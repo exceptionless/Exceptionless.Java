@@ -7,37 +7,38 @@ import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventType;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
-import lombok.Getter;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-@Builder
-@Getter
 public class ErrorPlugin implements EventPluginIF {
 
-  @Builder.Default
-  private Set<String> $dataExclusions =
-      new HashSet<>(
-          Arrays.asList(
-              "arguments",
-              "column",
-              "columnNumber",
-              "description",
-              "fileName",
-              "message",
-              "name",
-              "number",
-              "line",
-              "lineNumber",
-              "opera#sourceloc",
-              "sourceId",
-              "sourceURL",
-              "stack",
-              "stackArray",
-              "stacktrace"));
+  private Set<String> dataExclusions;
+
+  @Builder
+  public ErrorPlugin() {
+    this.dataExclusions =
+        new HashSet<>(
+            Arrays.asList(
+                "arguments",
+                "column",
+                "columnNumber",
+                "description",
+                "fileName",
+                "message",
+                "name",
+                "number",
+                "line",
+                "lineNumber",
+                "opera#sourceloc",
+                "sourceId",
+                "sourceURL",
+                "stack",
+                "stackArray",
+                "stacktrace"));
+  }
 
   @Override
   public int getPriority() {
@@ -59,7 +60,7 @@ public class ErrorPlugin implements EventPluginIF {
             EventPropertyKey.ERROR.value(),
             configurationManager.getErrorParser().parse(exception)));
     Set<String> dataExclusions = new HashSet<>(configurationManager.getDataExclusions());
-    dataExclusions.addAll($dataExclusions);
+    dataExclusions.addAll(this.dataExclusions);
     event.addData(Map.of(EventPropertyKey.EXTRA.value(), exception), dataExclusions);
   }
 }

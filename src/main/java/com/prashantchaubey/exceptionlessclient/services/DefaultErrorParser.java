@@ -2,12 +2,16 @@ package com.prashantchaubey.exceptionlessclient.services;
 
 import com.prashantchaubey.exceptionlessclient.models.services.error.Error;
 import com.prashantchaubey.exceptionlessclient.models.services.error.StackFrame;
+import lombok.Builder;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class DefaultErrorParser implements ErrorParserIF {
+  @Builder
+  public DefaultErrorParser() {}
+
   @Override
   public Error parse(Exception exception) {
     return Error.builder()

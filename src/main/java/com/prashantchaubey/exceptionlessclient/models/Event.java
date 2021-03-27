@@ -7,9 +7,9 @@ import com.prashantchaubey.exceptionlessclient.models.services.EnvironmentInfo;
 import com.prashantchaubey.exceptionlessclient.models.services.error.Error;
 import com.prashantchaubey.exceptionlessclient.queue.EventDataFilter;
 import com.prashantchaubey.exceptionlessclient.queue.EventValidator;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.SuperBuilder;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -17,21 +17,53 @@ import java.util.stream.Collectors;
 
 import static com.prashantchaubey.exceptionlessclient.utils.EventUtils.safeGetAs;
 
-@SuperBuilder
-@Getter
+// Warning `SuperBuilder` will not work for any class extending this. This class breaks the chain
+// for customization
+@Data
+@EqualsAndHashCode(callSuper = true)
 public class Event extends Model {
-  @Setter private String type;
+  private String type;
   private String source;
-  @Setter private LocalDate date;
+  private LocalDate date;
   private Set<String> tags;
   private String message;
   private String geo;
   private long value;
-  @Setter private String referenceId;
-  @Setter private Long count;
+  private String referenceId;
+  private Long count;
 
-  public void addTags(String... tags) {
-    this.tags.addAll(Arrays.asList(tags));
+  @Builder(builderClassName = "EventInternalBuilder")
+  public Event(
+      String type,
+      String source,
+      LocalDate date,
+      Set<String> tags,
+      String message,
+      String geo,
+      long value,
+      String referenceId,
+      Long count,
+      Map<String, Object> data,
+      Set<String> dataExclusions) {
+    this.type = type;
+    this.source = source;
+    this.date = date;
+    this.tags = tags == null ? new HashSet<>() : tags;
+    this.message = message;
+    this.geo = geo;
+    this.value = value;
+    this.referenceId = referenceId;
+    this.count = count;
+    initData(data == null ? new HashMap<>() : data, dataExclusions);
+  }
+
+  private void initData(Map<String, Object> data, Set<String> dataExclusions) {
+    EventDataFilter eventDataFilter = EventDataFilter.builder().exclusions(dataExclusions).build();
+    this.data =
+        data.entrySet().stream()
+            .collect(
+                Collectors.toMap(
+                    Map.Entry::getKey, entry -> eventDataFilter.filter(entry.getValue())));
   }
 
   public void addData(Map<String, Object> data) {
@@ -46,107 +78,152 @@ public class Event extends Model {
     this.data.putAll(data);
   }
 
-  public void addEnvironmentInfo(EnvironmentInfo environmentInfo) {
-    data.put(EventPropertyKey.ENVIRONMENT.value(), environmentInfo);
+  public void addTags(String... tags) {
+    this.tags.addAll(Arrays.asList(tags));
   }
 
-  public Error getError() {
-    return safeGetAs(data.get(EventPropertyKey.ERROR.value()), Error.class);
+  public void addEnvironmentInfo(EnvironmentInfo environmentInfo) {
+    data.put(EventPropertyKey.ENVIRONMENT.value(), environmentInfo);
   }
 
   public void addSubmissionMethod(String submissionMethod) {
     data.put(EventPropertyKey.SUBMISSION_METHOD.value(), submissionMethod);
   }
 
-  public static EventBuilderImpl builder(Set<String> dataExclusions) {
-    return new EventBuilderImpl(dataExclusions);
+  public Error getError() {
+    return safeGetAs(data.get(EventPropertyKey.ERROR.value()), Error.class);
   }
 
-  public static final class EventBuilderImpl extends EventBuilder<Event, EventBuilderImpl> {
-    private EventDataFilter eventDataFilter;
-    // lombok builder create private fields in the builder class so we can't access `data` from
-    // `Model` even though it is `protected`. So we will use this object as an proxy.
-    private Map<String, Object> data = new HashMap<>();
+  public static EventBuilder builder() {
+    return new EventBuilder();
+  }
 
-    EventBuilderImpl(Set<String> dataExclusions) {
-      this.eventDataFilter = EventDataFilter.builder().exclusions(dataExclusions).build();
-    }
-
+  public static final class EventBuilder extends EventInternalBuilder {
     @Override
-    public EventBuilderImpl referenceId(String referenceId) {
+    public EventBuilder referenceId(String referenceId) {
       EventValidator.validateIdentifier(referenceId);
-
-      return super.referenceId(referenceId);
+      super.referenceId(referenceId);
+      return this;
     }
 
-    public EventBuilderImpl eventReference(String name, String id) {
+    public EventBuilder eventReference(String name, String id) {
       EventValidator.validateIdentifier(id);
       return property(String.format("%s:%s", EventPropertyKey.REF.value(), name), id);
     }
 
-    public EventBuilderImpl property(String name, Object value) {
-      value = eventDataFilter.filter(value);
-      data.put(name, value);
-      return super.data(data);
+    public EventBuilder property(String name, Object value) {
+      if (super.data == null) {
+        super.data(new HashMap<>());
+      }
+
+      super.data.put(name, value);
+      return this;
     }
 
-    public EventBuilderImpl geo(int latitude, int longitude) {
+    @Override
+    public EventBuilder type(String type) {
+      super.type(type);
+      return this;
+    }
+
+    @Override
+    public EventBuilder source(String source) {
+      super.source(source);
+      return this;
+    }
+
+    @Override
+    public EventBuilder date(LocalDate date) {
+      super.date(date);
+      return this;
+    }
+
+    @Override
+    public EventBuilder tags(Set<String> tags) {
+      super.tags(tags);
+      return this;
+    }
+
+    public EventBuilder tags(String... tags) {
+      if (super.tags == null) {
+        return tags(new HashSet<>(Arrays.asList(tags)));
+      }
+
+      super.tags.addAll(new HashSet<>(Arrays.asList(tags)));
+      return this;
+    }
+
+    public EventBuilder markAsCritical() {
+      return tags(EventTag.CRITICAL.value());
+    }
+
+    @Override
+    public EventBuilder message(String message) {
+      super.message(message);
+      return this;
+    }
+
+    public EventBuilder geo(int latitude, int longitude) {
       EventValidator.validateGeo(latitude, longitude);
-
-      return super.geo(String.format("%s,%s", latitude, longitude));
+      return geo(String.format("%s,%s", latitude, longitude));
     }
 
-    public EventBuilderImpl userIdentity(UserInfo userInfo) {
+    @Override
+    public EventBuilder geo(String geo) {
+      super.geo(geo);
+      return this;
+    }
+
+    @Override
+    public EventBuilder value(long value) {
+      super.value(value);
+      return this;
+    }
+
+    @Override
+    public EventBuilder count(Long count) {
+      super.count(count);
+      return this;
+    }
+
+    @Override
+    public EventBuilder data(Map<String, Object> data) {
+      super.data(data);
+      return this;
+    }
+
+    @Override
+    public EventBuilder dataExclusions(Set<String> dataExclusions) {
+      super.dataExclusions(dataExclusions);
+      return this;
+    }
+
+    public EventBuilder userIdentity(UserInfo userInfo) {
       return property(EventPropertyKey.USER.value(), userInfo);
     }
 
-    public EventBuilderImpl userIdentity(String identity) {
+    public EventBuilder userIdentity(String identity) {
       return userIdentity(UserInfo.builder().identity(identity).build());
     }
 
-    public EventBuilderImpl userIdentity(String identity, String name) {
+    public EventBuilder userIdentity(String identity, String name) {
       return userIdentity(UserInfo.builder().identity(identity).name(name).build());
     }
 
-    public EventBuilderImpl userDescription(String emailAddress, String descripton) {
+    public EventBuilder userDescription(String emailAddress, String descripton) {
       return property(
           EventPropertyKey.USER_DESCRIPTION.value(),
           UserDescription.builder().emailAddress(emailAddress).description(descripton).build());
     }
 
-    public EventBuilderImpl manualStackingInfo(Map<String, String> signatureData, String title) {
+    public EventBuilder manualStackingInfo(Map<String, String> signatureData, String title) {
       return property(
           EventPropertyKey.STACK.value(),
           ManualStackingInfo.builder().title(title).signatureData(signatureData).build());
     }
 
-    public EventBuilderImpl manualStackingKey(String manualStackingKey, String title) {
+    public EventBuilder manualStackingKey(String manualStackingKey, String title) {
       return manualStackingInfo(Map.of("ManualStackingKey", manualStackingKey), title);
-    }
-
-    public EventBuilderImpl addTags(String... tags) {
-      super.tags.addAll(new HashSet<>(Arrays.asList(tags)));
-      return this;
-    }
-
-    public EventBuilderImpl markAsCritical() {
-      return addTags(EventTag.CRITICAL.value());
-    }
-
-    @Override
-    public EventBuilderImpl data(Map<String, Object> data) {
-      data =
-          data.entrySet().stream()
-              .collect(
-                  Collectors.toMap(
-                      Map.Entry::getKey, entry -> eventDataFilter.filter(entry.getValue())));
-      this.data = data;
-      return super.data(data);
-    }
-
-    @Override
-    public Event build() {
-      return new Event(this);
     }
   }
 }
