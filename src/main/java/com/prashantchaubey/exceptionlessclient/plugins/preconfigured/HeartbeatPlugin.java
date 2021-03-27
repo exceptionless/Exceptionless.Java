@@ -5,8 +5,20 @@ import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
 import com.prashantchaubey.exceptionlessclient.models.UserInfo;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
+import lombok.Builder;
+import lombok.Getter;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
+@Builder(builderClassName = "HeartbeatPluginInternalBuilder")
+@Getter
 public class HeartbeatPlugin implements EventPluginIF {
+  private int heartbeatInterval;
+
+  private Timer $heartbeatTimer = new Timer();
+  private String $identity;
+
   @Override
   public int getPriority() {
     return 100;
@@ -20,6 +32,14 @@ public class HeartbeatPlugin implements EventPluginIF {
     if (userInfo == null) {
       return;
     }
-    configurationManager.submitSessionHeartbeat(userInfo.getIdentity());
+    $heartbeatTimer.cancel(); // Cancel previous tasks
+    $heartbeatTimer.schedule(
+        new TimerTask() {
+          @Override
+          public void run() {
+            configurationManager.submitSessionHeartbeat(userInfo.getIdentity());
+          }
+        },
+        heartbeatInterval);
   }
 }

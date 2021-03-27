@@ -6,7 +6,7 @@ import lombok.Getter;
 @Builder
 @Getter
 public class Configuration {
-  public static final String USER_AGENT = "exceptionless-java/1.0";
+  public static final String USER_AGENT = "exceptionless-java";
 
   private String apiKey;
   @Builder.Default private String serverUrl = "https://collector.exceptionless.io";

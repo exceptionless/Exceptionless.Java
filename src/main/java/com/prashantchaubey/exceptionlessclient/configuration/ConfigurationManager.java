@@ -6,7 +6,10 @@ import com.prashantchaubey.exceptionlessclient.lastreferenceidmanager.LastRefere
 import com.prashantchaubey.exceptionlessclient.logging.LogIF;
 import com.prashantchaubey.exceptionlessclient.logging.NullLog;
 import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
+import com.prashantchaubey.exceptionlessclient.models.UserInfo;
+import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
+import com.prashantchaubey.exceptionlessclient.plugins.preconfigured.*;
 import com.prashantchaubey.exceptionlessclient.queue.EventQueueIF;
 import com.prashantchaubey.exceptionlessclient.services.EnvironmentInfoCollectorIF;
 import com.prashantchaubey.exceptionlessclient.services.ErrorParserIF;
@@ -22,6 +25,8 @@ import lombok.Getter;
 
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Builder(builderClassName = "ConfigurationInternalBuilder")
 @Getter
@@ -34,9 +39,7 @@ public class ConfigurationManager {
 
   @Builder.Default private LogIF log = new NullLog();
   private ModuleCollectorIF moduleCollector;
-  // By default `DefaultSubmissionClient` will be used; See `init()`
   private SubmissionClientIF submissionClient;
-  // By default `DefaultSettingsClient` will be used; See `init()`
   private SettingsClientIF settingsClient;
   private StorageProviderIF storageProvider;
   private EventQueueIF queue;
@@ -45,10 +48,13 @@ public class ConfigurationManager {
   @Builder.Default private Map<String, Object> defaultData = new HashMap<>();
   @Builder.Default private List<EventPluginIF> plugins = new ArrayList<>();
 
-  // lombok ignored fields
+  @Builder.Default
+  private List<Consumer<ConfigurationManager>> onChangedHandlers = new ArrayList<>();
+
   private SettingsManager $settingsManager;
   private Map<String, String> $settings = new HashMap<>();
-  private Set<String> $dataExclusions = new HashSet<>();
+  private Set<String> $userAgentBotPatterns = new HashSet<>();
+  private DataExclusions $dataExclusions = DataExclusions.builder().build();
 
   public static ConfigurationManager from(String apiKey, String serverUrl) {
     return ConfigurationManager.builder()
@@ -61,19 +67,23 @@ public class ConfigurationManager {
   }
 
   public void addDataExclusions(String... exclusions) {
-    $dataExclusions.addAll(Arrays.asList(exclusions));
+    $dataExclusions.getOthers().addAll(Arrays.asList(exclusions));
   }
 
   public Set<String> getDataExclusions() {
     String serverExclusions = $settings.getOrDefault("@@DataExclusions", "");
     Set<String> combinedExclusions = new HashSet<>(Arrays.asList(serverExclusions.split(",")));
-    combinedExclusions.addAll($dataExclusions);
+    combinedExclusions.addAll($dataExclusions.getOthers());
     return combinedExclusions;
   }
 
   public void submitSessionHeartbeat(String sessionOrUserId) {
     log.info(String.format("Submitting session heartbeat: %s", sessionOrUserId));
     submissionClient.sendHeartBeat(sessionOrUserId, false);
+  }
+
+  public void addUserAgentBotPatterns(String... userAgentBotPatterns) {
+    $userAgentBotPatterns.addAll(Arrays.asList(userAgentBotPatterns));
   }
 
   public void addPlugin(EventPluginIF eventPlugin) {
@@ -114,6 +124,55 @@ public class ConfigurationManager {
         });
   }
 
+  public void removePlugin(String name) {
+    plugins =
+        plugins.stream()
+            .filter(eventPlugin -> !eventPlugin.getName().equals(name))
+            .collect(Collectors.toList());
+  }
+
+  public void setVersion(String version) {
+    this.defaultData.put(EventPropertyKey.VERSION.value(), version);
+  }
+
+  public void removeUserIdentity() {
+    this.defaultData.remove(EventPropertyKey.USER.value());
+  }
+
+  public void setUserIdentity(String name, String identity) {
+    setUserIdentity(UserInfo.builder().name(name).identity(identity).build());
+  }
+
+  public void setUserIdentity(UserInfo userInfo) {
+    this.defaultData.put(EventPropertyKey.USER.value(), userInfo);
+  }
+
+  public void useSession() {
+    useSessions(30000);
+  }
+
+  public void useSessions(int heartbeatInterval) {
+    addPlugin(HeartbeatPlugin.builder().build());
+  }
+
+  public void useReferenceIds() {
+    addPlugin(ReferenceIdPlugin.builder().build());
+  }
+
+  public void onChange(Consumer<ConfigurationManager> onChangedHandler) {
+    onChangedHandlers.add(onChangedHandler);
+  }
+
+  private void changed() {
+    for (Consumer<ConfigurationManager> onChangedHandler : onChangedHandlers) {
+      try {
+        onChangedHandler.accept(this);
+      } catch (Exception e) {
+        log.error(String.format("Error calling on changed handler: %s", e.getMessage()), e);
+      }
+    }
+  }
+
   public static ConfigurationBuilder builder() {
     return new ConfigurationBuilder();
   }
@@ -128,7 +187,6 @@ public class ConfigurationManager {
     }
   }
 
-  // todo try to inject the dependencies using spring
   // Order of field initialization is very important
   private void init() {
     if (!configuration.isApiKeyValid()) {
@@ -153,5 +211,17 @@ public class ConfigurationManager {
               .settingsManager($settingsManager)
               .build();
     }
+
+    configureDefaultPlugins();
+  }
+
+  private void configureDefaultPlugins() {
+    addPlugin(ConfigurationDefaultsPlugin.builder().build());
+    addPlugin(ErrorPlugin.builder().build());
+    addPlugin(DuplicateCheckerPlugin.builder().build());
+    addPlugin(EventExclusionPlugin.builder().build());
+    addPlugin(ModuleInfoPlugin.builder().build());
+    addPlugin(EnvironmentInfoPlugin.builder().build());
+    addPlugin(SubmissionMethodPlugin.builder().build());
   }
 }

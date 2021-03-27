@@ -8,7 +8,7 @@ import com.prashantchaubey.exceptionlessclient.models.UserDescription;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventType;
 import com.prashantchaubey.exceptionlessclient.models.submission.SubmissionResponse;
-import com.prashantchaubey.exceptionlessclient.plugins.EventPluginManager;
+import com.prashantchaubey.exceptionlessclient.plugins.EventPluginRunner;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -25,7 +25,7 @@ public class ExceptionlessClient {
   private ConfigurationManager configurationManager;
 
   // lombok ignored fields
-  private EventPluginManager $eventPluginManager;
+  private EventPluginRunner $eventPluginRunner;
   private Timer $updateSettingsTimer = new Timer();
 
   public static ExceptionlessClient from(String apiKey, String serverUrl) {
@@ -118,7 +118,7 @@ public class ExceptionlessClient {
 
   private void submitEvent(
       EventPluginContext eventPluginContext, Consumer<EventPluginContext> handler) {
-    $eventPluginManager.run(
+    $eventPluginRunner.run(
         eventPluginContext,
         evc -> {
           if (evc.getContext().isEventCancelled()) {
@@ -191,7 +191,7 @@ public class ExceptionlessClient {
         },
         UPDATE_SETTINGS_TIMER_INITIAL_DELAY,
         configurationManager.getConfiguration().getUpdateSettingsWhenIdleInterval());
-    $eventPluginManager =
-        EventPluginManager.builder().configurationManager(configurationManager).build();
+    $eventPluginRunner =
+        EventPluginRunner.builder().configurationManager(configurationManager).build();
   }
 }

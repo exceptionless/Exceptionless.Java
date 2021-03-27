@@ -2,16 +2,15 @@ package com.prashantchaubey.exceptionlessclient.plugins;
 
 import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationManager;
 import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
-import com.prashantchaubey.exceptionlessclient.plugins.preconfigured.*;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.util.List;
 import java.util.function.Consumer;
 
-@Builder(builderClassName = "EventPluginInternalBuilder")
+@Builder
 @Getter
-public class EventPluginManager {
+public class EventPluginRunner {
   private ConfigurationManager configurationManager;
 
   public void run(EventPluginContext eventPluginContext, Consumer<EventPluginContext> handler) {
@@ -56,28 +55,5 @@ public class EventPluginManager {
             eventPluginContext.getContext().markAsCancelled();
           }
         });
-  }
-
-  public static EventPluginBuilder builder() {
-    return new EventPluginBuilder();
-  }
-
-  public static class EventPluginBuilder extends EventPluginInternalBuilder {
-    @Override
-    public EventPluginManager build() {
-      EventPluginManager manager = super.build();
-      manager.init();
-      return manager;
-    }
-  }
-
-  private void init() {
-    configurationManager.addPlugin(ConfigurationDefaultsPlugin.builder().build());
-    configurationManager.addPlugin(ErrorPlugin.builder().build());
-    configurationManager.addPlugin(DuplicateCheckerPlugin.builder().build());
-    configurationManager.addPlugin(EventExclusionPlugin.builder().build());
-    configurationManager.addPlugin(ModuleInfoPlugin.builder().build());
-    configurationManager.addPlugin(EnvironmentInfoPlugin.builder().build());
-    configurationManager.addPlugin(SubmissionMethodPlugin.builder().build());
   }
 }
