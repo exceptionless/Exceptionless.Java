@@ -4,9 +4,6 @@ import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationManage
 import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
 import lombok.Builder;
 
-import java.util.List;
-import java.util.function.Consumer;
-
 public class EventPluginRunner {
   private ConfigurationManager configurationManager;
 
@@ -15,48 +12,43 @@ public class EventPluginRunner {
     this.configurationManager = configurationManager;
   }
 
-  public void run(EventPluginContext eventPluginContext, Consumer<EventPluginContext> handler) {
-    List<EventPluginIF> plugins = configurationManager.getPlugins();
-    // Handler will run first
-    plugins.add(
-        0,
-        new EventPluginIF() {
-          @Override
-          public int getPriority() {
-            return Integer.MAX_VALUE;
-          }
+  public void run(EventPluginContext eventPluginContext) {
+    configurationManager
+        .getPlugins()
+        .forEach(
+            plugin -> {
+              if (eventPluginContext.getContext().isEventCancelled()) {
+                return;
+              }
 
-          @Override
-          public String getName() {
-            return "handler";
-          }
+              try {
+                plugin.run(eventPluginContext, configurationManager);
 
-          @Override
-          public void run(
-              EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
-            handler.accept(eventPluginContext);
-          }
-        });
+              } catch (Exception e) {
+                configurationManager
+                    .getLog()
+                    .error(
+                        String.format(
+                            "Error running plugin: %s: %s. Discarding event",
+                            plugin.getName(), e.getMessage()),
+                        e);
+                eventPluginContext.getContext().setEventCancelled(true);
+              }
+            });
 
-    plugins.forEach(
-        plugin -> {
-          if (eventPluginContext.getContext().isEventCancelled()) {
-            return;
-          }
+    if (eventPluginContext.getContext().isEventCancelled()) {
+      configurationManager
+          .getLog()
+          .info(
+              String.format(
+                  "Event cancelled during plugin runs; Not submitting: %s",
+                  eventPluginContext.getEvent().getReferenceId()));
+      return;
+    }
 
-          try {
-            plugin.run(eventPluginContext, configurationManager);
-
-          } catch (Exception e) {
-            configurationManager
-                .getLog()
-                .error(
-                    String.format(
-                        "Error running plugin: %s: %s. Discarding event",
-                        plugin.getName(), e.getMessage()),
-                    e);
-            eventPluginContext.getContext().setEventCancelled(true);
-          }
-        });
+    configurationManager.getQueue().enqueue(eventPluginContext.getEvent());
+    configurationManager
+        .getLastReferenceIdManager()
+        .setLast(eventPluginContext.getEvent().getReferenceId());
   }
 }

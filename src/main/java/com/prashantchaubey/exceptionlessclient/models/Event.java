@@ -53,7 +53,10 @@ public class Event extends Model {
     this.message = message;
     this.geo = geo;
     this.value = value;
-    this.referenceId = referenceId;
+    this.referenceId =
+        referenceId == null
+            ? String.format("%s-%s", Thread.currentThread().getId(), UUID.randomUUID())
+            : referenceId;
     this.count = count;
     initData(data == null ? new HashMap<>() : data, dataExclusions);
   }

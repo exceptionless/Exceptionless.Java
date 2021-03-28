@@ -10,7 +10,6 @@ import com.prashantchaubey.exceptionlessclient.models.UserInfo;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import com.prashantchaubey.exceptionlessclient.plugins.preconfigured.HeartbeatPlugin;
-import com.prashantchaubey.exceptionlessclient.plugins.preconfigured.ReferenceIdPlugin;
 import com.prashantchaubey.exceptionlessclient.queue.DefaultEventQueue;
 import com.prashantchaubey.exceptionlessclient.queue.EventQueueIF;
 import com.prashantchaubey.exceptionlessclient.services.*;
@@ -212,10 +211,6 @@ public class ConfigurationManager {
 
   public void useSessions(int heartbeatInterval) {
     addPlugin(HeartbeatPlugin.builder().heartbeatInterval(heartbeatInterval).build());
-  }
-
-  public void useReferenceIds() {
-    addPlugin(ReferenceIdPlugin.builder().build());
   }
 
   public void onChanged(Consumer<ConfigurationManager> onChangedHandler) {

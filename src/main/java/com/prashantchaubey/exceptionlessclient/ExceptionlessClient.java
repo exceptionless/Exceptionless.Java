@@ -15,7 +15,6 @@ import lombok.Builder;
 import java.time.LocalDate;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.function.Consumer;
 
 public class ExceptionlessClient {
   private static final int UPDATE_SETTINGS_TIMER_INITIAL_DELAY = 5000;
@@ -62,18 +61,17 @@ public class ExceptionlessClient {
         .build();
   }
 
-  public void submitException(Exception exception, Consumer<EventPluginContext> handler) {
+  public void submitException(Exception exception) {
     Event event = createException().build();
     PluginContext pluginContext = PluginContext.builder().exception(exception).build();
-    submitEvent(EventPluginContext.builder().event(event).context(pluginContext).build(), handler);
+    submitEvent(EventPluginContext.builder().event(event).context(pluginContext).build());
   }
 
   private Event.EventBuilder createException() {
     return createEvent().type(EventType.ERROR.value());
   }
 
-  public void submitUnhandledException(
-      Exception exception, String submissionMethod, Consumer<EventPluginContext> handler) {
+  public void submitUnhandledException(Exception exception, String submissionMethod) {
     Event event = createException().build();
     PluginContext pluginContext =
         PluginContext.builder()
@@ -81,30 +79,29 @@ public class ExceptionlessClient {
             .unhandledError(true)
             .submissionMethod(submissionMethod)
             .build();
-    submitEvent(EventPluginContext.builder().event(event).context(pluginContext).build(), handler);
+    submitEvent(EventPluginContext.builder().event(event).context(pluginContext).build());
   }
 
-  public void submitFeatureUsage(String feature, Consumer<EventPluginContext> handler) {
+  public void submitFeatureUsage(String feature) {
     Event event = createFeatureUsage(feature).build();
-    submitEvent(EventPluginContext.from(event), handler);
+    submitEvent(EventPluginContext.from(event));
   }
 
   private Event.EventBuilder createFeatureUsage(String feature) {
     return createEvent().type(EventType.USAGE.value()).source(feature);
   }
 
-  public void submitLog(String message, Consumer<EventPluginContext> handler) {
-    submitLog(message, null, null, handler);
+  public void submitLog(String message) {
+    submitLog(message, null, null);
   }
 
-  public void submitLog(String message, String source, Consumer<EventPluginContext> handler) {
-    submitLog(message, source, null, handler);
+  public void submitLog(String message, String source) {
+    submitLog(message, source, null);
   }
 
-  public void submitLog(
-      String message, String source, String level, Consumer<EventPluginContext> handler) {
+  public void submitLog(String message, String source, String level) {
     Event event = createLog(message, source, level).build();
-    submitEvent(EventPluginContext.from(event), handler);
+    submitEvent(EventPluginContext.from(event));
   }
 
   private Event.EventBuilder createLog(String message, String source, String level) {
@@ -122,18 +119,18 @@ public class ExceptionlessClient {
     return builder.property(EventPropertyKey.LOG_LEVEL.value(), level);
   }
 
-  public void submitNotFound(String resource, Consumer<EventPluginContext> handler) {
+  public void submitNotFound(String resource) {
     Event event = createNotFound(resource).build();
-    submitEvent(EventPluginContext.from(event), handler);
+    submitEvent(EventPluginContext.from(event));
   }
 
   private Event.EventBuilder createNotFound(String resource) {
     return createEvent().type(EventType.NOT_FOUND.value()).source(resource);
   }
 
-  public void submitSessionStart(Consumer<EventPluginContext> handler) {
+  public void submitSessionStart() {
     Event event = createSessionStart().build();
-    submitEvent(EventPluginContext.from(event), handler);
+    submitEvent(EventPluginContext.from(event));
   }
 
   private Event.EventBuilder createSessionStart() {
@@ -146,23 +143,9 @@ public class ExceptionlessClient {
         .date(LocalDate.now());
   }
 
-  //todo this should be async
-  private void submitEvent(
-      EventPluginContext eventPluginContext, Consumer<EventPluginContext> handler) {
-    eventPluginRunner.run(
-        eventPluginContext,
-        evc -> {
-          if (evc.getContext().isEventCancelled()) {
-            return;
-          }
-          configurationManager.getQueue().enqueue(evc.getEvent());
-          if (evc.getEvent().getReferenceId() != null) {
-            configurationManager
-                .getLastReferenceIdManager()
-                .setLast(evc.getEvent().getReferenceId());
-          }
-          handler.accept(evc);
-        });
+  // todo this should be async
+  private void submitEvent(EventPluginContext eventPluginContext) {
+    eventPluginRunner.run(eventPluginContext);
   }
 
   public void submitSessionEnd(String sessionOrUserId) {
