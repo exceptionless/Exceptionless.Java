@@ -6,14 +6,17 @@ import com.prashantchaubey.exceptionlessclient.lastreferenceidmanager.LastRefere
 import com.prashantchaubey.exceptionlessclient.logging.LogIF;
 import com.prashantchaubey.exceptionlessclient.logging.NullLog;
 import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
+import com.prashantchaubey.exceptionlessclient.models.UserInfo;
+import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
+import com.prashantchaubey.exceptionlessclient.plugins.preconfigured.HeartbeatPlugin;
+import com.prashantchaubey.exceptionlessclient.queue.DefaultEventQueue;
 import com.prashantchaubey.exceptionlessclient.queue.EventQueueIF;
-import com.prashantchaubey.exceptionlessclient.services.EnvironmentInfoCollectorIF;
-import com.prashantchaubey.exceptionlessclient.services.ErrorParserIF;
-import com.prashantchaubey.exceptionlessclient.services.ModuleCollectorIF;
+import com.prashantchaubey.exceptionlessclient.services.*;
 import com.prashantchaubey.exceptionlessclient.settings.DefaultSettingsClient;
 import com.prashantchaubey.exceptionlessclient.settings.SettingsClientIF;
 import com.prashantchaubey.exceptionlessclient.settings.SettingsManager;
+import com.prashantchaubey.exceptionlessclient.storage.InMemoryStorageProvider;
 import com.prashantchaubey.exceptionlessclient.storage.StorageProviderIF;
 import com.prashantchaubey.exceptionlessclient.submission.DefaultSubmissionClient;
 import com.prashantchaubey.exceptionlessclient.submission.SubmissionClientIF;
@@ -22,52 +25,126 @@ import lombok.Getter;
 
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
-@Builder(builderClassName = "ConfigurationInternalBuilder")
-@Getter
 public class ConfigurationManager {
-  private EnvironmentInfoCollectorIF environmentInfoCollector;
-  private ErrorParserIF errorParser;
+  @Getter private EnvironmentInfoCollectorIF environmentInfoCollector;
+  @Getter private ErrorParserIF errorParser;
+  @Getter private LastReferenceIdManagerIF lastReferenceIdManager;
+  @Getter private LogIF log;
+  @Getter private ModuleCollectorIF moduleCollector;
+  @Getter private RequestInfoCollectorIF requestInfoCollector;
+  @Getter private SubmissionClientIF submissionClient;
+  @Getter private EventQueueIF queue;
+  @Getter private Configuration configuration;
+  @Getter private Set<String> defaultTags;
+  @Getter private Map<String, Object> defaultData;
+  private List<Consumer<ConfigurationManager>> onChangedHandlers;
+  @Getter private SettingsManager settingsManager;
+  @Getter private Set<String> userAgentBotPatterns;
+  @Getter private PrivateInformationInclusions privateInformationInclusions;
+  private Set<String> dataExclusions;
+  private PluginManager pluginManager;
 
-  @Builder.Default
-  private LastReferenceIdManagerIF lastReferenceIdManager = new DefaultLastReferenceIdManager();
-
-  @Builder.Default private LogIF log = new NullLog();
-  private ModuleCollectorIF moduleCollector;
-  // By default `DefaultSubmissionClient` will be used; See `init()`
-  private SubmissionClientIF submissionClient;
-  // By default `DefaultSettingsClient` will be used; See `init()`
-  private SettingsClientIF settingsClient;
-  private StorageProviderIF storageProvider;
-  private EventQueueIF queue;
-  @Builder.Default private Configuration configuration = Configuration.defaultConfiguration();
-  @Builder.Default private Set<String> defaultTags = new HashSet<>();
-  @Builder.Default private Map<String, Object> defaultData = new HashMap<>();
-  @Builder.Default private List<EventPluginIF> plugins = new ArrayList<>();
-
-  // lombok ignored fields
-  private SettingsManager $settingsManager;
-  private Map<String, String> $settings = new HashMap<>();
-  private Set<String> $dataExclusions = new HashSet<>();
-
-  public static ConfigurationManager from(String apiKey, String serverUrl) {
-    return ConfigurationManager.builder()
-        .configuration(Configuration.builder().apiKey(apiKey).serverUrl(serverUrl).build())
-        .build();
+  @Builder
+  public ConfigurationManager(
+      EnvironmentInfoCollectorIF environmentInfoCollector,
+      ErrorParserIF errorParser,
+      LastReferenceIdManagerIF lastReferenceIdManager,
+      LogIF log,
+      ModuleCollectorIF moduleCollector,
+      RequestInfoCollectorIF requestInfoCollector,
+      SubmissionClientIF submissionClient,
+      SettingsClientIF settingsClient,
+      StorageProviderIF storageProvider,
+      EventQueueIF queue,
+      Configuration configuration,
+      Integer maxQueueItems,
+      Integer processingIntervalInSecs) {
+    this.log = log == null ? NullLog.builder().build() : log;
+    this.environmentInfoCollector =
+        environmentInfoCollector == null
+            ? DefaultEnvironmentInfoCollector.builder().log(this.log).build()
+            : environmentInfoCollector;
+    this.errorParser = errorParser == null ? DefaultErrorParser.builder().build() : errorParser;
+    this.lastReferenceIdManager =
+        lastReferenceIdManager == null
+            ? DefaultLastReferenceIdManager.builder().build()
+            : lastReferenceIdManager;
+    this.moduleCollector =
+        moduleCollector == null ? DefaultModuleCollector.builder().build() : moduleCollector;
+    this.requestInfoCollector =
+        requestInfoCollector == null
+            ? DefaultRequestInfoCollector.builder().log(this.log).build()
+            : requestInfoCollector;
+    this.settingsManager =
+        SettingsManager.builder()
+            .settingsClient(
+                settingsClient == null
+                    ? DefaultSettingsClient.builder().configuration(this.configuration).build()
+                    : settingsClient)
+            .log(log)
+            .build();
+    this.userAgentBotPatterns = new HashSet<>();
+    this.configuration =
+        configuration == null ? Configuration.defaultConfiguration() : configuration;
+    this.submissionClient =
+        submissionClient == null
+            ? DefaultSubmissionClient.builder()
+                .settingsManager(this.settingsManager)
+                .configuration(this.configuration)
+                .log(this.log)
+                .build()
+            : submissionClient;
+    this.queue =
+        queue == null
+            ? DefaultEventQueue.builder()
+                .configuration(this.configuration)
+                .log(this.log)
+                .processingIntervalInSecs(processingIntervalInSecs)
+                .storageProvider(
+                    storageProvider == null
+                        ? InMemoryStorageProvider.builder().maxQueueItems(maxQueueItems).build()
+                        : storageProvider)
+                .submissionClient(this.submissionClient)
+                .build()
+            : queue;
+    this.pluginManager = PluginManager.builder().log(this.log).build();
+    this.defaultData = new HashMap<>();
+    this.defaultTags = new HashSet<>();
+    this.onChangedHandlers = new ArrayList<>();
+    this.dataExclusions = new HashSet<>();
+    this.privateInformationInclusions = PrivateInformationInclusions.builder().build();
+    this.pluginManager = PluginManager.builder().log(this.log).build();
+    checkApiKeyIsValid();
   }
 
-  public SettingsManager getSettingsManager() {
-    return $settingsManager;
+  private void addPropertyChangeListeners() {
+    this.privateInformationInclusions.addPropertyChangeListener(ignored -> changed());
+    this.configuration.addPropertyChangeListener(ignored -> changed());
+    this.settingsManager.addPropertyChangeListener(ignored -> changed());
+  }
+
+  private void checkApiKeyIsValid() {
+    if (configuration.getApiKey() != null && configuration.getApiKey().length() > 10) {
+      return;
+    }
+
+    throw new ClientException(
+        String.format("Apikey is not valid: [%s]", this.configuration.getApiKey()));
   }
 
   public void addDataExclusions(String... exclusions) {
-    $dataExclusions.addAll(Arrays.asList(exclusions));
+    dataExclusions.addAll(Arrays.asList(exclusions));
+  }
+
+  public void addUserAgentBotPatterns(String... userAgentBotPatterns) {
+    this.userAgentBotPatterns.addAll(Arrays.asList(userAgentBotPatterns));
   }
 
   public Set<String> getDataExclusions() {
-    String serverExclusions = $settings.getOrDefault("@@DataExclusions", "");
-    Set<String> combinedExclusions = new HashSet<>(Arrays.asList(serverExclusions.split(",")));
-    combinedExclusions.addAll($dataExclusions);
+    Set<String> combinedExclusions = settingsManager.getSavedServerSettings().getDataExclusions();
+    combinedExclusions.addAll(dataExclusions);
     return combinedExclusions;
   }
 
@@ -77,13 +154,7 @@ public class ConfigurationManager {
   }
 
   public void addPlugin(EventPluginIF eventPlugin) {
-    if (plugins.stream().anyMatch(plugin -> plugin.getName().equals(eventPlugin.getName()))) {
-      log.info(
-          String.format(
-              "Can't add plugin, name: %s, priority: %s as a plugin with this name already configured",
-              eventPlugin.getName(), eventPlugin.getPriority()));
-    }
-    plugins.add(eventPlugin);
+    pluginManager.addPlugin(eventPlugin);
   }
 
   public void addPlugin(BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
@@ -114,44 +185,49 @@ public class ConfigurationManager {
         });
   }
 
-  public static ConfigurationBuilder builder() {
-    return new ConfigurationBuilder();
+  public void removePlugin(String name) {
+    pluginManager.removePlugin(name);
   }
 
-  public static class ConfigurationBuilder extends ConfigurationInternalBuilder {
-    @Override
-    public ConfigurationManager build() {
-      ConfigurationManager configurationManager = super.build();
-      configurationManager.init();
+  public void setVersion(String version) {
+    this.defaultData.put(EventPropertyKey.VERSION.value(), version);
+  }
 
-      return configurationManager;
+  public void removeUserIdentity() {
+    this.defaultData.remove(EventPropertyKey.USER.value());
+  }
+
+  public void setUserIdentity(String name, String identity) {
+    setUserIdentity(UserInfo.builder().name(name).identity(identity).build());
+  }
+
+  public void setUserIdentity(UserInfo userInfo) {
+    this.defaultData.put(EventPropertyKey.USER.value(), userInfo);
+  }
+
+  public void useSession() {
+    useSessions(30000);
+  }
+
+  public void useSessions(int heartbeatInterval) {
+    addPlugin(HeartbeatPlugin.builder().heartbeatInterval(heartbeatInterval).build());
+  }
+
+  public void onChanged(Consumer<ConfigurationManager> onChangedHandler) {
+    onChangedHandlers.add(onChangedHandler);
+  }
+
+  private void changed() {
+    for (Consumer<ConfigurationManager> onChangedHandler : onChangedHandlers) {
+      try {
+        onChangedHandler.accept(this);
+      } catch (Exception e) {
+        log.error(String.format("Error calling on changed handler: %s", e.getMessage()), e);
+      }
     }
   }
 
-  // todo try to inject the dependencies using spring
-  // Order of field initialization is very important
-  private void init() {
-    if (!configuration.isApiKeyValid()) {
-      throw new ClientException("Api key is not valid");
-    }
-
-    if (settingsClient == null) {
-      settingsClient = DefaultSettingsClient.builder().configuration(configuration).build();
-    }
-
-    $settingsManager =
-        SettingsManager.builder()
-            .configuration(configuration)
-            .settingsClient(settingsClient)
-            .log(log)
-            .build();
-
-    if (submissionClient == null) {
-      submissionClient =
-          DefaultSubmissionClient.builder()
-              .configuration(configuration)
-              .settingsManager($settingsManager)
-              .build();
-    }
+  public List<EventPluginIF> getPlugins() {
+    return pluginManager.getPlugins();
   }
 }

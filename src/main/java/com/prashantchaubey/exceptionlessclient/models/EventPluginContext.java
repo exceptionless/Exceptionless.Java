@@ -1,10 +1,12 @@
 package com.prashantchaubey.exceptionlessclient.models;
 
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
+import lombok.experimental.NonFinal;
 
 @Builder
-@Getter
+@Value
+@NonFinal
 public class EventPluginContext {
   private Event event;
   private PluginContext context;

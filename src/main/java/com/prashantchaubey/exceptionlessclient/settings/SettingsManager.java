@@ -1,28 +1,37 @@
 package com.prashantchaubey.exceptionlessclient.settings;
 
-import com.prashantchaubey.exceptionlessclient.configuration.Configuration;
 import com.prashantchaubey.exceptionlessclient.logging.LogIF;
 import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
 import com.prashantchaubey.exceptionlessclient.models.storage.StorageItem;
 import com.prashantchaubey.exceptionlessclient.models.submission.SettingsResponse;
 import com.prashantchaubey.exceptionlessclient.storage.StorageProviderIF;
 import lombok.Builder;
-import lombok.Getter;
 
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.util.Map;
 
-@Builder
-@Getter
 public class SettingsManager {
   private static final long DEFAULT_VERSION = 0;
 
   private LogIF log;
-  private Configuration configuration;
   private StorageProviderIF storageProvider;
   private SettingsClientIF settingsClient;
+  private Boolean updatingSettings;
+  private PropertyChangeSupport propertyChangeSupport;
 
-  // Lombok ignored fields
-  private Boolean $updatingSettings = false;
+  @Builder
+  public SettingsManager(
+      LogIF log, StorageProviderIF storageProvider, SettingsClientIF settingsClient) {
+    this.log = log;
+    this.storageProvider = storageProvider;
+    this.settingsClient = settingsClient;
+    this.propertyChangeSupport = new PropertyChangeSupport(this);
+  }
+
+  public void addPropertyChangeListener(PropertyChangeListener listener) {
+    propertyChangeSupport.addPropertyChangeListener(listener);
+  }
 
   public void checkVersion(long version) {
     long currentVersion = getVersion();
@@ -50,15 +59,15 @@ public class SettingsManager {
   // This method is thread safe as settings are updated both by the users and by the client at
   // regular intervals
   public synchronized void updateSettingsThreadSafe() {
-    if ($updatingSettings) {
+    if (updatingSettings) {
       return;
     }
 
-    $updatingSettings = true;
+    updatingSettings = true;
     try {
       updateSettings();
     } finally {
-      $updatingSettings = false;
+      updatingSettings = false;
     }
   }
 
@@ -71,6 +80,8 @@ public class SettingsManager {
       log.warn(String.format("Unable to update settings: %s:", response.getMessage()));
       return;
     }
+    ServerSettings prevValue = storageProvider.getSettings().peek().getValue();
     storageProvider.getSettings().save(response.getSettings());
+    propertyChangeSupport.firePropertyChange("settings", prevValue, response.getSettings());
   }
 }

@@ -1,10 +1,12 @@
-package com.prashantchaubey.exceptionlessclient.models.services;
+package com.prashantchaubey.exceptionlessclient.services;
 
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
+import lombok.experimental.NonFinal;
 
 @Builder
-@Getter
+@Value
+@NonFinal
 public class EnvironmentInfoGetArgs {
   private boolean includeMachineName;
   private boolean includeIpAddress;

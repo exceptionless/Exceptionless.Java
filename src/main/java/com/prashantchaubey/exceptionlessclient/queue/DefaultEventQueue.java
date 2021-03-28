@@ -9,7 +9,6 @@ import com.prashantchaubey.exceptionlessclient.models.submission.SubmissionRespo
 import com.prashantchaubey.exceptionlessclient.storage.StorageProviderIF;
 import com.prashantchaubey.exceptionlessclient.submission.SubmissionClientIF;
 import lombok.Builder;
-import lombok.Getter;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -20,22 +19,65 @@ import java.util.TimerTask;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
-@Builder(builderClassName = "DefaultEventQueueInternalBuilder")
-@Getter
 public class DefaultEventQueue implements EventQueueIF {
   private LogIF log;
   private StorageProviderIF storageProvider;
   private Configuration configuration;
   private SubmissionClientIF submissionClient;
-  @Builder.Default private long processingIntervalInSecs = 10;
+  private LocalDateTime discardQueueItemsUntil;
+  private LocalDateTime suspendProcessingUntil;
+  private boolean processingQueue;
+  private Timer queueTimer;
+  private int currentSubmissionBatchSize;
+  private List<BiConsumer<List<Event>, SubmissionResponse>> handlers;
 
-  // lombok ignored fields
-  private LocalDateTime $discardQueueItemsUntil;
-  private LocalDateTime $suspendProcessingUntil;
-  private boolean $processingQueue;
-  private Timer $queueTimer = new Timer();
-  private int $currentSubmissionBatchSize;
-  private List<BiConsumer<List<Event>, SubmissionResponse>> $handlers = new ArrayList<>();
+  @Builder
+  public DefaultEventQueue(
+      LogIF log,
+      StorageProviderIF storageProvider,
+      Configuration configuration,
+      SubmissionClientIF submissionClient,
+      Integer processingIntervalInSecs) {
+    this.log = log;
+    this.storageProvider = storageProvider;
+    this.configuration = configuration;
+    this.submissionClient = submissionClient;
+    this.queueTimer = new Timer();
+    this.handlers = new ArrayList<>();
+    this.currentSubmissionBatchSize = configuration.getSubmissionBatchSize();
+    init(processingIntervalInSecs == null ? 10 : processingIntervalInSecs);
+  }
+
+  private void init(Integer processingIntervalInSecs) {
+    queueTimer.schedule(
+        new TimerTask() {
+          @Override
+          public void run() {
+            onProcessQueue();
+          }
+        },
+        processingIntervalInSecs * 1000);
+  }
+
+  private void onProcessQueue() {
+    if (processingQueue || shouldSuspendProcessing()) {
+      return;
+    }
+
+    process();
+  }
+
+  private boolean shouldSuspendProcessing() {
+    if (suspendProcessingUntil == null) {
+      return false;
+    }
+
+    return LocalDateTime.now().isBefore(suspendProcessingUntil);
+  }
+
+  private void process() {
+    process(false);
+  }
 
   @Override
   public void enqueue(Event event) {
@@ -53,23 +95,23 @@ public class DefaultEventQueue implements EventQueueIF {
   }
 
   private boolean shouldDiscard() {
-    if ($discardQueueItemsUntil == null) {
+    if (discardQueueItemsUntil == null) {
       return false;
     }
 
-    return LocalDateTime.now().isBefore($discardQueueItemsUntil);
+    return LocalDateTime.now().isBefore(discardQueueItemsUntil);
   }
 
   @Override
   public void process(boolean isAppExiting) {
-    if ($processingQueue) {
+    if (processingQueue) {
       return;
     }
 
-    $processingQueue = true;
+    processingQueue = true;
     try {
       List<StorageItem<Event>> storedEvents =
-          storageProvider.getQueue().get($currentSubmissionBatchSize);
+          storageProvider.getQueue().get(currentSubmissionBatchSize);
       List<Event> events =
           storedEvents.stream().map(StorageItem::getValue).collect(Collectors.toList());
 
@@ -82,7 +124,7 @@ public class DefaultEventQueue implements EventQueueIF {
       log.error("Error processing queue", e);
       suspendProcessing();
     } finally {
-      $processingQueue = false;
+      processingQueue = false;
     }
   }
 
@@ -91,6 +133,7 @@ public class DefaultEventQueue implements EventQueueIF {
     if (response.isSuccess()) {
       log.info(String.format("Sent %s events", storedEvents.size()));
       setBatchSizeToConfigured();
+      removeEvents(storedEvents);
       return;
     }
 
@@ -110,6 +153,7 @@ public class DefaultEventQueue implements EventQueueIF {
       log.info(
           "Unable to authenticate, please check your configuration. Events will not be submitted");
       suspendProcessing(Duration.ofMinutes(15));
+      removeEvents(storedEvents);
       return;
     }
 
@@ -121,13 +165,13 @@ public class DefaultEventQueue implements EventQueueIF {
     }
 
     if (response.isRequestEntityTooLarge()) {
-      if ($currentSubmissionBatchSize > 1) {
+      if (currentSubmissionBatchSize > 1) {
         log.error(
             "Event submission discarded for being too large. Retrying with smaller batch size");
-        $currentSubmissionBatchSize =
-            Math.max(1, (int) Math.round($currentSubmissionBatchSize / 1.5));
+        currentSubmissionBatchSize =
+            Math.max(1, (int) Math.round(currentSubmissionBatchSize / 1.5));
       } else {
-        log.error("Event submission discarded for beging too large. Events will not be submitted");
+        log.error("Event submission discarded for being too large. Events will not be submitted");
         removeEvents(storedEvents);
       }
       return;
@@ -138,7 +182,7 @@ public class DefaultEventQueue implements EventQueueIF {
   }
 
   private void setBatchSizeToConfigured() {
-    $currentSubmissionBatchSize = configuration.getSubmissionBatchSize();
+    currentSubmissionBatchSize = configuration.getSubmissionBatchSize();
   }
 
   private void removeEvents(List<StorageItem<Event>> storedEvents) {
@@ -148,7 +192,7 @@ public class DefaultEventQueue implements EventQueueIF {
   }
 
   private void eventPosted(SubmissionResponse response, List<Event> events) {
-    for (BiConsumer<List<Event>, SubmissionResponse> handler : $handlers) {
+    for (BiConsumer<List<Event>, SubmissionResponse> handler : handlers) {
       try {
         handler.accept(events, response);
       } catch (Exception e) {
@@ -177,9 +221,9 @@ public class DefaultEventQueue implements EventQueueIF {
     }
 
     log.info(String.format("Suspending processing for %s", duration));
-    $suspendProcessingUntil = LocalDateTime.now().plus(duration);
+    suspendProcessingUntil = LocalDateTime.now().plus(duration);
     if (discardFutureQueueItems) {
-      $discardQueueItemsUntil = $suspendProcessingUntil;
+      discardQueueItemsUntil = suspendProcessingUntil;
     }
 
     if (clearQueue) {
@@ -189,50 +233,6 @@ public class DefaultEventQueue implements EventQueueIF {
 
   @Override
   public void onEventsPosted(BiConsumer<List<Event>, SubmissionResponse> handler) {
-    $handlers.add(handler);
-  }
-
-  public static DefaultEventQueueBuilder builder() {
-    return new DefaultEventQueueBuilder();
-  }
-
-  public static class DefaultEventQueueBuilder extends DefaultEventQueueInternalBuilder {
-    @Override
-    public DefaultEventQueue build() {
-      DefaultEventQueue eventQueue = super.build();
-      eventQueue.init();
-      return eventQueue;
-    }
-  }
-
-  private void init() {
-    $queueTimer.schedule(
-        new TimerTask() {
-          @Override
-          public void run() {
-            onProcessQueue();
-          }
-        },
-        processingIntervalInSecs * 1000);
-  }
-
-  private void onProcessQueue() {
-    if ($processingQueue || shouldSuspendProcessing()) {
-      return;
-    }
-
-    process();
-  }
-
-  private boolean shouldSuspendProcessing() {
-    if ($suspendProcessingUntil == null) {
-      return false;
-    }
-
-    return LocalDateTime.now().isBefore($suspendProcessingUntil);
-  }
-
-  private void process() {
-    process(false);
+    handlers.add(handler);
   }
 }

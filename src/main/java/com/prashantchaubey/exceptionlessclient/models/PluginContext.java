@@ -1,78 +1,36 @@
 package com.prashantchaubey.exceptionlessclient.models;
 
 import com.prashantchaubey.exceptionlessclient.models.base.Model;
-import com.prashantchaubey.exceptionlessclient.models.enums.PluginContextKey;
-import com.prashantchaubey.exceptionlessclient.models.services.RequestInfo;
-import lombok.Getter;
-import lombok.experimental.SuperBuilder;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.net.http.HttpRequest;
 
-@SuperBuilder
-@Getter
+// Warning `SuperBuilder` will not work for any class extending this. This class breaks the chain
+// for customization
+@Data
+@EqualsAndHashCode(callSuper = true)
 public class PluginContext extends Model {
   private boolean eventCancelled;
+  private Exception exception;
+  private Boolean unhandledError;
+  private String submissionMethod;
+  private HttpRequest request;
 
-  public boolean hasException() {
-    return data.get(PluginContextKey.EXCEPTION.value()) != null;
-  }
-
-  public Exception getException() {
-    return (Exception) data.get(PluginContextKey.EXCEPTION.value());
+  @Builder
+  public PluginContext(
+      Exception exception,
+      Boolean unhandledError,
+      String submissionMethod,
+      HttpRequest request) {
+    this.exception = exception;
+    this.unhandledError = unhandledError;
+    this.submissionMethod = submissionMethod;
+    this.request = request;
   }
 
   public boolean isUnhandledError() {
-    return data.containsKey(PluginContextKey.IS_UNHANDLED_ERROR.value())
-        && (boolean) data.get(PluginContextKey.IS_UNHANDLED_ERROR.value());
-  }
-
-  public String getSubmissionMethod() {
-    return (String) data.get(PluginContextKey.SUBMISSION_METHOD.value());
-  }
-
-  public void markAsCancelled() {
-    eventCancelled = true;
-  }
-
-  public static PluginContextBuilderImpl builder() {
-    return new PluginContextBuilderImpl();
-  }
-
-  public static final class PluginContextBuilderImpl
-      extends PluginContextBuilder<PluginContext, PluginContextBuilderImpl> {
-    // lombok builder create private fields in the builder class so we can't access `data` from
-    // `Model` even though it is `protected`. So we will use this object as an proxy.
-    private Map<String, Object> data = new HashMap<>();
-
-    public PluginContextBuilderImpl exception(Exception exception) {
-      data.put(PluginContextKey.EXCEPTION.value(), exception);
-      return super.data(data);
-    }
-
-    public PluginContextBuilderImpl markAsUnhandledError() {
-      data.put(PluginContextKey.IS_UNHANDLED_ERROR.value(), true);
-      return super.data(data);
-    }
-
-    public PluginContextBuilderImpl submissionMethod(String method) {
-      data.put(PluginContextKey.SUBMISSION_METHOD.value(), method);
-      return super.data(data);
-    }
-
-    public PluginContextBuilderImpl requestInfo(RequestInfo requestInfo) {
-      data.put(PluginContextKey.REQUEST_INFO.value(), requestInfo);
-      return super.data(data);
-    }
-
-    @Override
-    public PluginContextBuilderImpl data(Map<String, Object> data) {
-      this.data = data;
-      return super.data(data);
-    }
-
-    public PluginContext build() {
-      return new PluginContext(this);
-    }
+    return unhandledError != null && unhandledError;
   }
 }

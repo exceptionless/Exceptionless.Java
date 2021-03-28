@@ -5,11 +5,11 @@ import com.prashantchaubey.exceptionlessclient.models.Event;
 import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
-import lombok.Getter;
 
-@Builder
-@Getter
 public class ConfigurationDefaultsPlugin implements EventPluginIF {
+  @Builder
+  public ConfigurationDefaultsPlugin() {}
+
   @Override
   public int getPriority() {
     return 10;
@@ -20,9 +20,6 @@ public class ConfigurationDefaultsPlugin implements EventPluginIF {
       EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Event event = eventPluginContext.getEvent();
     for (String tag : configurationManager.getDefaultTags()) {
-      if (event.getTags().contains(tag)) {
-        continue;
-      }
       event.addTags(tag);
     }
 

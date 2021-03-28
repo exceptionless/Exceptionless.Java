@@ -5,11 +5,13 @@ import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
 import com.prashantchaubey.exceptionlessclient.models.services.error.Error;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
-import lombok.Getter;
 
-@Builder
-@Getter
+import java.util.Optional;
+
 public class ModuleInfoPlugin implements EventPluginIF {
+  @Builder
+  public ModuleInfoPlugin() {}
+
   @Override
   public int getPriority() {
     return 50;
@@ -18,14 +20,16 @@ public class ModuleInfoPlugin implements EventPluginIF {
   @Override
   public void run(
       EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
-    Error error = eventPluginContext.getEvent().getError();
-    if (error == null) {
+    Optional<Error> maybeError = eventPluginContext.getEvent().getError();
+    if (!maybeError.isPresent()) {
+      return;
+    }
+    Error error = maybeError.get();
+
+    if (!error.getModules().isEmpty()) {
       return;
     }
 
-    if (error.getModules().isEmpty()) {
-      return;
-    }
     error.setModules(configurationManager.getModuleCollector().getModules());
   }
 }

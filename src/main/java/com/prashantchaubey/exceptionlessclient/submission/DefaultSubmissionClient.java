@@ -7,9 +7,8 @@ import com.prashantchaubey.exceptionlessclient.models.Event;
 import com.prashantchaubey.exceptionlessclient.models.UserDescription;
 import com.prashantchaubey.exceptionlessclient.models.submission.SubmissionResponse;
 import com.prashantchaubey.exceptionlessclient.settings.SettingsManager;
-import com.prashantchaubey.exceptionlessclient.utils.JsonUtils;
+import com.prashantchaubey.exceptionlessclient.utils.Utils;
 import lombok.Builder;
-import lombok.Getter;
 
 import java.io.IOException;
 import java.net.URI;
@@ -24,17 +23,22 @@ import java.util.OptionalLong;
 
 import static com.prashantchaubey.exceptionlessclient.configuration.Configuration.USER_AGENT;
 
-@Builder
-@Getter
 public class DefaultSubmissionClient implements SubmissionClientIF {
   private static final String CONFIGURATION_VERSION_HEADER = "x-exceptionless-configversion";
 
   private Configuration configuration;
   private LogIF log;
   private SettingsManager settingsManager;
+  private HttpClient httpClient;
 
-  // Lombok ignored fields
-  private HttpClient $httpClient = HttpClient.newHttpClient();
+  @Builder
+  private DefaultSubmissionClient(
+      Configuration configuration, LogIF log, SettingsManager settingsManager) {
+    this.configuration = configuration;
+    this.log = log;
+    this.settingsManager = settingsManager;
+    this.httpClient = HttpClient.newHttpClient();
+  }
 
   @Override
   public SubmissionResponse postEvents(List<Event> events, boolean isAppExiting) {
@@ -57,7 +61,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
   private SubmissionResponse postSubmission(String url, Object data) {
     try {
       URI uri = new URI(url);
-      String requestJSON = JsonUtils.JSON_MAPPER.writeValueAsString(data);
+      String requestJSON = Utils.JSON_MAPPER.writeValueAsString(data);
 
       HttpRequest request =
           HttpRequest.newBuilder()
@@ -69,7 +73,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
               .build();
 
       HttpResponse<String> response =
-          $httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
       updateSettingsFromHeaders(response.headers());
       return SubmissionResponse.builder()
@@ -110,7 +114,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
               .build();
 
       HttpResponse<String> response =
-          $httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
       if (response.statusCode() != 200) {
         log.error(

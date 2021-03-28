@@ -1,12 +1,17 @@
 package com.prashantchaubey.exceptionlessclient.models.settings;
 
+import com.prashantchaubey.exceptionlessclient.models.enums.ServerSettingKey;
+import com.prashantchaubey.exceptionlessclient.utils.Utils;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
+import lombok.experimental.NonFinal;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Builder
-@Getter
+@Value
+@NonFinal
 public class ServerSettings {
   private long version;
   @Builder.Default private Map<String, String> settings = new HashMap<>();
@@ -26,13 +31,24 @@ public class ServerSettings {
       if (!key.startsWith(prefix) || key.length() <= prefix.length()) {
         continue;
       }
-      // todo check that wildcard match work with this or not
-      if (source.matches(key.substring(prefix.length()))) {
+      if (Utils.match(source, key.substring(prefix.length()))) {
         return Optional.of(settings.get(key));
       }
     }
 
     return Optional.empty();
+  }
+
+  public Set<String> getDataExclusions() {
+    return Arrays.stream(
+            settings.getOrDefault(ServerSettingKey.DATA_EXCLUSIONS.value(), "").split(","))
+        .collect(Collectors.toSet());
+  }
+
+  public Set<String> getUserAgentBotPatterns() {
+    return Arrays.stream(
+            settings.getOrDefault(ServerSettingKey.USER_AGENT_BOT_PATTERNS.value(), "").split(","))
+        .collect(Collectors.toSet());
   }
 
   public static boolean getAsBoolean(String setting) {

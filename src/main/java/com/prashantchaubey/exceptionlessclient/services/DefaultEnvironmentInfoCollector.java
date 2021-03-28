@@ -2,10 +2,8 @@ package com.prashantchaubey.exceptionlessclient.services;
 
 import com.prashantchaubey.exceptionlessclient.logging.LogIF;
 import com.prashantchaubey.exceptionlessclient.models.services.EnvironmentInfo;
-import com.prashantchaubey.exceptionlessclient.models.services.EnvironmentInfoGetArgs;
 import com.sun.management.OperatingSystemMXBean;
 import lombok.Builder;
-import lombok.Getter;
 
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -14,35 +12,31 @@ import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 
-@Builder
-@Getter
 public class DefaultEnvironmentInfoCollector implements EnvironmentInfoCollectorIF {
   private LogIF log;
+  private EnvironmentInfo defaultEnvironmentInfo;
 
-  // lombok ignored fields
-  private int $processorCount;
-  private long $totalPhysicalMemory;
-  private String $runtimeVersion;
-  private String $osVersion;
-  private String $osName;
-  private String $architecture;
-  private String $processName;
-  private String $processId;
-  private String $commandLine;
+  @Builder
+  public DefaultEnvironmentInfoCollector(LogIF log) {
+    this.log = log;
+    initDefaultEnvironmentInfo();
+  }
 
-  {
-    // One time calculations
-    $processorCount = Runtime.getRuntime().availableProcessors();
+  private void initDefaultEnvironmentInfo() {
     OperatingSystemMXBean operatingSystemMXBean =
         (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-    $totalPhysicalMemory = operatingSystemMXBean.getTotalPhysicalMemorySize();
-    $osName = operatingSystemMXBean.getName();
-    $architecture = operatingSystemMXBean.getArch();
-    $osVersion = operatingSystemMXBean.getVersion();
-    $runtimeVersion = System.getProperty("java.version");
-    $processId = String.valueOf(ProcessHandle.current().pid());
-    $processName = ManagementFactory.getRuntimeMXBean().getName();
-    $commandLine = ProcessHandle.current().info().commandLine().orElse(null);
+    this.defaultEnvironmentInfo =
+        EnvironmentInfo.builder()
+            .processorCount(Runtime.getRuntime().availableProcessors())
+            .totalPhysicalMemory(operatingSystemMXBean.getTotalPhysicalMemorySize())
+            .osName(operatingSystemMXBean.getName())
+            .architecture(operatingSystemMXBean.getArch())
+            .osVersion(operatingSystemMXBean.getVersion())
+            .runtimeVersion(System.getProperty("java.version"))
+            .processName(String.valueOf(ProcessHandle.current().pid()))
+            .processName(ManagementFactory.getRuntimeMXBean().getName())
+            .commandLine(ProcessHandle.current().info().commandLine().orElse(null))
+            .build();
   }
 
   @Override
@@ -52,18 +46,18 @@ public class DefaultEnvironmentInfoCollector implements EnvironmentInfoCollector
 
     EnvironmentInfo.EnvironmentInfoBuilder builder =
         EnvironmentInfo.builder()
-            .processorCount($processorCount)
-            .totalPhysicalMemory($totalPhysicalMemory)
+            .processorCount(defaultEnvironmentInfo.getProcessorCount())
+            .totalPhysicalMemory(defaultEnvironmentInfo.getTotalPhysicalMemory())
             .availablePhysicalMemory(operatingSystemMXBean.getFreePhysicalMemorySize())
-            .commandLine($commandLine)
-            .processName($processName)
-            .processId($processId)
+            .commandLine(defaultEnvironmentInfo.getCommandLine())
+            .processName(defaultEnvironmentInfo.getProcessName())
+            .processId(defaultEnvironmentInfo.getProcessId())
             .processMemorySize(ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed())
             .threadid(String.valueOf(Thread.currentThread().getId()))
-            .architecture($architecture)
-            .osName($osName)
-            .osVersion($osVersion)
-            .runtimeVersion($runtimeVersion)
+            .architecture(defaultEnvironmentInfo.getArchitecture())
+            .osName(defaultEnvironmentInfo.getOsName())
+            .osVersion(defaultEnvironmentInfo.getOsVersion())
+            .runtimeVersion(defaultEnvironmentInfo.getRuntimeVersion())
             .data(getData());
 
     try {

@@ -1,13 +1,17 @@
 package com.prashantchaubey.exceptionlessclient.models.services.error;
 
 import com.prashantchaubey.exceptionlessclient.models.base.Model;
-import lombok.Getter;
+import lombok.EqualsAndHashCode;
+import lombok.Value;
+import lombok.experimental.NonFinal;
 import lombok.experimental.SuperBuilder;
 
 import java.util.List;
 
 @SuperBuilder
-@Getter
+@Value
+@NonFinal
+@EqualsAndHashCode(callSuper = true)
 public class Parameter extends Model {
     private List<String> genericArguments;
     private String name;

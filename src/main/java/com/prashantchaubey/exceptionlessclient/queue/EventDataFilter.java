@@ -1,17 +1,20 @@
 package com.prashantchaubey.exceptionlessclient.queue;
 
-import com.prashantchaubey.exceptionlessclient.utils.JsonUtils;
+import com.prashantchaubey.exceptionlessclient.utils.Utils;
 import lombok.Builder;
-import lombok.Getter;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Builder
-@Getter
 public class EventDataFilter {
-  @Builder.Default private Set<String> exclusions = new HashSet<>();
-  @Builder.Default private int maxDepth = 3;
+  private Set<String> exclusions;
+  private int maxDepth;
+
+  @Builder
+  public EventDataFilter(Set<String> exclusions, Integer maxDepth) {
+    this.exclusions = exclusions == null ? new HashSet<>() : exclusions;
+    this.maxDepth = maxDepth == null ? 3 : maxDepth;
+  }
 
   public Object filter(Object data) {
     if (exclusions.isEmpty()) {
@@ -27,7 +30,7 @@ public class EventDataFilter {
     }
 
     if (!(data instanceof Map || data instanceof List)) {
-      data = JsonUtils.JSON_MAPPER.convertValue(data, Map.class);
+      data = Utils.JSON_MAPPER.convertValue(data, Map.class);
     }
 
     if (data instanceof List) {
@@ -35,16 +38,15 @@ public class EventDataFilter {
       return dataList.stream().map(val -> filter(val, currDepth + 1)).collect(Collectors.toList());
     }
 
-    Map<String, Object> dataMap = (Map<String, Object>) data;
-    Map<String, Object> result = new HashMap<>();
-    for (String key : dataMap.keySet()) {
-      //todo check that wildcard match work with this or not
-      if (exclusions.stream().anyMatch(key::matches)) {
-        continue;
-      }
-      result.put(key, filter(dataMap.get(key), currDepth + 1));
-    }
-
-    return result;
+    return ((Map<String, Object>) data)
+        .entrySet().stream()
+            .filter(
+                entry ->
+                    exclusions.stream()
+                        .anyMatch(
+                            exclusion -> Utils.match(entry.getKey(), exclusion)))
+            .collect(
+                Collectors.toMap(
+                    Map.Entry::getKey, entry -> filter(entry.getValue(), currDepth + 1)));
   }
 }

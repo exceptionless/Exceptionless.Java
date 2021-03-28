@@ -1,7 +1,12 @@
 package com.prashantchaubey.exceptionlessclient.lastreferenceidmanager;
 
+import lombok.Builder;
+
 public class DefaultLastReferenceIdManager implements LastReferenceIdManagerIF {
   private String lastReferencedId;
+
+  @Builder
+  public DefaultLastReferenceIdManager() {}
 
   @Override
   public String getLast() {

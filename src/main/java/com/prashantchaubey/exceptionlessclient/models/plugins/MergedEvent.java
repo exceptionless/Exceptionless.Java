@@ -3,12 +3,12 @@ package com.prashantchaubey.exceptionlessclient.models.plugins;
 import com.prashantchaubey.exceptionlessclient.models.Event;
 import com.prashantchaubey.exceptionlessclient.queue.EventQueueIF;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 
 import java.time.LocalDate;
 
 @Builder
-@Getter
+@Data
 public class MergedEvent {
   private long hash;
   private Event event;
