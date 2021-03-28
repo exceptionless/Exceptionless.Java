@@ -169,16 +169,16 @@ public class Event extends Model {
     }
 
     public EventBuilder tags(String... tags) {
-      if (super.tags == null) {
-        return tags(new HashSet<>(Arrays.asList(tags)));
-      }
-
-      super.tags.addAll(new HashSet<>(Arrays.asList(tags)));
-      return this;
+      return tags(new HashSet<>(Arrays.asList(tags)));
     }
 
     public EventBuilder markAsCritical() {
-      return tags(EventTag.CRITICAL.value());
+      if (super.tags == null) {
+        super.tags = new HashSet<>();
+      }
+
+      super.tags.add(EventTag.CRITICAL.value());
+      return this;
     }
 
     @Override

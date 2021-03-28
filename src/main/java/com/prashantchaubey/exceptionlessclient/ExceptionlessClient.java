@@ -43,6 +43,14 @@ public class ExceptionlessClient {
         },
         UPDATE_SETTINGS_TIMER_INITIAL_DELAY,
         configurationManager.getConfiguration().getUpdateSettingsWhenIdleInterval());
+
+    configurationManager.onChanged(
+        ignored -> configurationManager.getSettingsManager().updateSettingsThreadSafe());
+    configurationManager
+        .getQueue()
+        .onEventsPosted(
+            (ignored1, ignored2) ->
+                configurationManager.getSettingsManager().updateSettingsThreadSafe());
   }
 
   public static ExceptionlessClient from(String apiKey, String serverUrl) {
@@ -138,6 +146,7 @@ public class ExceptionlessClient {
         .date(LocalDate.now());
   }
 
+  //todo this should be async
   private void submitEvent(
       EventPluginContext eventPluginContext, Consumer<EventPluginContext> handler) {
     eventPluginRunner.run(
@@ -163,8 +172,8 @@ public class ExceptionlessClient {
     configurationManager.getSubmissionClient().sendHeartBeat(sessionOrUserId, true);
   }
 
-  public void updateEmailAndDescription(
-      String referenceId, String email, String description, Consumer<SubmissionResponse> handler) {
+  public SubmissionResponse updateEmailAndDescription(
+      String referenceId, String email, String description) {
     SubmissionResponse response =
         configurationManager
             .getSubmissionClient()
@@ -178,7 +187,8 @@ public class ExceptionlessClient {
               String.format(
                   "Failed to submit user email and description for event: %s", referenceId));
     }
-    handler.accept(response);
+
+    return response;
   }
 
   public String getLastReferenceId() {
