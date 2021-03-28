@@ -4,6 +4,7 @@ import com.prashantchaubey.exceptionlessclient.models.base.Model;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventTag;
 import com.prashantchaubey.exceptionlessclient.models.services.EnvironmentInfo;
+import com.prashantchaubey.exceptionlessclient.models.services.RequestInfo;
 import com.prashantchaubey.exceptionlessclient.models.services.error.Error;
 import com.prashantchaubey.exceptionlessclient.queue.EventDataFilter;
 import com.prashantchaubey.exceptionlessclient.queue.EventValidator;
@@ -66,10 +67,6 @@ public class Event extends Model {
                     Map.Entry::getKey, entry -> eventDataFilter.filter(entry.getValue())));
   }
 
-  public void addData(Map<String, Object> data) {
-    addData(data, new HashSet<>());
-  }
-
   public void addData(Map<String, Object> data, Set<String> dataExclusions) {
     EventDataFilter filter = EventDataFilter.builder().exclusions(dataExclusions).build();
     data =
@@ -94,6 +91,10 @@ public class Event extends Model {
     data.put(EventPropertyKey.SUBMISSION_METHOD.value(), submissionMethod);
   }
 
+  public void addRequestInfo(RequestInfo requestInfo) {
+    data.put(EventPropertyKey.REQUEST_INFO.value(), requestInfo);
+  }
+
   public Optional<Error> getError() {
     return Optional.ofNullable(safeGetAs(data.get(EventPropertyKey.ERROR.value()), Error.class));
   }
@@ -110,6 +111,11 @@ public class Event extends Model {
 
   public Optional<UserInfo> getUserInfo() {
     return Optional.ofNullable(safeGetAs(data.get(EventPropertyKey.USER.value()), UserInfo.class));
+  }
+
+  public Optional<RequestInfo> getRequestInfo() {
+    return Optional.ofNullable(
+        safeGetAs(data.get(EventPropertyKey.REQUEST_INFO.value()), RequestInfo.class));
   }
 
   public static EventBuilder builder() {

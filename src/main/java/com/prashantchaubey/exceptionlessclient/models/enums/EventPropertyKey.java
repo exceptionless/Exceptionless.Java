@@ -10,7 +10,8 @@ public enum EventPropertyKey {
   ENVIRONMENT("@environment"),
   EXTRA("@ext"),
   SUBMISSION_METHOD("@submission_method"),
-  VERSION("@version");
+  VERSION("@version"),
+  REQUEST_INFO("@request");
 
   private String value;
 

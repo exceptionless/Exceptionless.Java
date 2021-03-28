@@ -18,6 +18,7 @@ public class PluginManager {
 
   @Builder
   public PluginManager(LogIF log) {
+    this.log = log;
     configureDefaultPlugins();
     sortPlugins();
   }
@@ -25,9 +26,10 @@ public class PluginManager {
   private void configureDefaultPlugins() {
     addPlugin(ConfigurationDefaultsPlugin.builder().build());
     addPlugin(ErrorPlugin.builder().build());
-    addPlugin(DuplicateErrorCheckerPlugin.builder().build());
-    addPlugin(EventExclusionPlugin.builder().build());
+    addPlugin(DuplicateErrorCheckerPlugin.builder().log(this.log).build());
+    addPlugin(EventExclusionPlugin.builder().log(this.log).build());
     addPlugin(ModuleInfoPlugin.builder().build());
+    addPlugin(RequestInfoPlugin.builder().log(this.log).build());
     addPlugin(EnvironmentInfoPlugin.builder().build());
     addPlugin(SubmissionMethodPlugin.builder().build());
   }

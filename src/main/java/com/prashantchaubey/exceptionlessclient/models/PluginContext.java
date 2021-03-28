@@ -16,18 +16,18 @@ public class PluginContext extends Model {
   private Exception exception;
   private Boolean unhandledError;
   private String submissionMethod;
-  private HttpRequest requestInfo;
+  private HttpRequest request;
 
   @Builder
   public PluginContext(
       Exception exception,
       Boolean unhandledError,
       String submissionMethod,
-      HttpRequest requestInfo) {
+      HttpRequest request) {
     this.exception = exception;
     this.unhandledError = unhandledError;
     this.submissionMethod = submissionMethod;
-    this.requestInfo = requestInfo;
+    this.request = request;
   }
 
   public boolean isUnhandledError() {

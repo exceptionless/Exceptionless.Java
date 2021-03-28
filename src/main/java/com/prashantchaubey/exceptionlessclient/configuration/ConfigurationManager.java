@@ -34,6 +34,7 @@ public class ConfigurationManager {
   @Getter private LastReferenceIdManagerIF lastReferenceIdManager;
   @Getter private LogIF log;
   @Getter private ModuleCollectorIF moduleCollector;
+  @Getter private RequestInfoCollectorIF requestInfoCollector;
   @Getter private SubmissionClientIF submissionClient;
   @Getter private EventQueueIF queue;
   @Getter private Configuration configuration;
@@ -41,6 +42,7 @@ public class ConfigurationManager {
   @Getter private Map<String, Object> defaultData;
   private List<Consumer<ConfigurationManager>> onChangedHandlers;
   @Getter private SettingsManager settingsManager;
+  @Getter private Set<String> userAgentBotPatterns;
   @Getter private PrivateInformationInclusions privateInformationInclusions;
   private Set<String> dataExclusions;
   private PluginManager pluginManager;
@@ -52,6 +54,7 @@ public class ConfigurationManager {
       LastReferenceIdManagerIF lastReferenceIdManager,
       LogIF log,
       ModuleCollectorIF moduleCollector,
+      RequestInfoCollectorIF requestInfoCollector,
       SubmissionClientIF submissionClient,
       SettingsClientIF settingsClient,
       StorageProviderIF storageProvider,
@@ -71,6 +74,10 @@ public class ConfigurationManager {
             : lastReferenceIdManager;
     this.moduleCollector =
         moduleCollector == null ? DefaultModuleCollector.builder().build() : moduleCollector;
+    this.requestInfoCollector =
+        requestInfoCollector == null
+            ? DefaultRequestInfoCollector.builder().log(this.log).build()
+            : requestInfoCollector;
     this.settingsManager =
         SettingsManager.builder()
             .settingsClient(
@@ -79,6 +86,7 @@ public class ConfigurationManager {
                     : settingsClient)
             .log(log)
             .build();
+    this.userAgentBotPatterns = new HashSet<>();
     this.configuration =
         configuration == null ? Configuration.defaultConfiguration() : configuration;
     this.submissionClient =
@@ -129,6 +137,10 @@ public class ConfigurationManager {
 
   public void addDataExclusions(String... exclusions) {
     dataExclusions.addAll(Arrays.asList(exclusions));
+  }
+
+  public void addUserAgentBotPatterns(String... userAgentBotPatterns) {
+    this.userAgentBotPatterns.addAll(Arrays.asList(userAgentBotPatterns));
   }
 
   public Set<String> getDataExclusions() {
