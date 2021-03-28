@@ -45,11 +45,10 @@ public class ErrorPlugin implements EventPluginIF {
   @Override
   public void run(
       EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
-    Optional<Exception> maybeException = eventPluginContext.getContext().getException();
-    if (!maybeException.isPresent()) {
+    Exception exception = eventPluginContext.getContext().getException();
+    if (exception == null) {
       return;
     }
-    Exception exception = maybeException.get();
 
     Event event = eventPluginContext.getEvent();
     event.setType(EventType.ERROR.value());

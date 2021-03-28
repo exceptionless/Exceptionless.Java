@@ -5,8 +5,6 @@ import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
 
-import java.util.Optional;
-
 public class SubmissionMethodPlugin implements EventPluginIF {
   @Builder
   public SubmissionMethodPlugin() {}
@@ -19,12 +17,11 @@ public class SubmissionMethodPlugin implements EventPluginIF {
   @Override
   public void run(
       EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
-    Optional<String>maybeSubmissionMethod = eventPluginContext.getContext().getSubmissionMethod();
-    if(!maybeSubmissionMethod.isPresent()){
+    String submissionMethod = eventPluginContext.getContext().getSubmissionMethod();
+    if (submissionMethod == null) {
       return;
     }
 
-    String submissionMethod = maybeSubmissionMethod.get();
     eventPluginContext.getEvent().addSubmissionMethod(submissionMethod);
   }
 }
