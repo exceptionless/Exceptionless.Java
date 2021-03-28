@@ -1,5 +1,6 @@
 package com.prashantchaubey.exceptionlessclient.configuration;
 
+import com.prashantchaubey.exceptionlessclient.exceptions.ClientException;
 import com.prashantchaubey.exceptionlessclient.lastreferenceidmanager.DefaultLastReferenceIdManager;
 import com.prashantchaubey.exceptionlessclient.lastreferenceidmanager.LastReferenceIdManagerIF;
 import com.prashantchaubey.exceptionlessclient.logging.LogIF;
@@ -34,16 +35,14 @@ public class ConfigurationManager {
   @Getter private LogIF log;
   @Getter private ModuleCollectorIF moduleCollector;
   @Getter private SubmissionClientIF submissionClient;
-  private SettingsClientIF settingsClient;
-  private StorageProviderIF storageProvider;
   @Getter private EventQueueIF queue;
   @Getter private Configuration configuration;
   @Getter private Set<String> defaultTags;
   @Getter private Map<String, Object> defaultData;
   private List<Consumer<ConfigurationManager>> onChangedHandlers;
   @Getter private SettingsManager settingsManager;
-  private Set<String> userAgentBotPatterns;
-  private DataExclusions dataExclusions;
+  @Getter private PrivateInformationInclusions privateInformationInclusions;
+  private Set<String> dataExclusions;
   private PluginManager pluginManager;
 
   @Builder
@@ -73,7 +72,13 @@ public class ConfigurationManager {
     this.moduleCollector =
         moduleCollector == null ? DefaultModuleCollector.builder().build() : moduleCollector;
     this.settingsManager =
-        SettingsManager.builder().settingsClient(settingsClient).log(log).build();
+        SettingsManager.builder()
+            .settingsClient(
+                settingsClient == null
+                    ? DefaultSettingsClient.builder().configuration(this.configuration).build()
+                    : settingsClient)
+            .log(log)
+            .build();
     this.configuration =
         configuration == null ? Configuration.defaultConfiguration() : configuration;
     this.submissionClient =
@@ -84,21 +89,16 @@ public class ConfigurationManager {
                 .log(this.log)
                 .build()
             : submissionClient;
-    this.settingsClient =
-        settingsClient == null
-            ? DefaultSettingsClient.builder().configuration(this.configuration).build()
-            : settingsClient;
-    this.storageProvider =
-        storageProvider == null
-            ? InMemoryStorageProvider.builder().maxQueueItems(maxQueueItems).build()
-            : storageProvider;
     this.queue =
         queue == null
             ? DefaultEventQueue.builder()
                 .configuration(this.configuration)
                 .log(this.log)
                 .processingIntervalInSecs(processingIntervalInSecs)
-                .storageProvider(this.storageProvider)
+                .storageProvider(
+                    storageProvider == null
+                        ? InMemoryStorageProvider.builder().maxQueueItems(maxQueueItems).build()
+                        : storageProvider)
                 .submissionClient(this.submissionClient)
                 .build()
             : queue;
@@ -106,30 +106,40 @@ public class ConfigurationManager {
     this.defaultData = new HashMap<>();
     this.defaultTags = new HashSet<>();
     this.onChangedHandlers = new ArrayList<>();
-    this.userAgentBotPatterns = new HashSet<>();
-    this.dataExclusions = DataExclusions.builder().build();
+    this.dataExclusions = new HashSet<>();
+    this.privateInformationInclusions = PrivateInformationInclusions.builder().build();
     this.pluginManager = PluginManager.builder().log(this.log).build();
+    checkApiKeyIsValid();
+  }
+
+  private void addPropertyChangeListeners() {
+    this.privateInformationInclusions.addPropertyChangeListener(ignored -> changed());
+    this.configuration.addPropertyChangeListener(ignored -> changed());
+    this.settingsManager.addPropertyChangeListener(ignored -> changed());
+  }
+
+  private void checkApiKeyIsValid() {
+    if (configuration.getApiKey() != null && configuration.getApiKey().length() > 10) {
+      return;
+    }
+
+    throw new ClientException(
+        String.format("Apikey is not valid: [%s]", this.configuration.getApiKey()));
   }
 
   public void addDataExclusions(String... exclusions) {
-    dataExclusions.getOthers().addAll(Arrays.asList(exclusions));
+    dataExclusions.addAll(Arrays.asList(exclusions));
   }
 
   public Set<String> getDataExclusions() {
-    String serverExclusions =
-        settingsManager.getSavedServerSettings().getSettings().getOrDefault("@@DataExclusions", "");
-    Set<String> combinedExclusions = new HashSet<>(Arrays.asList(serverExclusions.split(",")));
-    combinedExclusions.addAll(dataExclusions.getOthers());
+    Set<String> combinedExclusions = settingsManager.getSavedServerSettings().getDataExclusions();
+    combinedExclusions.addAll(dataExclusions);
     return combinedExclusions;
   }
 
   public void submitSessionHeartbeat(String sessionOrUserId) {
     log.info(String.format("Submitting session heartbeat: %s", sessionOrUserId));
     submissionClient.sendHeartBeat(sessionOrUserId, false);
-  }
-
-  public void addUserAgentBotPatterns(String... userAgentBotPatterns) {
-    this.userAgentBotPatterns.addAll(Arrays.asList(userAgentBotPatterns));
   }
 
   public void addPlugin(EventPluginIF eventPlugin) {
@@ -189,14 +199,14 @@ public class ConfigurationManager {
   }
 
   public void useSessions(int heartbeatInterval) {
-    addPlugin(HeartbeatPlugin.builder().build());
+    addPlugin(HeartbeatPlugin.builder().heartbeatInterval(heartbeatInterval).build());
   }
 
   public void useReferenceIds() {
     addPlugin(ReferenceIdPlugin.builder().build());
   }
 
-  public void onChange(Consumer<ConfigurationManager> onChangedHandler) {
+  public void onChanged(Consumer<ConfigurationManager> onChangedHandler) {
     onChangedHandlers.add(onChangedHandler);
   }
 

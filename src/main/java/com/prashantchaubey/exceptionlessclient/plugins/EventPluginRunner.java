@@ -17,7 +17,9 @@ public class EventPluginRunner {
 
   public void run(EventPluginContext eventPluginContext, Consumer<EventPluginContext> handler) {
     List<EventPluginIF> plugins = configurationManager.getPlugins();
+    // Handler will run first
     plugins.add(
+        0,
         new EventPluginIF() {
           @Override
           public int getPriority() {
@@ -36,8 +38,6 @@ public class EventPluginRunner {
           }
         });
 
-    plugins.sort(
-        (o1, o2) -> o2.getPriority() - o1.getPriority()); // todo move this to configuration manager
     plugins.forEach(
         plugin -> {
           if (eventPluginContext.getContext().isEventCancelled()) {
@@ -55,7 +55,7 @@ public class EventPluginRunner {
                         "Error running plugin: %s: %s. Discarding event",
                         plugin.getName(), e.getMessage()),
                     e);
-            eventPluginContext.getContext().markAsCancelled();
+            eventPluginContext.getContext().setEventCancelled(true);
           }
         });
   }

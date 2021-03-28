@@ -13,68 +13,73 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class PluginManager {
-    private LogIF log;
-    @Getter
-    private List<EventPluginIF> plugins;
+  private LogIF log;
+  @Getter private List<EventPluginIF> plugins;
 
-    @Builder
-    public PluginManager(LogIF log){
-        configureDefaultPlugins();
+  @Builder
+  public PluginManager(LogIF log) {
+    configureDefaultPlugins();
+    sortPlugins();
+  }
+
+  private void configureDefaultPlugins() {
+    addPlugin(ConfigurationDefaultsPlugin.builder().build());
+    addPlugin(ErrorPlugin.builder().build());
+    addPlugin(DuplicateErrorCheckerPlugin.builder().build());
+    addPlugin(EventExclusionPlugin.builder().build());
+    addPlugin(ModuleInfoPlugin.builder().build());
+    addPlugin(EnvironmentInfoPlugin.builder().build());
+    addPlugin(SubmissionMethodPlugin.builder().build());
+  }
+
+  public void addPlugin(EventPluginIF eventPlugin) {
+    if (plugins.stream().anyMatch(plugin -> plugin.getName().equals(eventPlugin.getName()))) {
+      log.info(
+          String.format(
+              "Can't add plugin, name: %s, priority: %s as a plugin with this name already configured",
+              eventPlugin.getName(), eventPlugin.getPriority()));
+      return;
     }
+    plugins.add(eventPlugin);
+    sortPlugins();
+  }
 
-    private void configureDefaultPlugins() {
-        addPlugin(ConfigurationDefaultsPlugin.builder().build());
-        addPlugin(ErrorPlugin.builder().build());
-        addPlugin(DuplicateCheckerPlugin.builder().build());
-        addPlugin(EventExclusionPlugin.builder().build());
-        addPlugin(ModuleInfoPlugin.builder().build());
-        addPlugin(EnvironmentInfoPlugin.builder().build());
-        addPlugin(SubmissionMethodPlugin.builder().build());
-    }
+  private void sortPlugins() {
+    plugins.sort((o1, o2) -> o2.getPriority() - o1.getPriority());
+  }
 
-    public void addPlugin(EventPluginIF eventPlugin) {
-        if (plugins.stream().anyMatch(plugin -> plugin.getName().equals(eventPlugin.getName()))) {
-            log.info(
-                    String.format(
-                            "Can't add plugin, name: %s, priority: %s as a plugin with this name already configured",
-                            eventPlugin.getName(), eventPlugin.getPriority()));
-        }
-        plugins.add(eventPlugin);
-    }
+  public void addPlugin(BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
+    addPlugin(UUID.randomUUID().toString(), 0, pluginAction);
+  }
 
-    public void addPlugin(BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
-        addPlugin(UUID.randomUUID().toString(), 0, pluginAction);
-    }
+  public void addPlugin(
+      String name,
+      int priority,
+      BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
+    addPlugin(
+        new EventPluginIF() {
+          @Override
+          public int getPriority() {
+            return priority;
+          }
 
-    public void addPlugin(
-            String name,
-            int priority,
-            BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
-        addPlugin(
-                new EventPluginIF() {
-                    @Override
-                    public int getPriority() {
-                        return priority;
-                    }
+          @Override
+          public String getName() {
+            return name;
+          }
 
-                    @Override
-                    public String getName() {
-                        return name;
-                    }
+          @Override
+          public void run(
+              EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+            pluginAction.accept(eventPluginContext, configurationManager);
+          }
+        });
+  }
 
-                    @Override
-                    public void run(
-                            EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
-                        pluginAction.accept(eventPluginContext, configurationManager);
-                    }
-                });
-    }
-
-    public void removePlugin(String name) {
-        plugins =
-                plugins.stream()
-                        .filter(eventPlugin -> !eventPlugin.getName().equals(name))
-                        .collect(Collectors.toList());
-    }
-
+  public void removePlugin(String name) {
+    plugins =
+        plugins.stream()
+            .filter(eventPlugin -> !eventPlugin.getName().equals(name))
+            .collect(Collectors.toList());
+  }
 }

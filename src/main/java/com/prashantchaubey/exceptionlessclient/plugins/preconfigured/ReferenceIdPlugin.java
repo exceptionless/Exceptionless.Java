@@ -25,6 +25,7 @@ public class ReferenceIdPlugin implements EventPluginIF {
     if (!event.getType().equals(EventType.ERROR.value()) || event.getReferenceId() != null) {
       return;
     }
+
     event.setReferenceId(UUID.randomUUID().toString());
   }
 }

@@ -82,6 +82,10 @@ public class Event extends Model {
     this.tags.addAll(Arrays.asList(tags));
   }
 
+  public void addError(Error error) {
+    data.put(EventPropertyKey.ERROR.value(), error);
+  }
+
   public void addEnvironmentInfo(EnvironmentInfo environmentInfo) {
     data.put(EventPropertyKey.ENVIRONMENT.value(), environmentInfo);
   }
@@ -90,8 +94,22 @@ public class Event extends Model {
     data.put(EventPropertyKey.SUBMISSION_METHOD.value(), submissionMethod);
   }
 
-  public Error getError() {
-    return safeGetAs(data.get(EventPropertyKey.ERROR.value()), Error.class);
+  public Optional<Error> getError() {
+    return Optional.ofNullable(safeGetAs(data.get(EventPropertyKey.ERROR.value()), Error.class));
+  }
+
+  public Optional<EnvironmentInfo> getEnvironmentInfo() {
+    return Optional.ofNullable(
+        safeGetAs(data.get(EventPropertyKey.ENVIRONMENT.value()), EnvironmentInfo.class));
+  }
+
+  public Optional<String> getLogLevel() {
+    return Optional.ofNullable(
+        safeGetAs(data.get(EventPropertyKey.LOG_LEVEL.value()), String.class));
+  }
+
+  public Optional<UserInfo> getUserInfo() {
+    return Optional.ofNullable(safeGetAs(data.get(EventPropertyKey.USER.value()), UserInfo.class));
   }
 
   public static EventBuilder builder() {

@@ -44,6 +44,7 @@ public class DefaultEventQueue implements EventQueueIF {
     this.submissionClient = submissionClient;
     this.queueTimer = new Timer();
     this.handlers = new ArrayList<>();
+    this.currentSubmissionBatchSize = configuration.getSubmissionBatchSize();
     init(processingIntervalInSecs == null ? 10 : processingIntervalInSecs);
   }
 
@@ -132,6 +133,7 @@ public class DefaultEventQueue implements EventQueueIF {
     if (response.isSuccess()) {
       log.info(String.format("Sent %s events", storedEvents.size()));
       setBatchSizeToConfigured();
+      removeEvents(storedEvents);
       return;
     }
 
@@ -151,6 +153,7 @@ public class DefaultEventQueue implements EventQueueIF {
       log.info(
           "Unable to authenticate, please check your configuration. Events will not be submitted");
       suspendProcessing(Duration.ofMinutes(15));
+      removeEvents(storedEvents);
       return;
     }
 
@@ -168,7 +171,7 @@ public class DefaultEventQueue implements EventQueueIF {
         currentSubmissionBatchSize =
             Math.max(1, (int) Math.round(currentSubmissionBatchSize / 1.5));
       } else {
-        log.error("Event submission discarded for beging too large. Events will not be submitted");
+        log.error("Event submission discarded for being too large. Events will not be submitted");
         removeEvents(storedEvents);
       }
       return;

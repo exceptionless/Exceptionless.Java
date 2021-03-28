@@ -7,6 +7,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.Optional;
+
+import static com.prashantchaubey.exceptionlessclient.utils.EventUtils.safeGetAs;
+
 // Warning `SuperBuilder` will not work for any class extending this. This class breaks the chain
 // for customization
 @Data
@@ -35,23 +39,22 @@ public class PluginContext extends Model {
   }
 
   public boolean hasException() {
-    return data.get(PluginContextKey.EXCEPTION.value()) != null;
+    return getException().isPresent();
   }
 
-  public Exception getException() {
-    return (Exception) data.get(PluginContextKey.EXCEPTION.value());
+  public Optional<Exception> getException() {
+    return Optional.ofNullable(
+        safeGetAs(data.get(PluginContextKey.EXCEPTION.value()), Exception.class));
   }
 
   public boolean isUnhandledError() {
-    return data.containsKey(PluginContextKey.IS_UNHANDLED_ERROR.value())
-        && (boolean) data.get(PluginContextKey.IS_UNHANDLED_ERROR.value());
+    Boolean unhandledError =
+        safeGetAs(data.get(PluginContextKey.IS_UNHANDLED_ERROR.value()), Boolean.class);
+    return unhandledError != null && unhandledError;
   }
 
-  public String getSubmissionMethod() {
-    return (String) data.get(PluginContextKey.SUBMISSION_METHOD.value());
-  }
-
-  public void markAsCancelled() {
-    eventCancelled = true;
+  public Optional<String> getSubmissionMethod() {
+    return Optional.ofNullable(
+        safeGetAs(data.get(PluginContextKey.SUBMISSION_METHOD.value()), String.class));
   }
 }

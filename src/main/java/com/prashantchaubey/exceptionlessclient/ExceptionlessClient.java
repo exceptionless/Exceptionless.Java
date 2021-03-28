@@ -163,10 +163,6 @@ public class ExceptionlessClient {
     configurationManager.getSubmissionClient().sendHeartBeat(sessionOrUserId, true);
   }
 
-  public void submitSessionHeartbeat(String sessionOrUserId) {
-    configurationManager.submitSessionHeartbeat(sessionOrUserId);
-  }
-
   public void updateEmailAndDescription(
       String referenceId, String email, String description, Consumer<SubmissionResponse> handler) {
     SubmissionResponse response =

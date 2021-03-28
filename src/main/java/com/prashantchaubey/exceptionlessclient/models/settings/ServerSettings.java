@@ -1,10 +1,12 @@
 package com.prashantchaubey.exceptionlessclient.models.settings;
 
+import com.prashantchaubey.exceptionlessclient.models.enums.ServerSettingKey;
 import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.NonFinal;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Builder
 @Value
@@ -35,6 +37,18 @@ public class ServerSettings {
     }
 
     return Optional.empty();
+  }
+
+  public Set<String> getDataExclusions() {
+    return Arrays.stream(
+            settings.getOrDefault(ServerSettingKey.DATA_EXCLUSIONS.value(), "").split(","))
+        .collect(Collectors.toSet());
+  }
+
+  public Set<String> getUserAgentBotPatterns() {
+    return Arrays.stream(
+            settings.getOrDefault(ServerSettingKey.USER_AGENT_BOT_PATTERNS.value(), "").split(","))
+        .collect(Collectors.toSet());
   }
 
   public static boolean getAsBoolean(String setting) {

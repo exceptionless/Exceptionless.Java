@@ -8,10 +8,7 @@ import com.prashantchaubey.exceptionlessclient.models.enums.EventType;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class ErrorPlugin implements EventPluginIF {
 
@@ -48,17 +45,20 @@ public class ErrorPlugin implements EventPluginIF {
   @Override
   public void run(
       EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
-    Exception exception = eventPluginContext.getContext().getException();
-    if (exception == null) {
+    Optional<Exception> maybeException = eventPluginContext.getContext().getException();
+    if (!maybeException.isPresent()) {
       return;
     }
+    Exception exception = maybeException.get();
 
     Event event = eventPluginContext.getEvent();
     event.setType(EventType.ERROR.value());
-    event.addData(
-        Map.of(
-            EventPropertyKey.ERROR.value(),
-            configurationManager.getErrorParser().parse(exception)));
+    if (event.getError().isPresent()) {
+      return;
+    }
+
+    event.addError(configurationManager.getErrorParser().parse(exception));
+
     Set<String> dataExclusions = new HashSet<>(configurationManager.getDataExclusions());
     dataExclusions.addAll(this.dataExclusions);
     event.addData(Map.of(EventPropertyKey.EXTRA.value(), exception), dataExclusions);

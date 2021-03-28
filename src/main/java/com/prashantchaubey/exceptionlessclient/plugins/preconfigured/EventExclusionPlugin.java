@@ -4,9 +4,8 @@ import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationManage
 import com.prashantchaubey.exceptionlessclient.logging.LogIF;
 import com.prashantchaubey.exceptionlessclient.models.Event;
 import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
-import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
 import com.prashantchaubey.exceptionlessclient.models.enums.EventType;
-import com.prashantchaubey.exceptionlessclient.models.services.error.InnerError;
+import com.prashantchaubey.exceptionlessclient.models.services.error.Error;
 import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
 import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
@@ -41,7 +40,7 @@ public class EventExclusionPlugin implements EventPluginIF {
     } else {
       Optional<String> maybeSetting =
           serverSettings.getTypeAndSourceSetting(event.getType(), event.getSource());
-      if (!maybeSetting.isPresent() || !ServerSettings.getAsBoolean(maybeSetting.get())) {
+      if (!maybeSetting.isPresent() || ServerSettings.getAsBoolean(maybeSetting.get())) {
         return;
       }
       log.info(
@@ -54,23 +53,31 @@ public class EventExclusionPlugin implements EventPluginIF {
   private void handleLogEvent(
       EventPluginContext eventPluginContext, ServerSettings serverSettings) {
     Event event = eventPluginContext.getEvent();
-    Optional<String> maybeSetting =
-        serverSettings.getTypeAndSourceSetting(event.getType(), event.getSource());
-    OptionalInt maybeMinLogLevel =
-        maybeSetting.isPresent() ? getLogLevel(maybeSetting.get()) : OptionalInt.empty();
-    OptionalInt maybeLevel =
-        getLogLevel((String) event.getData().getOrDefault(EventPropertyKey.LOG_LEVEL.value(), ""));
-    if (!maybeLevel.isPresent() || !maybeMinLogLevel.isPresent()) {
+    Optional<String> maybeLogSetting =
+        serverSettings.getTypeAndSourceSetting(EventType.LOG.value(), event.getSource());
+    if (!maybeLogSetting.isPresent()) {
       return;
     }
-    if (maybeLevel.getAsInt() >= maybeMinLogLevel.getAsInt()) {
+    Optional<String> maybeLogLevel = event.getLogLevel();
+    if (!maybeLogLevel.isPresent()) {
       return;
     }
+
+    OptionalInt maybeMinLogPriority = getLogPriority(maybeLogSetting.get());
+    OptionalInt maybeLogPriority = getLogPriority(maybeLogLevel.get());
+    if (!maybeLogPriority.isPresent() || !maybeMinLogPriority.isPresent()) {
+      return;
+    }
+
+    if (maybeLogPriority.getAsInt() >= maybeMinLogPriority.getAsInt()) {
+      return;
+    }
+
     log.info("Cancelling log event due to minimum log level");
-    eventPluginContext.getContext().markAsCancelled();
+    eventPluginContext.getContext().setEventCancelled(true);
   }
 
-  private OptionalInt getLogLevel(String level) {
+  private OptionalInt getLogPriority(String level) {
     switch (level) {
       case "trace":
       case "true":
@@ -99,18 +106,22 @@ public class EventExclusionPlugin implements EventPluginIF {
 
   private void handleErrorEvent(
       EventPluginContext eventPluginContext, ServerSettings serverSettings) {
-    Event event = eventPluginContext.getEvent();
-    InnerError error = (InnerError) event.getData().get(EventPropertyKey.ERROR.value());
+    Optional<Error> maybeError = eventPluginContext.getEvent().getError();
+    if (!maybeError.isPresent()) {
+      return;
+    }
+    Error error = maybeError.get();
+
     while (error != null) {
       Optional<String> maybeSetting =
           serverSettings.getTypeAndSourceSetting(EventType.ERROR.value(), error.getType());
-      if (maybeSetting.isPresent() && ServerSettings.getAsBoolean(maybeSetting.get())) {
+      if (maybeSetting.isPresent() && !ServerSettings.getAsBoolean(maybeSetting.get())) {
         log.info(
             String.format("Cancelling error from excluded exception type: %s", error.getType()));
-        eventPluginContext.getContext().markAsCancelled();
+        eventPluginContext.getContext().setEventCancelled(true);
         break;
       }
-      error = error.getInner();
+      error = (Error) error.getInner();
     }
   }
 }

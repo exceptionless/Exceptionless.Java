@@ -20,9 +20,6 @@ public class ConfigurationDefaultsPlugin implements EventPluginIF {
       EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Event event = eventPluginContext.getEvent();
     for (String tag : configurationManager.getDefaultTags()) {
-      if (event.getTags().contains(tag)) {
-        continue;
-      }
       event.addTags(tag);
     }
 

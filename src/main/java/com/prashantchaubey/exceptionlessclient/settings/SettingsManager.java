@@ -7,6 +7,8 @@ import com.prashantchaubey.exceptionlessclient.models.submission.SettingsRespons
 import com.prashantchaubey.exceptionlessclient.storage.StorageProviderIF;
 import lombok.Builder;
 
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.util.Map;
 
 public class SettingsManager {
@@ -16,6 +18,7 @@ public class SettingsManager {
   private StorageProviderIF storageProvider;
   private SettingsClientIF settingsClient;
   private Boolean updatingSettings;
+  private PropertyChangeSupport propertyChangeSupport;
 
   @Builder
   public SettingsManager(
@@ -23,6 +26,11 @@ public class SettingsManager {
     this.log = log;
     this.storageProvider = storageProvider;
     this.settingsClient = settingsClient;
+    this.propertyChangeSupport = new PropertyChangeSupport(this);
+  }
+
+  public void addPropertyChangeListener(PropertyChangeListener listener) {
+    propertyChangeSupport.addPropertyChangeListener(listener);
   }
 
   public void checkVersion(long version) {
@@ -72,6 +80,8 @@ public class SettingsManager {
       log.warn(String.format("Unable to update settings: %s:", response.getMessage()));
       return;
     }
+    ServerSettings prevValue = storageProvider.getSettings().peek().getValue();
     storageProvider.getSettings().save(response.getSettings());
+    propertyChangeSupport.firePropertyChange("settings", prevValue, response.getSettings());
   }
 }
