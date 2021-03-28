@@ -1,4 +1,4 @@
-package com.prashantchaubey.exceptionlessclient.models.services;
+package com.prashantchaubey.exceptionlessclient.services;
 
 import lombok.Builder;
 import lombok.Value;

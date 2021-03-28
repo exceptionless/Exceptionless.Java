@@ -15,7 +15,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.prashantchaubey.exceptionlessclient.utils.EventUtils.safeGetAs;
+import static com.prashantchaubey.exceptionlessclient.utils.Utils.safeGetAs;
 
 // Warning `SuperBuilder` will not work for any class extending this. This class breaks the chain
 // for customization

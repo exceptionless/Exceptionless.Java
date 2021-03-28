@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.prashantchaubey.exceptionlessclient.configuration.Configuration;
 import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
 import com.prashantchaubey.exceptionlessclient.models.submission.SettingsResponse;
-import com.prashantchaubey.exceptionlessclient.utils.JsonUtils;
+import com.prashantchaubey.exceptionlessclient.utils.Utils;
 import lombok.Builder;
 
 import java.io.IOException;
@@ -52,7 +52,7 @@ public class DefaultSettingsClient implements SettingsClientIF {
       }
 
       ServerSettings serverSettings =
-          JsonUtils.JSON_MAPPER.readValue(response.body(), new TypeReference<ServerSettings>() {});
+          Utils.JSON_MAPPER.readValue(response.body(), new TypeReference<ServerSettings>() {});
 
       return SettingsResponse.builder().success(true).settings(serverSettings).build();
     } catch (URISyntaxException | InterruptedException | IOException e) {

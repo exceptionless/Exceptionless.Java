@@ -1,6 +1,7 @@
 package com.prashantchaubey.exceptionlessclient.models.settings;
 
 import com.prashantchaubey.exceptionlessclient.models.enums.ServerSettingKey;
+import com.prashantchaubey.exceptionlessclient.utils.Utils;
 import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.NonFinal;
@@ -30,8 +31,7 @@ public class ServerSettings {
       if (!key.startsWith(prefix) || key.length() <= prefix.length()) {
         continue;
       }
-      // todo check that wildcard match work with this or not
-      if (source.matches(key.substring(prefix.length()))) {
+      if (Utils.match(source, key.substring(prefix.length()))) {
         return Optional.of(settings.get(key));
       }
     }

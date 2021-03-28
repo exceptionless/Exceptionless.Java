@@ -7,7 +7,7 @@ import com.prashantchaubey.exceptionlessclient.models.Event;
 import com.prashantchaubey.exceptionlessclient.models.UserDescription;
 import com.prashantchaubey.exceptionlessclient.models.submission.SubmissionResponse;
 import com.prashantchaubey.exceptionlessclient.settings.SettingsManager;
-import com.prashantchaubey.exceptionlessclient.utils.JsonUtils;
+import com.prashantchaubey.exceptionlessclient.utils.Utils;
 import lombok.Builder;
 
 import java.io.IOException;
@@ -61,7 +61,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
   private SubmissionResponse postSubmission(String url, Object data) {
     try {
       URI uri = new URI(url);
-      String requestJSON = JsonUtils.JSON_MAPPER.writeValueAsString(data);
+      String requestJSON = Utils.JSON_MAPPER.writeValueAsString(data);
 
       HttpRequest request =
           HttpRequest.newBuilder()

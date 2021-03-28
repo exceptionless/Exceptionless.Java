@@ -2,7 +2,6 @@ package com.prashantchaubey.exceptionlessclient.services;
 
 import com.prashantchaubey.exceptionlessclient.logging.LogIF;
 import com.prashantchaubey.exceptionlessclient.models.services.EnvironmentInfo;
-import com.prashantchaubey.exceptionlessclient.models.services.EnvironmentInfoGetArgs;
 import com.sun.management.OperatingSystemMXBean;
 import lombok.Builder;
 
