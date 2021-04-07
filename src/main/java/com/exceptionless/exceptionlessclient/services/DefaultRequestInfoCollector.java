@@ -1,9 +1,8 @@
 package com.exceptionless.exceptionlessclient.services;
 
+import com.exceptionless.exceptionlessclient.logging.LogIF;
 import com.exceptionless.exceptionlessclient.models.services.RequestInfo;
-import com.prashantchaubey.exceptionlessclient.logging.LogIF;
-import com.prashantchaubey.exceptionlessclient.models.services.RequestInfo;
-import com.prashantchaubey.exceptionlessclient.utils.Utils;
+import com.exceptionless.exceptionlessclient.utils.Utils;
 import lombok.Builder;
 
 import java.net.InetAddress;

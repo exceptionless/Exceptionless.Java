@@ -1,8 +1,7 @@
 package com.exceptionless.exceptionlessclient.models.plugins;
 
+import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.queue.EventQueueIF;
-import com.prashantchaubey.exceptionlessclient.models.Event;
-import com.prashantchaubey.exceptionlessclient.queue.EventQueueIF;
 import lombok.Builder;
 import lombok.Data;
 

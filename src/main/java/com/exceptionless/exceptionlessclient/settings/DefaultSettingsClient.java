@@ -5,10 +5,6 @@ import com.exceptionless.exceptionlessclient.models.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.utils.Utils;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.prashantchaubey.exceptionlessclient.configuration.Configuration;
-import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
-import com.prashantchaubey.exceptionlessclient.models.submission.SettingsResponse;
-import com.prashantchaubey.exceptionlessclient.utils.Utils;
 import lombok.Builder;
 
 import java.io.IOException;
@@ -19,7 +15,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
-import static com.prashantchaubey.exceptionlessclient.configuration.Configuration.USER_AGENT;
 
 public class DefaultSettingsClient implements SettingsClientIF {
   private Configuration configuration;

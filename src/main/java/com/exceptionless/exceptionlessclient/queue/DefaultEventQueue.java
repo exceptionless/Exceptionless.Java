@@ -1,13 +1,13 @@
 package com.exceptionless.exceptionlessclient.queue;
 
-import com.prashantchaubey.exceptionlessclient.configuration.Configuration;
-import com.prashantchaubey.exceptionlessclient.exceptions.ClientException;
-import com.prashantchaubey.exceptionlessclient.logging.LogIF;
-import com.prashantchaubey.exceptionlessclient.models.Event;
-import com.prashantchaubey.exceptionlessclient.models.storage.StorageItem;
-import com.prashantchaubey.exceptionlessclient.models.submission.SubmissionResponse;
-import com.prashantchaubey.exceptionlessclient.storage.StorageProviderIF;
-import com.prashantchaubey.exceptionlessclient.submission.SubmissionClientIF;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
+import com.exceptionless.exceptionlessclient.exceptions.ClientException;
+import com.exceptionless.exceptionlessclient.logging.LogIF;
+import com.exceptionless.exceptionlessclient.models.Event;
+import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
+import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
+import com.exceptionless.exceptionlessclient.storage.StorageProviderIF;
+import com.exceptionless.exceptionlessclient.submission.SubmissionClientIF;
 import lombok.Builder;
 
 import java.time.Duration;

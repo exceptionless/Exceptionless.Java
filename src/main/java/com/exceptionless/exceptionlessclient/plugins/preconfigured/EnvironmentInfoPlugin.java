@@ -1,13 +1,10 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
+import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import com.exceptionless.exceptionlessclient.services.EnvironmentInfoGetArgs;
-import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationManager;
-import com.prashantchaubey.exceptionlessclient.models.Event;
-import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
-import com.prashantchaubey.exceptionlessclient.services.EnvironmentInfoGetArgs;
-import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
 
 public class EnvironmentInfoPlugin implements EventPluginIF {

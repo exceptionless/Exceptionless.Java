@@ -1,7 +1,6 @@
 package com.exceptionless.exceptionlessclient.storage;
 
 import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
-import com.prashantchaubey.exceptionlessclient.models.storage.StorageItem;
 
 import java.util.List;
 

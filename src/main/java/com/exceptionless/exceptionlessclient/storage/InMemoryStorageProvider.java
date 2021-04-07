@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.storage;
 
-import com.prashantchaubey.exceptionlessclient.models.Event;
-import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
+import com.exceptionless.exceptionlessclient.models.Event;
+import com.exceptionless.exceptionlessclient.models.settings.ServerSettings;
 import lombok.Builder;
 
 public class InMemoryStorageProvider implements StorageProviderIF {

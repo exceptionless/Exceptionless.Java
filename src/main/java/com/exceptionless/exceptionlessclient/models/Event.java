@@ -1,20 +1,14 @@
 package com.exceptionless.exceptionlessclient.models;
 
 import com.exceptionless.exceptionlessclient.models.base.Model;
+import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
+import com.exceptionless.exceptionlessclient.models.enums.EventTag;
 import com.exceptionless.exceptionlessclient.models.services.EnvironmentInfo;
 import com.exceptionless.exceptionlessclient.models.services.RequestInfo;
 import com.exceptionless.exceptionlessclient.models.services.error.Error;
 import com.exceptionless.exceptionlessclient.queue.EventDataFilter;
 import com.exceptionless.exceptionlessclient.queue.EventValidator;
 import com.exceptionless.exceptionlessclient.utils.Utils;
-import com.prashantchaubey.exceptionlessclient.models.base.Model;
-import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
-import com.prashantchaubey.exceptionlessclient.models.enums.EventTag;
-import com.prashantchaubey.exceptionlessclient.models.services.EnvironmentInfo;
-import com.prashantchaubey.exceptionlessclient.models.services.RequestInfo;
-import com.prashantchaubey.exceptionlessclient.models.services.error.Error;
-import com.prashantchaubey.exceptionlessclient.queue.EventDataFilter;
-import com.prashantchaubey.exceptionlessclient.queue.EventValidator;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -22,8 +16,6 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.prashantchaubey.exceptionlessclient.utils.Utils.safeGetAs;
 
 // Warning `SuperBuilder` will not work for any class extending this. This class breaks the chain
 // for customization

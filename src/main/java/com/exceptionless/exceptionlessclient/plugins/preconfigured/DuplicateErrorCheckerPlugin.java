@@ -1,16 +1,13 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
+import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.logging.LogIF;
+import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.plugins.MergedEvent;
+import com.exceptionless.exceptionlessclient.models.services.error.Error;
+import com.exceptionless.exceptionlessclient.models.services.error.InnerError;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
-import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationManager;
-import com.prashantchaubey.exceptionlessclient.logging.LogIF;
-import com.prashantchaubey.exceptionlessclient.models.Event;
-import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
-import com.prashantchaubey.exceptionlessclient.models.plugins.MergedEvent;
-import com.prashantchaubey.exceptionlessclient.models.services.error.Error;
-import com.prashantchaubey.exceptionlessclient.models.services.error.InnerError;
-import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
 import lombok.Getter;
 

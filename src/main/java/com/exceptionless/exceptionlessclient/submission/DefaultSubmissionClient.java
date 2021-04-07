@@ -1,16 +1,13 @@
 package com.exceptionless.exceptionlessclient.submission;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
+import com.exceptionless.exceptionlessclient.exceptions.ClientException;
+import com.exceptionless.exceptionlessclient.logging.LogIF;
+import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
-import com.prashantchaubey.exceptionlessclient.configuration.Configuration;
-import com.prashantchaubey.exceptionlessclient.exceptions.ClientException;
-import com.prashantchaubey.exceptionlessclient.logging.LogIF;
-import com.prashantchaubey.exceptionlessclient.models.Event;
-import com.prashantchaubey.exceptionlessclient.models.UserDescription;
-import com.prashantchaubey.exceptionlessclient.models.submission.SubmissionResponse;
-import com.prashantchaubey.exceptionlessclient.settings.SettingsManager;
-import com.prashantchaubey.exceptionlessclient.utils.Utils;
+import com.exceptionless.exceptionlessclient.settings.SettingsManager;
+import com.exceptionless.exceptionlessclient.utils.Utils;
 import lombok.Builder;
 
 import java.io.IOException;
@@ -23,8 +20,6 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.OptionalLong;
-
-import static com.prashantchaubey.exceptionlessclient.configuration.Configuration.USER_AGENT;
 
 public class DefaultSubmissionClient implements SubmissionClientIF {
   private static final String CONFIGURATION_VERSION_HEADER = "x-exceptionless-configversion";

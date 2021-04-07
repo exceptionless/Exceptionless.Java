@@ -1,8 +1,8 @@
 package com.exceptionless.exceptionlessclient.submission;
 
-import com.prashantchaubey.exceptionlessclient.models.Event;
-import com.prashantchaubey.exceptionlessclient.models.UserDescription;
-import com.prashantchaubey.exceptionlessclient.models.submission.SubmissionResponse;
+import com.exceptionless.exceptionlessclient.models.Event;
+import com.exceptionless.exceptionlessclient.models.UserDescription;
+import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 
 import java.util.List;
 

@@ -1,9 +1,9 @@
 package com.exceptionless.exceptionlessclient.configuration;
 
-import com.prashantchaubey.exceptionlessclient.logging.LogIF;
-import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
-import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
-import com.prashantchaubey.exceptionlessclient.plugins.preconfigured.*;
+import com.exceptionless.exceptionlessclient.logging.LogIF;
+import com.exceptionless.exceptionlessclient.models.EventPluginContext;
+import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
+import com.exceptionless.exceptionlessclient.plugins.preconfigured.*;
 import lombok.Builder;
 import lombok.Getter;
 

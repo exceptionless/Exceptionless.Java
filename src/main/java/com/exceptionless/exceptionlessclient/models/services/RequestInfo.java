@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.models.services;
 
-import com.prashantchaubey.exceptionlessclient.models.base.Model;
+import com.exceptionless.exceptionlessclient.models.base.Model;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.experimental.NonFinal;
