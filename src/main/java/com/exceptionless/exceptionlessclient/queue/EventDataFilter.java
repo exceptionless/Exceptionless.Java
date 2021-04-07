@@ -1,9 +1,12 @@
 package com.exceptionless.exceptionlessclient.queue;
 
-import com.prashantchaubey.exceptionlessclient.utils.Utils;
+import com.exceptionless.exceptionlessclient.utils.Utils;
 import lombok.Builder;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class EventDataFilter {

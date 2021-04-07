@@ -1,6 +1,7 @@
 package com.exceptionless.exceptionlessclient.queue;
 
-import com.prashantchaubey.exceptionlessclient.exceptions.BadEventDataException;
+
+import com.exceptionless.exceptionlessclient.exceptions.BadEventDataException;
 
 public final class EventValidator {
   private static final int VALID_IDENTIFIER_MIN_LENGTH = 8;

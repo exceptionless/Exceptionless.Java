@@ -2,8 +2,6 @@ package com.exceptionless.exceptionlessclient.models.settings;
 
 import com.exceptionless.exceptionlessclient.models.enums.ServerSettingKey;
 import com.exceptionless.exceptionlessclient.utils.Utils;
-import com.prashantchaubey.exceptionlessclient.models.enums.ServerSettingKey;
-import com.prashantchaubey.exceptionlessclient.utils.Utils;
 import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.NonFinal;

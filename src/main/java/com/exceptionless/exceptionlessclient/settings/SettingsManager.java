@@ -5,11 +5,6 @@ import com.exceptionless.exceptionlessclient.models.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
 import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.storage.StorageProviderIF;
-import com.prashantchaubey.exceptionlessclient.logging.LogIF;
-import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
-import com.prashantchaubey.exceptionlessclient.models.storage.StorageItem;
-import com.prashantchaubey.exceptionlessclient.models.submission.SettingsResponse;
-import com.prashantchaubey.exceptionlessclient.storage.StorageProviderIF;
 import lombok.Builder;
 
 import java.beans.PropertyChangeListener;

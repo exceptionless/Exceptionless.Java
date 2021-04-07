@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.plugins;
 
-import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationManager;
-import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
+import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import lombok.Builder;
 
 public class EventPluginRunner {

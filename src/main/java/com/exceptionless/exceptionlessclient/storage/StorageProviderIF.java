@@ -1,7 +1,8 @@
 package com.exceptionless.exceptionlessclient.storage;
 
-import com.prashantchaubey.exceptionlessclient.models.Event;
-import com.prashantchaubey.exceptionlessclient.models.settings.ServerSettings;
+
+import com.exceptionless.exceptionlessclient.models.Event;
+import com.exceptionless.exceptionlessclient.models.settings.ServerSettings;
 
 public interface StorageProviderIF {
     StorageIF<Event> getQueue();

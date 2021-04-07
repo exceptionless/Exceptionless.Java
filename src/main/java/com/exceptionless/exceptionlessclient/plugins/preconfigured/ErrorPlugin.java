@@ -1,16 +1,17 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
+import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
+import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
+import com.exceptionless.exceptionlessclient.models.enums.EventType;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
-import com.prashantchaubey.exceptionlessclient.configuration.ConfigurationManager;
-import com.prashantchaubey.exceptionlessclient.models.Event;
-import com.prashantchaubey.exceptionlessclient.models.EventPluginContext;
-import com.prashantchaubey.exceptionlessclient.models.enums.EventPropertyKey;
-import com.prashantchaubey.exceptionlessclient.models.enums.EventType;
-import com.prashantchaubey.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class ErrorPlugin implements EventPluginIF {
 

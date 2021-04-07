@@ -1,7 +1,6 @@
 package com.exceptionless.exceptionlessclient.services;
 
 import com.exceptionless.exceptionlessclient.models.services.Module;
-import com.prashantchaubey.exceptionlessclient.models.services.Module;
 import lombok.Builder;
 
 import java.util.List;

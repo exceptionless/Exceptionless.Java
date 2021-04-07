@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.services;
 
-import com.prashantchaubey.exceptionlessclient.models.services.error.Error;
-import com.prashantchaubey.exceptionlessclient.models.services.error.StackFrame;
+import com.exceptionless.exceptionlessclient.models.services.error.Error;
+import com.exceptionless.exceptionlessclient.models.services.error.StackFrame;
 import lombok.Builder;
 
 import java.util.Arrays;
