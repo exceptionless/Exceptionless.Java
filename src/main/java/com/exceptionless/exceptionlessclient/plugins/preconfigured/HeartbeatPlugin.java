@@ -11,6 +11,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class HeartbeatPlugin implements EventPluginIF {
+  private static final String HEART_BEAT_TIMER_NAME = "heart-beat-timer";
+
   private int heartbeatInterval;
   private Timer heartbeatTimer;
   private String prevIdentity;
@@ -18,7 +20,7 @@ public class HeartbeatPlugin implements EventPluginIF {
   @Builder
   public HeartbeatPlugin(int heartbeatInterval) {
     this.heartbeatInterval = heartbeatInterval;
-    this.heartbeatTimer = new Timer();
+    this.heartbeatTimer = new Timer(HEART_BEAT_TIMER_NAME);
   }
 
   @Override
@@ -28,7 +30,7 @@ public class HeartbeatPlugin implements EventPluginIF {
 
   @Override
   public void run(
-          EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Optional<UserInfo> maybeUserInfo = eventPluginContext.getEvent().getUserInfo();
     if (!maybeUserInfo.isPresent()) {
       return;
@@ -50,8 +52,8 @@ public class HeartbeatPlugin implements EventPluginIF {
         heartbeatInterval);
   }
 
-  private void resetHeartbeatTimer(){
+  private void resetHeartbeatTimer() {
     heartbeatTimer.cancel();
-    heartbeatTimer = new Timer();
+    heartbeatTimer = new Timer(HEART_BEAT_TIMER_NAME);
   }
 }

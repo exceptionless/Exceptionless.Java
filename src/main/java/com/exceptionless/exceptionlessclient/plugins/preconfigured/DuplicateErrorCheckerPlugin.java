@@ -14,6 +14,8 @@ import lombok.Getter;
 import java.util.*;
 
 public class DuplicateErrorCheckerPlugin implements EventPluginIF {
+  private static final String MERGED_EVENTS_RESUBMISSION_TIMER_NAME = "merged-events-resubmission-timer";
+
   private LogIF log;
   private int maxHashesCount;
   private Queue<MergedEvent> mergedEvents;
@@ -27,7 +29,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
     this.log = log;
     this.maxHashesCount = maxHashesCount == null ? 50 : maxHashesCount;
     this.mergedEvents = new ArrayDeque<>();
-    this.mergedEventsResubmissionTimer = new Timer();
+    this.mergedEventsResubmissionTimer = new Timer(MERGED_EVENTS_RESUBMISSION_TIMER_NAME);
     this.hashes = new ArrayList<>();
     this.mergedEventsResubmissionInSecs =
         mergedEventsResubmissionInSecs == null ? 30 : mergedEventsResubmissionInSecs;

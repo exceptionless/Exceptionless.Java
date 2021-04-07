@@ -17,6 +17,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class ExceptionlessClient {
+  private static final String UPDATE_SETTINGS_TIMER_NAME = "update-settings-timer";
   private static final int UPDATE_SETTINGS_TIMER_INITIAL_DELAY = 5000;
 
   private ConfigurationManager configurationManager;
@@ -28,7 +29,7 @@ public class ExceptionlessClient {
     this.configurationManager = configurationManager;
     this.eventPluginRunner =
         EventPluginRunner.builder().configurationManager(this.configurationManager).build();
-    this.updateSettingsTimer = new Timer();
+    this.updateSettingsTimer = new Timer(UPDATE_SETTINGS_TIMER_NAME);
     init();
   }
 
@@ -144,7 +145,7 @@ public class ExceptionlessClient {
   }
 
   // todo this should be async
-  private void submitEvent(EventPluginContext eventPluginContext) {
+  public void submitEvent(EventPluginContext eventPluginContext) {
     eventPluginRunner.run(eventPluginContext);
   }
 

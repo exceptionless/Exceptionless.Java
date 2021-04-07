@@ -20,6 +20,8 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class DefaultEventQueue implements EventQueueIF {
+  private static final String QUEUE_TIMER_NAME = "queue-timer";
+
   private LogIF log;
   private StorageProviderIF storageProvider;
   private Configuration configuration;
@@ -42,7 +44,7 @@ public class DefaultEventQueue implements EventQueueIF {
     this.storageProvider = storageProvider;
     this.configuration = configuration;
     this.submissionClient = submissionClient;
-    this.queueTimer = new Timer();
+    this.queueTimer = new Timer(QUEUE_TIMER_NAME);
     this.handlers = new ArrayList<>();
     this.currentSubmissionBatchSize = configuration.getSubmissionBatchSize();
     init(processingIntervalInSecs == null ? 10 : processingIntervalInSecs);
