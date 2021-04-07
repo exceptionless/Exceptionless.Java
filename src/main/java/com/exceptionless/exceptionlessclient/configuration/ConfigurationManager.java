@@ -45,6 +45,7 @@ public class ConfigurationManager {
   @Getter private PrivateInformationInclusions privateInformationInclusions;
   private Set<String> dataExclusions;
   private PluginManager pluginManager;
+  @Getter private StorageProviderIF storageProvider;
 
   @Builder
   public ConfigurationManager(
@@ -77,6 +78,10 @@ public class ConfigurationManager {
         requestInfoCollector == null
             ? DefaultRequestInfoCollector.builder().log(this.log).build()
             : requestInfoCollector;
+    this.storageProvider =
+        storageProvider == null
+            ? InMemoryStorageProvider.builder().maxQueueItems(maxQueueItems).build()
+            : storageProvider;
     this.settingsManager =
         SettingsManager.builder()
             .settingsClient(
@@ -84,6 +89,7 @@ public class ConfigurationManager {
                     ? DefaultSettingsClient.builder().configuration(this.configuration).build()
                     : settingsClient)
             .log(log)
+            .storageProvider(this.storageProvider)
             .build();
     this.userAgentBotPatterns = new HashSet<>();
     this.configuration =
@@ -102,10 +108,7 @@ public class ConfigurationManager {
                 .configuration(this.configuration)
                 .log(this.log)
                 .processingIntervalInSecs(processingIntervalInSecs)
-                .storageProvider(
-                    storageProvider == null
-                        ? InMemoryStorageProvider.builder().maxQueueItems(maxQueueItems).build()
-                        : storageProvider)
+                .storageProvider(this.storageProvider)
                 .submissionClient(this.submissionClient)
                 .build()
             : queue;
