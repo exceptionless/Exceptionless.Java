@@ -13,7 +13,7 @@ public class PrivateInformationInclusions {
   @Getter private Boolean ipAddress;
   @Getter private Boolean machineName;
   @Getter private Boolean userName;
-  private PropertyChangeSupport propertyChangeSupport;
+  private final PropertyChangeSupport propertyChangeSupport;
 
   @Builder
   public PrivateInformationInclusions(
@@ -23,12 +23,12 @@ public class PrivateInformationInclusions {
       Boolean ipAddress,
       Boolean machineName,
       Boolean userName) {
-    this.queryString = queryString == null ? true : queryString;
-    this.postData = postData == null ? true : postData;
-    this.cookies = cookies == null ? true : cookies;
-    this.ipAddress = ipAddress == null ? true : ipAddress;
-    this.machineName = machineName == null ? true : machineName;
-    this.userName = userName == null ? true : userName;
+    this.queryString = queryString == null || queryString;
+    this.postData = postData == null || postData;
+    this.cookies = cookies == null || cookies;
+    this.ipAddress = ipAddress == null || ipAddress;
+    this.machineName = machineName == null || machineName;
+    this.userName = userName == null || userName;
     this.propertyChangeSupport = new PropertyChangeSupport(this);
   }
 

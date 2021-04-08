@@ -5,7 +5,7 @@ import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import lombok.Builder;
 
 public class EventPluginRunner {
-  private ConfigurationManager configurationManager;
+  private final ConfigurationManager configurationManager;
 
   @Builder
   public EventPluginRunner(ConfigurationManager configurationManager) {

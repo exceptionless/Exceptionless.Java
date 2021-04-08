@@ -14,7 +14,7 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class PluginManager {
-  private LogIF log;
+  private final LogIF log;
   @Getter private List<EventPluginIF> plugins;
 
   @Builder

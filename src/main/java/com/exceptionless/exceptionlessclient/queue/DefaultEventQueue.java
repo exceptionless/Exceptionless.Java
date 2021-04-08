@@ -22,16 +22,16 @@ import java.util.stream.Collectors;
 public class DefaultEventQueue implements EventQueueIF {
   private static final String QUEUE_TIMER_NAME = "queue-timer";
 
-  private LogIF log;
-  private StorageProviderIF storageProvider;
-  private Configuration configuration;
-  private SubmissionClientIF submissionClient;
+  private final LogIF log;
+  private final StorageProviderIF storageProvider;
+  private final Configuration configuration;
+  private final SubmissionClientIF submissionClient;
   private LocalDateTime discardQueueItemsUntil;
   private LocalDateTime suspendProcessingUntil;
   private boolean processingQueue;
-  private Timer queueTimer;
+  private final Timer queueTimer;
   private int currentSubmissionBatchSize;
-  private List<BiConsumer<List<Event>, SubmissionResponse>> handlers;
+  private final List<BiConsumer<List<Event>, SubmissionResponse>> handlers;
 
   @Builder
   public DefaultEventQueue(

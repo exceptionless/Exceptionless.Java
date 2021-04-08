@@ -13,7 +13,7 @@ import java.util.TimerTask;
 public class HeartbeatPlugin implements EventPluginIF {
   private static final String HEART_BEAT_TIMER_NAME = "heart-beat-timer";
 
-  private int heartbeatInterval;
+  private final int heartbeatInterval;
   private Timer heartbeatTimer;
   private String prevIdentity;
 

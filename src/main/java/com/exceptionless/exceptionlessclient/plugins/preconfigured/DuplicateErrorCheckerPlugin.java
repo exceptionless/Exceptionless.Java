@@ -16,12 +16,12 @@ import java.util.*;
 public class DuplicateErrorCheckerPlugin implements EventPluginIF {
   private static final String MERGED_EVENTS_RESUBMISSION_TIMER_NAME = "merged-events-resubmission-timer";
 
-  private LogIF log;
-  private int maxHashesCount;
-  private Queue<MergedEvent> mergedEvents;
-  private Timer mergedEventsResubmissionTimer;
-  private List<TimeStampedHash> hashes;
-  private Integer mergedEventsResubmissionInSecs;
+  private final LogIF log;
+  private final int maxHashesCount;
+  private final Queue<MergedEvent> mergedEvents;
+  private final Timer mergedEventsResubmissionTimer;
+  private final List<TimeStampedHash> hashes;
+  private final Integer mergedEventsResubmissionInSecs;
 
   @Builder
   public DuplicateErrorCheckerPlugin(
@@ -60,7 +60,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
           EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Event event = eventPluginContext.getEvent();
     Optional<Error> maybeError = event.getError();
-    if (!maybeError.isPresent()) {
+    if (maybeError.isEmpty()) {
       return;
     }
     Error error = maybeError.get();
@@ -120,7 +120,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
   @Builder
   @Getter
   private static class TimeStampedHash {
-    private long hash;
-    private long timestamp;
+    private final long hash;
+    private final long timestamp;
   }
 }

@@ -4,7 +4,7 @@ import com.exceptionless.exceptionlessclient.exceptions.ClientException;
 import com.exceptionless.exceptionlessclient.lastreferenceidmanager.DefaultLastReferenceIdManager;
 import com.exceptionless.exceptionlessclient.lastreferenceidmanager.LastReferenceIdManagerIF;
 import com.exceptionless.exceptionlessclient.logging.LogIF;
-import com.exceptionless.exceptionlessclient.logging.NullLog;
+import com.exceptionless.exceptionlessclient.logging.ConsoleLog;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.UserInfo;
 import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
@@ -28,24 +28,24 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class ConfigurationManager {
-  @Getter private EnvironmentInfoCollectorIF environmentInfoCollector;
-  @Getter private ErrorParserIF errorParser;
-  @Getter private LastReferenceIdManagerIF lastReferenceIdManager;
-  @Getter private LogIF log;
-  @Getter private ModuleCollectorIF moduleCollector;
-  @Getter private RequestInfoCollectorIF requestInfoCollector;
-  @Getter private SubmissionClientIF submissionClient;
-  @Getter private EventQueueIF queue;
-  @Getter private Configuration configuration;
-  @Getter private Set<String> defaultTags;
-  @Getter private Map<String, Object> defaultData;
-  private List<Consumer<ConfigurationManager>> onChangedHandlers;
-  @Getter private SettingsManager settingsManager;
-  @Getter private Set<String> userAgentBotPatterns;
-  @Getter private PrivateInformationInclusions privateInformationInclusions;
-  private Set<String> dataExclusions;
+  @Getter private final EnvironmentInfoCollectorIF environmentInfoCollector;
+  @Getter private final ErrorParserIF errorParser;
+  @Getter private final LastReferenceIdManagerIF lastReferenceIdManager;
+  @Getter private final LogIF log;
+  @Getter private final ModuleCollectorIF moduleCollector;
+  @Getter private final RequestInfoCollectorIF requestInfoCollector;
+  @Getter private final SubmissionClientIF submissionClient;
+  @Getter private final EventQueueIF queue;
+  @Getter private final Configuration configuration;
+  @Getter private final Set<String> defaultTags;
+  @Getter private final Map<String, Object> defaultData;
+  private final List<Consumer<ConfigurationManager>> onChangedHandlers;
+  @Getter private final SettingsManager settingsManager;
+  private final Set<String> userAgentBotPatterns;
+  @Getter private final PrivateInformationInclusions privateInformationInclusions;
+  private final Set<String> dataExclusions;
   private PluginManager pluginManager;
-  @Getter private StorageProviderIF storageProvider;
+  @Getter private final StorageProviderIF storageProvider;
 
   @Builder
   public ConfigurationManager(
@@ -62,7 +62,7 @@ public class ConfigurationManager {
       Configuration configuration,
       Integer maxQueueItems,
       Integer processingIntervalInSecs) {
-    this.log = log == null ? NullLog.builder().build() : log;
+    this.log = log == null ? ConsoleLog.builder().build() : log;
     this.environmentInfoCollector =
         environmentInfoCollector == null
             ? DefaultEnvironmentInfoCollector.builder().log(this.log).build()
@@ -82,18 +82,18 @@ public class ConfigurationManager {
         storageProvider == null
             ? InMemoryStorageProvider.builder().maxQueueItems(maxQueueItems).build()
             : storageProvider;
+    this.configuration =
+            configuration == null ? Configuration.defaultConfiguration() : configuration;
     this.settingsManager =
         SettingsManager.builder()
             .settingsClient(
                 settingsClient == null
                     ? DefaultSettingsClient.builder().configuration(this.configuration).build()
                     : settingsClient)
-            .log(log)
+            .log(this.log)
             .storageProvider(this.storageProvider)
             .build();
     this.userAgentBotPatterns = new HashSet<>();
-    this.configuration =
-        configuration == null ? Configuration.defaultConfiguration() : configuration;
     this.submissionClient =
         submissionClient == null
             ? DefaultSubmissionClient.builder()
@@ -120,6 +120,7 @@ public class ConfigurationManager {
     this.privateInformationInclusions = PrivateInformationInclusions.builder().build();
     this.pluginManager = PluginManager.builder().log(this.log).build();
     checkApiKeyIsValid();
+    addPropertyChangeListeners();
   }
 
   private void addPropertyChangeListeners() {
@@ -149,6 +150,13 @@ public class ConfigurationManager {
     Set<String> combinedExclusions = settingsManager.getSavedServerSettings().getDataExclusions();
     combinedExclusions.addAll(dataExclusions);
     return combinedExclusions;
+  }
+
+  public Set<String> getUserAgentBotPatterns() {
+    Set<String> combinedPatterns =
+        settingsManager.getSavedServerSettings().getUserAgentBotPatterns();
+    combinedPatterns.addAll(userAgentBotPatterns);
+    return combinedPatterns;
   }
 
   public void submitSessionHeartbeat(String sessionOrUserId) {

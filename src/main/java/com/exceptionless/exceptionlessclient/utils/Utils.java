@@ -25,7 +25,7 @@ public final class Utils {
 
   public static Map<String, String> getCookies(HttpRequest request) {
     Optional<String> maybeRawCookie = request.headers().firstValue("Cookie");
-    if (!maybeRawCookie.isPresent()) {
+    if (maybeRawCookie.isEmpty()) {
       return new HashMap<>();
     }
 

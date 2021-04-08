@@ -13,7 +13,7 @@ public enum EventPropertyKey {
   VERSION("@version"),
   REQUEST_INFO("@request");
 
-  private String value;
+  private final String value;
 
   EventPropertyKey(String value) {
     this.value = value;

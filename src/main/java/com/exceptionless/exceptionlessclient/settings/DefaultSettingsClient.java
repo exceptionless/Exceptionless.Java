@@ -17,8 +17,8 @@ import java.time.Duration;
 
 
 public class DefaultSettingsClient implements SettingsClientIF {
-  private Configuration configuration;
-  private HttpClient httpClient;
+  private final Configuration configuration;
+  private final HttpClient httpClient;
 
   @Builder
   public DefaultSettingsClient(Configuration configuration) {

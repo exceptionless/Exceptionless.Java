@@ -40,14 +40,20 @@ public class ServerSettings {
   }
 
   public Set<String> getDataExclusions() {
-    return Arrays.stream(
-            settings.getOrDefault(ServerSettingKey.DATA_EXCLUSIONS.value(), "").split(","))
+    if (!settings.containsKey(ServerSettingKey.DATA_EXCLUSIONS.value())) {
+      return new HashSet<>();
+    }
+
+    return Arrays.stream(settings.get(ServerSettingKey.DATA_EXCLUSIONS.value()).split(","))
         .collect(Collectors.toSet());
   }
 
   public Set<String> getUserAgentBotPatterns() {
-    return Arrays.stream(
-            settings.getOrDefault(ServerSettingKey.USER_AGENT_BOT_PATTERNS.value(), "").split(","))
+    if (!settings.containsKey(ServerSettingKey.USER_AGENT_BOT_PATTERNS.value())) {
+      return new HashSet<>();
+    }
+
+    return Arrays.stream(settings.get(ServerSettingKey.USER_AGENT_BOT_PATTERNS.value()).split(","))
         .collect(Collectors.toSet());
   }
 

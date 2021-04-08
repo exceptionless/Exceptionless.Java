@@ -11,6 +11,7 @@ import com.exceptionless.exceptionlessclient.models.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginRunner;
 import lombok.Builder;
+import lombok.Getter;
 
 import java.time.LocalDate;
 import java.util.Timer;
@@ -20,9 +21,9 @@ public class ExceptionlessClient {
   private static final String UPDATE_SETTINGS_TIMER_NAME = "update-settings-timer";
   private static final int UPDATE_SETTINGS_TIMER_INITIAL_DELAY = 5000;
 
-  private ConfigurationManager configurationManager;
-  private EventPluginRunner eventPluginRunner;
-  private Timer updateSettingsTimer;
+  @Getter private final ConfigurationManager configurationManager;
+  private final EventPluginRunner eventPluginRunner;
+  private final Timer updateSettingsTimer;
 
   @Builder
   public ExceptionlessClient(ConfigurationManager configurationManager) {

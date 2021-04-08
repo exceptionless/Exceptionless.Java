@@ -10,8 +10,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class EventDataFilter {
-  private Set<String> exclusions;
-  private int maxDepth;
+  private final Set<String> exclusions;
+  private final int maxDepth;
 
   @Builder
   public EventDataFilter(Set<String> exclusions, Integer maxDepth) {

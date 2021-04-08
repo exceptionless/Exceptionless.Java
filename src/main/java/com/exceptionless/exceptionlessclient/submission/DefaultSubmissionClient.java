@@ -24,10 +24,10 @@ import java.util.OptionalLong;
 public class DefaultSubmissionClient implements SubmissionClientIF {
   private static final String CONFIGURATION_VERSION_HEADER = "x-exceptionless-configversion";
 
-  private Configuration configuration;
-  private LogIF log;
-  private SettingsManager settingsManager;
-  private HttpClient httpClient;
+  private final Configuration configuration;
+  private final LogIF log;
+  private final SettingsManager settingsManager;
+  private final HttpClient httpClient;
 
   @Builder
   private DefaultSubmissionClient(

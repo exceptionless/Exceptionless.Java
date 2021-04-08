@@ -13,7 +13,7 @@ import lombok.Builder;
 import java.net.http.HttpRequest;
 
 public class RequestInfoPlugin implements EventPluginIF {
-  private LogIF log;
+  private final LogIF log;
 
   @Builder
   public RequestInfoPlugin(LogIF log) {

@@ -7,7 +7,7 @@ public enum EventType {
   SESSION("session"),
   NOT_FOUND("404");
 
-  private String value;
+  private final String value;
 
   EventType(String value) {
     this.value = value;

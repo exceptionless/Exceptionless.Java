@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class DefaultEnvironmentInfoCollector implements EnvironmentInfoCollectorIF {
-  private LogIF log;
+  private final LogIF log;
   private EnvironmentInfo defaultEnvironmentInfo;
 
   @Builder
@@ -44,7 +44,7 @@ public class DefaultEnvironmentInfoCollector implements EnvironmentInfoCollector
     OperatingSystemMXBean operatingSystemMXBean =
         (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
 
-    EnvironmentInfo.EnvironmentInfoBuilder builder =
+    EnvironmentInfo.EnvironmentInfoBuilder<?, ?> builder =
         EnvironmentInfo.builder()
             .processorCount(defaultEnvironmentInfo.getProcessorCount())
             .totalPhysicalMemory(defaultEnvironmentInfo.getTotalPhysicalMemory())

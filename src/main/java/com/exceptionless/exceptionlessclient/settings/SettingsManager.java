@@ -14,11 +14,11 @@ import java.util.Map;
 public class SettingsManager {
   private static final long DEFAULT_VERSION = 0;
 
-  private LogIF log;
-  private StorageProviderIF storageProvider;
-  private SettingsClientIF settingsClient;
+  private final LogIF log;
+  private final StorageProviderIF storageProvider;
+  private final SettingsClientIF settingsClient;
   private Boolean updatingSettings;
-  private PropertyChangeSupport propertyChangeSupport;
+  private final PropertyChangeSupport propertyChangeSupport;
 
   @Builder
   public SettingsManager(
@@ -27,6 +27,7 @@ public class SettingsManager {
     this.storageProvider = storageProvider;
     this.settingsClient = settingsClient;
     this.propertyChangeSupport = new PropertyChangeSupport(this);
+    this.updatingSettings = false;
   }
 
   public void addPropertyChangeListener(PropertyChangeListener listener) {

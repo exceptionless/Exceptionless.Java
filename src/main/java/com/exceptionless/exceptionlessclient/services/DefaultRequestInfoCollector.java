@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class DefaultRequestInfoCollector implements RequestInfoCollectorIF {
-  private LogIF log;
+  private final LogIF log;
 
   @Builder
   public DefaultRequestInfoCollector(LogIF log) {
@@ -23,7 +23,7 @@ public class DefaultRequestInfoCollector implements RequestInfoCollectorIF {
 
   @Override
   public RequestInfo getRequestInfo(HttpRequest request, RequestInfoGetArgs args) {
-    RequestInfo.RequestInfoBuilder builder =
+    RequestInfo.RequestInfoBuilder<?,?> builder =
         RequestInfo.builder()
             .userAgent(request.headers().firstValue("user-agent").orElse(null))
             .isSecure(isSecure(request.uri()))
