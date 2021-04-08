@@ -39,7 +39,11 @@ public class ExceptionlessClient {
         new TimerTask() {
           @Override
           public void run() {
-            configurationManager.getSettingsManager().updateSettingsThreadSafe();
+            try {
+              configurationManager.getSettingsManager().updateSettingsThreadSafe();
+            } catch (Exception e) {
+              configurationManager.getLog().error("Error in updating settings", e);
+            }
           }
         },
         UPDATE_SETTINGS_TIMER_INITIAL_DELAY,

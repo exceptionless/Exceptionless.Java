@@ -32,7 +32,7 @@ public class HeartbeatPlugin implements EventPluginIF {
   public void run(
       EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Optional<UserInfo> maybeUserInfo = eventPluginContext.getEvent().getUserInfo();
-    if (!maybeUserInfo.isPresent()) {
+    if (maybeUserInfo.isEmpty()) {
       return;
     }
     if (maybeUserInfo.get().getIdentity().equals(prevIdentity)) {
@@ -46,7 +46,15 @@ public class HeartbeatPlugin implements EventPluginIF {
         new TimerTask() {
           @Override
           public void run() {
-            configurationManager.submitSessionHeartbeat(prevIdentity);
+            try {
+              configurationManager.submitSessionHeartbeat(prevIdentity);
+            } catch (Exception e) {
+              configurationManager
+                  .getLog()
+                  .error(
+                      String.format("Error in submitting hearbeat for identity: %s", prevIdentity),
+                      e);
+            }
           }
         },
         heartbeatInterval);

@@ -14,7 +14,8 @@ import lombok.Getter;
 import java.util.*;
 
 public class DuplicateErrorCheckerPlugin implements EventPluginIF {
-  private static final String MERGED_EVENTS_RESUBMISSION_TIMER_NAME = "merged-events-resubmission-timer";
+  private static final String MERGED_EVENTS_RESUBMISSION_TIMER_NAME =
+      "merged-events-resubmission-timer";
 
   private final LogIF log;
   private final int maxHashesCount;
@@ -41,9 +42,13 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
         new TimerTask() {
           @Override
           public void run() {
-            MergedEvent event = mergedEvents.poll();
-            if (event != null) {
-              event.resubmit();
+            try {
+              MergedEvent event = mergedEvents.poll();
+              if (event != null) {
+                event.resubmit();
+              }
+            } catch (Exception e) {
+              log.error("Error in resubmitting merged events", e);
             }
           }
         },
@@ -57,7 +62,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
 
   @Override
   public void run(
-          EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Event event = eventPluginContext.getEvent();
     Optional<Error> maybeError = event.getError();
     if (maybeError.isEmpty()) {

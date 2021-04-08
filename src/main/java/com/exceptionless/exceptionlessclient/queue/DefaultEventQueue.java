@@ -55,7 +55,11 @@ public class DefaultEventQueue implements EventQueueIF {
         new TimerTask() {
           @Override
           public void run() {
-            onProcessQueue();
+            try {
+              onProcessQueue();
+            } catch (Exception e) {
+              log.error("Error in processing queue", e);
+            }
           }
         },
         processingIntervalInSecs * 1000);
