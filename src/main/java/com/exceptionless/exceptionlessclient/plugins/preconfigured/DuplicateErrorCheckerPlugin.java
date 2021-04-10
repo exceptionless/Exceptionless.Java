@@ -1,7 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
-import com.exceptionless.exceptionlessclient.logging.LogIF;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.plugins.MergedEvent;
@@ -10,24 +9,27 @@ import com.exceptionless.exceptionlessclient.models.services.error.InnerError;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class DuplicateErrorCheckerPlugin implements EventPluginIF {
-  private LogIF log;
-  private int maxHashesCount;
-  private Queue<MergedEvent> mergedEvents;
-  private Timer mergedEventsResubmissionTimer;
-  private List<TimeStampedHash> hashes;
-  private Integer mergedEventsResubmissionInSecs;
+  private static final Logger LOG = LoggerFactory.getLogger(DuplicateErrorCheckerPlugin.class);
+  private static final String MERGED_EVENTS_RESUBMISSION_TIMER_NAME =
+      "merged-events-resubmission-timer";
+
+  private final int maxHashesCount;
+  private final Queue<MergedEvent> mergedEvents;
+  private final Timer mergedEventsResubmissionTimer;
+  private final List<TimeStampedHash> hashes;
+  private final Integer mergedEventsResubmissionInSecs;
 
   @Builder
-  public DuplicateErrorCheckerPlugin(
-      LogIF log, Integer mergedEventsResubmissionInSecs, Integer maxHashesCount) {
-    this.log = log;
+  public DuplicateErrorCheckerPlugin(Integer mergedEventsResubmissionInSecs, Integer maxHashesCount) {
     this.maxHashesCount = maxHashesCount == null ? 50 : maxHashesCount;
     this.mergedEvents = new ArrayDeque<>();
-    this.mergedEventsResubmissionTimer = new Timer();
+    this.mergedEventsResubmissionTimer = new Timer(MERGED_EVENTS_RESUBMISSION_TIMER_NAME);
     this.hashes = new ArrayList<>();
     this.mergedEventsResubmissionInSecs =
         mergedEventsResubmissionInSecs == null ? 30 : mergedEventsResubmissionInSecs;
@@ -39,12 +41,17 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
         new TimerTask() {
           @Override
           public void run() {
-            MergedEvent event = mergedEvents.poll();
-            if (event != null) {
-              event.resubmit();
+            try {
+              MergedEvent event = mergedEvents.poll();
+              if (event != null) {
+                event.resubmit();
+              }
+            } catch (Exception e) {
+              LOG.error("Error in resubmitting merged events", e);
             }
           }
         },
+        mergedEventsResubmissionInSecs * 1000,
         mergedEventsResubmissionInSecs * 1000);
   }
 
@@ -55,10 +62,10 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
 
   @Override
   public void run(
-          EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Event event = eventPluginContext.getEvent();
     Optional<Error> maybeError = event.getError();
-    if (!maybeError.isPresent()) {
+    if (maybeError.isEmpty()) {
       return;
     }
     Error error = maybeError.get();
@@ -70,7 +77,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
       MergedEvent mergedEvent = maybeMergedEvent.get();
       mergedEvent.incrementCount(event.getCount());
       mergedEvent.updateDate(event.getDate());
-      log.info(String.format("Ignoring duplicate event with hash: %s", hash));
+      LOG.info(String.format("Ignoring duplicate event with hash: %s", hash));
       eventPluginContext.getContext().setEventCancelled(true);
       return;
     }
@@ -84,12 +91,13 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
                 timeStampedHash.getHash() == hash
                     && timeStampedHash.getTimestamp()
                         >= (now - mergedEventsResubmissionInSecs * 1000))) {
-      log.trace(String.format("Adding event with hash :%s", hash));
+      LOG.trace(String.format("Adding event with hash :%s", hash));
       mergedEvents.add(
           MergedEvent.builder()
               .count(event.getCount())
               .event(event)
               .eventQueue(configurationManager.getQueue())
+              .hash(hash)
               .build());
       eventPluginContext.getContext().setEventCancelled(true);
       return;
@@ -118,7 +126,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
   @Builder
   @Getter
   private static class TimeStampedHash {
-    private long hash;
-    private long timestamp;
+    private final long hash;
+    private final long timestamp;
   }
 }

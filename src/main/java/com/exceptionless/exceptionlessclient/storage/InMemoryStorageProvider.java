@@ -5,8 +5,8 @@ import com.exceptionless.exceptionlessclient.models.settings.ServerSettings;
 import lombok.Builder;
 
 public class InMemoryStorageProvider implements StorageProviderIF {
-  private StorageIF<Event> eventQueue;
-  private StorageIF<ServerSettings> settingsStore;
+  private final StorageIF<Event> eventQueue;
+  private final StorageIF<ServerSettings> settingsStore;
 
   @Builder
   private InMemoryStorageProvider(Integer maxQueueItems) {

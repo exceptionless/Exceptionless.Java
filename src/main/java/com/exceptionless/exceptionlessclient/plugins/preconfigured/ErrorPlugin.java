@@ -15,7 +15,7 @@ import java.util.Set;
 
 public class ErrorPlugin implements EventPluginIF {
 
-  private Set<String> dataExclusions;
+  private final Set<String> dataExclusions;
 
   @Builder
   public ErrorPlugin() {

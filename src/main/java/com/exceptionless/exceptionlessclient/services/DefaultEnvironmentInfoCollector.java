@@ -1,9 +1,10 @@
 package com.exceptionless.exceptionlessclient.services;
 
-import com.exceptionless.exceptionlessclient.logging.LogIF;
 import com.exceptionless.exceptionlessclient.models.services.EnvironmentInfo;
 import com.sun.management.OperatingSystemMXBean;
 import lombok.Builder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -13,12 +14,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class DefaultEnvironmentInfoCollector implements EnvironmentInfoCollectorIF {
-  private LogIF log;
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultEnvironmentInfoCollector.class);
+
   private EnvironmentInfo defaultEnvironmentInfo;
 
   @Builder
-  public DefaultEnvironmentInfoCollector(LogIF log) {
-    this.log = log;
+  public DefaultEnvironmentInfoCollector() {
     initDefaultEnvironmentInfo();
   }
 
@@ -44,7 +45,7 @@ public class DefaultEnvironmentInfoCollector implements EnvironmentInfoCollector
     OperatingSystemMXBean operatingSystemMXBean =
         (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
 
-    EnvironmentInfo.EnvironmentInfoBuilder builder =
+    EnvironmentInfo.EnvironmentInfoBuilder<?, ?> builder =
         EnvironmentInfo.builder()
             .processorCount(defaultEnvironmentInfo.getProcessorCount())
             .totalPhysicalMemory(defaultEnvironmentInfo.getTotalPhysicalMemory())
@@ -69,7 +70,7 @@ public class DefaultEnvironmentInfoCollector implements EnvironmentInfoCollector
         builder.ipAddress(localhost.getHostAddress());
       }
     } catch (UnknownHostException e) {
-      log.error("Error while getting machine name", e);
+      LOG.error("Error while getting machine name", e);
     }
 
     return builder.build();

@@ -1,6 +1,8 @@
 package com.exceptionless.exceptionlessclient.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.http.HttpRequest;
@@ -8,6 +10,8 @@ import java.util.*;
 
 public final class Utils {
   public static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+
+  private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
 
   private Utils() {}
 
@@ -25,7 +29,7 @@ public final class Utils {
 
   public static Map<String, String> getCookies(HttpRequest request) {
     Optional<String> maybeRawCookie = request.headers().firstValue("Cookie");
-    if (!maybeRawCookie.isPresent()) {
+    if (maybeRawCookie.isEmpty()) {
       return new HashMap<>();
     }
 
@@ -56,7 +60,23 @@ public final class Utils {
   }
 
   public static boolean match(String value, String pattern) {
+    if (value == null) {
+      // todo remove
+      LOG.info("Null received for value");
+      return false;
+    }
+    if (pattern == null) {
+      // todo remove
+      LOG.info("Null received for pattern");
+      return false;
+    }
     // todo check this works or not;
-    return pattern.matches(value);
+    boolean result = value.toLowerCase().matches(pattern);
+    if (result) {
+      // todo remove
+      LOG.info(String.format("Value [%s] matches pattern [%s]", value, pattern));
+      return true;
+    }
+    return false;
   }
 }

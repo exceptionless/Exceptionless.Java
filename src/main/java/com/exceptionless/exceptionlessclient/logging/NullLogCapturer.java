@@ -2,9 +2,9 @@ package com.exceptionless.exceptionlessclient.logging;
 
 import lombok.Builder;
 
-public class NullLog implements LogIF {
+public class NullLogCapturer implements LogCapturerIF {
   @Builder
-  public NullLog() {}
+  public NullLogCapturer() {}
 
   @Override
   public void trace(String message) {}

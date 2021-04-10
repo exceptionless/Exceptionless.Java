@@ -13,12 +13,13 @@ import java.util.stream.Collectors;
 @Value
 @NonFinal
 public class ServerSettings {
-  private long version;
-  @Builder.Default private Map<String, String> settings = new HashMap<>();
+  long version;
+  @Builder.Default
+  Map<String, String> settings = new HashMap<>();
 
   public Optional<String> getTypeAndSourceSetting(String type, String source) {
     String prefix = String.format("@@%s", type);
-    String value = settings.get(String.format("%s%s", prefix, source));
+    String value = settings.get(String.format("%s:%s", prefix, source));
     if (value != null) {
       return Optional.of(value);
     }
@@ -40,14 +41,20 @@ public class ServerSettings {
   }
 
   public Set<String> getDataExclusions() {
-    return Arrays.stream(
-            settings.getOrDefault(ServerSettingKey.DATA_EXCLUSIONS.value(), "").split(","))
+    if (!settings.containsKey(ServerSettingKey.DATA_EXCLUSIONS.value())) {
+      return new HashSet<>();
+    }
+
+    return Arrays.stream(settings.get(ServerSettingKey.DATA_EXCLUSIONS.value()).split(","))
         .collect(Collectors.toSet());
   }
 
   public Set<String> getUserAgentBotPatterns() {
-    return Arrays.stream(
-            settings.getOrDefault(ServerSettingKey.USER_AGENT_BOT_PATTERNS.value(), "").split(","))
+    if (!settings.containsKey(ServerSettingKey.USER_AGENT_BOT_PATTERNS.value())) {
+      return new HashSet<>();
+    }
+
+    return Arrays.stream(settings.get(ServerSettingKey.USER_AGENT_BOT_PATTERNS.value()).split(","))
         .collect(Collectors.toSet());
   }
 

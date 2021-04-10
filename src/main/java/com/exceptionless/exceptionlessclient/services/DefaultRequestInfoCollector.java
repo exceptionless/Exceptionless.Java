@@ -1,9 +1,10 @@
 package com.exceptionless.exceptionlessclient.services;
 
-import com.exceptionless.exceptionlessclient.logging.LogIF;
 import com.exceptionless.exceptionlessclient.models.services.RequestInfo;
 import com.exceptionless.exceptionlessclient.utils.Utils;
 import lombok.Builder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.net.URI;
@@ -14,16 +15,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class DefaultRequestInfoCollector implements RequestInfoCollectorIF {
-  private LogIF log;
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultRequestInfoCollector.class);
 
   @Builder
-  public DefaultRequestInfoCollector(LogIF log) {
-    this.log = log;
-  }
+  public DefaultRequestInfoCollector() {}
 
   @Override
   public RequestInfo getRequestInfo(HttpRequest request, RequestInfoGetArgs args) {
-    RequestInfo.RequestInfoBuilder builder =
+    RequestInfo.RequestInfoBuilder<?, ?> builder =
         RequestInfo.builder()
             .userAgent(request.headers().firstValue("user-agent").orElse(null))
             .isSecure(isSecure(request.uri()))
@@ -37,7 +36,7 @@ public class DefaultRequestInfoCollector implements RequestInfoCollectorIF {
         InetAddress address = InetAddress.getByName(request.uri().getHost());
         builder.clientIpAddress(address.getHostAddress());
       } catch (UnknownHostException e) {
-        log.error(
+        LOG.error(
             String.format("Error while getting ip-address for host: %s", request.uri().getHost()));
       }
     }
@@ -60,7 +59,7 @@ public class DefaultRequestInfoCollector implements RequestInfoCollectorIF {
     return map.entrySet().stream()
         .filter(
             entry ->
-                exclusions.stream().anyMatch(exclusion -> Utils.match(entry.getKey(), exclusion)))
+                exclusions.stream().anyMatch(exclusion -> !Utils.match(entry.getKey(), exclusion)))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 

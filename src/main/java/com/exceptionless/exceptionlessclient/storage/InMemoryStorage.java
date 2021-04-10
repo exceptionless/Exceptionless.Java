@@ -8,14 +8,14 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class InMemoryStorage<X> implements StorageIF<X> {
-  private Integer maxItems;
+  private final Integer maxItems;
   // Used linked list because we are always appending at end and removing is fast than `ArrayList`
   private List<StorageItem<X>> items;
   private long lastTimestamp;
 
   @Builder
   public InMemoryStorage(Integer maxItems) {
-    this.maxItems = maxItems;
+    this.maxItems = maxItems == null ? 50 : maxItems;
     items = new LinkedList<>();
   }
 
@@ -37,7 +37,7 @@ public class InMemoryStorage<X> implements StorageIF<X> {
 
   @Override
   public List<StorageItem<X>> get(int limit) {
-    return items.subList(0, Math.max(limit, items.size()));
+    return items.subList(0, Math.min(limit, items.size()));
   }
 
   @Override

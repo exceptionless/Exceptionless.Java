@@ -2,13 +2,14 @@ package com.exceptionless.exceptionlessclient.queue;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.exceptions.ClientException;
-import com.exceptionless.exceptionlessclient.logging.LogIF;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.storage.StorageProviderIF;
 import com.exceptionless.exceptionlessclient.submission.SubmissionClientIF;
 import lombok.Builder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -20,29 +21,29 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class DefaultEventQueue implements EventQueueIF {
-  private LogIF log;
-  private StorageProviderIF storageProvider;
-  private Configuration configuration;
-  private SubmissionClientIF submissionClient;
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultEventQueue.class);
+  private static final String QUEUE_TIMER_NAME = "queue-timer";
+
+  private final StorageProviderIF storageProvider;
+  private final Configuration configuration;
+  private final SubmissionClientIF submissionClient;
   private LocalDateTime discardQueueItemsUntil;
   private LocalDateTime suspendProcessingUntil;
   private boolean processingQueue;
-  private Timer queueTimer;
+  private final Timer queueTimer;
   private int currentSubmissionBatchSize;
-  private List<BiConsumer<List<Event>, SubmissionResponse>> handlers;
+  private final List<BiConsumer<List<Event>, SubmissionResponse>> handlers;
 
   @Builder
   public DefaultEventQueue(
-      LogIF log,
       StorageProviderIF storageProvider,
       Configuration configuration,
       SubmissionClientIF submissionClient,
       Integer processingIntervalInSecs) {
-    this.log = log;
     this.storageProvider = storageProvider;
     this.configuration = configuration;
     this.submissionClient = submissionClient;
-    this.queueTimer = new Timer();
+    this.queueTimer = new Timer(QUEUE_TIMER_NAME);
     this.handlers = new ArrayList<>();
     this.currentSubmissionBatchSize = configuration.getSubmissionBatchSize();
     init(processingIntervalInSecs == null ? 10 : processingIntervalInSecs);
@@ -53,7 +54,11 @@ public class DefaultEventQueue implements EventQueueIF {
         new TimerTask() {
           @Override
           public void run() {
-            onProcessQueue();
+            try {
+              onProcessQueue();
+            } catch (Exception e) {
+              LOG.error("Error in processing queue", e);
+            }
           }
         },
         processingIntervalInSecs * 1000);
@@ -82,7 +87,7 @@ public class DefaultEventQueue implements EventQueueIF {
   @Override
   public void enqueue(Event event) {
     if (shouldDiscard()) {
-      log.info("Queue items are currently being discarded. This event will not be enqueued");
+      LOG.info("Queue items are currently being discarded. This event will not be enqueued");
     }
 
     long timestamp = storageProvider.getQueue().save(event);
@@ -91,7 +96,7 @@ public class DefaultEventQueue implements EventQueueIF {
             + (event.getReferenceId() != null
                 ? String.format("refId: %s", event.getReferenceId())
                 : "");
-    log.info(String.format("Enqueueing event: %s %s", timestamp, logText));
+    LOG.info(String.format("Enqueueing event: %s %s", timestamp, logText));
   }
 
   private boolean shouldDiscard() {
@@ -115,13 +120,13 @@ public class DefaultEventQueue implements EventQueueIF {
       List<Event> events =
           storedEvents.stream().map(StorageItem::getValue).collect(Collectors.toList());
 
-      log.info(
+      LOG.info(
           String.format("Sending %s events to %s", events.size(), configuration.getServerUrl()));
       SubmissionResponse response = submissionClient.postEvents(events, isAppExiting);
       processSubmissionResponse(response, storedEvents);
       eventPosted(response, events);
     } catch (ClientException e) {
-      log.error("Error processing queue", e);
+      LOG.error("Error processing queue", e);
       suspendProcessing();
     } finally {
       processingQueue = false;
@@ -131,26 +136,26 @@ public class DefaultEventQueue implements EventQueueIF {
   private void processSubmissionResponse(
       SubmissionResponse response, List<StorageItem<Event>> storedEvents) {
     if (response.isSuccess()) {
-      log.info(String.format("Sent %s events", storedEvents.size()));
+      LOG.info(String.format("Sent %s events", storedEvents.size()));
       setBatchSizeToConfigured();
       removeEvents(storedEvents);
       return;
     }
 
     if (response.isServiceUnavailable()) {
-      log.error("Service returns service unavailable");
+      LOG.error("Service returns service unavailable");
       suspendProcessing();
       return;
     }
 
     if (response.isPaymentRequired()) {
-      log.info("Too many events have been submitted, please upgrade your plan");
+      LOG.info("Too many events have been submitted, please upgrade your plan");
       suspendProcessingForNoPayment();
       return;
     }
 
     if (response.unableToAuthenticate()) {
-      log.info(
+      LOG.info(
           "Unable to authenticate, please check your configuration. Events will not be submitted");
       suspendProcessing(Duration.ofMinutes(15));
       removeEvents(storedEvents);
@@ -158,7 +163,7 @@ public class DefaultEventQueue implements EventQueueIF {
     }
 
     if (response.isNotFound() || response.isBadRequest()) {
-      log.error(String.format("Error while trying to submit data: %s", response.getMessage()));
+      LOG.error(String.format("Error while trying to submit data: %s", response.getMessage()));
       suspendProcessing(Duration.ofMinutes(4));
       removeEvents(storedEvents);
       return;
@@ -166,18 +171,18 @@ public class DefaultEventQueue implements EventQueueIF {
 
     if (response.isRequestEntityTooLarge()) {
       if (currentSubmissionBatchSize > 1) {
-        log.error(
+        LOG.error(
             "Event submission discarded for being too large. Retrying with smaller batch size");
         currentSubmissionBatchSize =
             Math.max(1, (int) Math.round(currentSubmissionBatchSize / 1.5));
       } else {
-        log.error("Event submission discarded for being too large. Events will not be submitted");
+        LOG.error("Event submission discarded for being too large. Events will not be submitted");
         removeEvents(storedEvents);
       }
       return;
     }
 
-    log.error(String.format("Error submitting events: %s", response.getMessage()));
+    LOG.error(String.format("Error submitting events: %s", response.getMessage()));
     suspendProcessing();
   }
 
@@ -196,7 +201,7 @@ public class DefaultEventQueue implements EventQueueIF {
       try {
         handler.accept(events, response);
       } catch (Exception e) {
-        log.error("Error while processing an event submission handler", e);
+        LOG.error("Error while processing an event submission handler", e);
       }
     }
   }
@@ -220,7 +225,7 @@ public class DefaultEventQueue implements EventQueueIF {
       duration = Duration.ofMinutes(5);
     }
 
-    log.info(String.format("Suspending processing for %s", duration));
+    LOG.info(String.format("Suspending processing for %s", duration));
     suspendProcessingUntil = LocalDateTime.now().plus(duration);
     if (discardFutureQueueItems) {
       discardQueueItemsUntil = suspendProcessingUntil;

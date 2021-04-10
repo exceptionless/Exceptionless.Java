@@ -47,7 +47,7 @@ public class Event extends Model {
       Set<String> dataExclusions) {
     this.type = type;
     this.source = source;
-    this.date = date;
+    this.date = date == null ? LocalDate.now() : date;
     this.tags = tags == null ? new HashSet<>() : tags;
     this.message = message;
     this.geo = geo;
@@ -98,7 +98,8 @@ public class Event extends Model {
   }
 
   public Optional<Error> getError() {
-    return Optional.ofNullable(Utils.safeGetAs(data.get(EventPropertyKey.ERROR.value()), Error.class));
+    return Optional.ofNullable(
+        Utils.safeGetAs(data.get(EventPropertyKey.ERROR.value()), Error.class));
   }
 
   public Optional<EnvironmentInfo> getEnvironmentInfo() {
@@ -112,12 +113,18 @@ public class Event extends Model {
   }
 
   public Optional<UserInfo> getUserInfo() {
-    return Optional.ofNullable(Utils.safeGetAs(data.get(EventPropertyKey.USER.value()), UserInfo.class));
+    return Optional.ofNullable(
+        Utils.safeGetAs(data.get(EventPropertyKey.USER.value()), UserInfo.class));
   }
 
   public Optional<RequestInfo> getRequestInfo() {
     return Optional.ofNullable(
         Utils.safeGetAs(data.get(EventPropertyKey.REQUEST_INFO.value()), RequestInfo.class));
+  }
+
+  public Optional<String> getSubmissionMethod() {
+    return Optional.ofNullable(
+        Utils.safeGetAs(data.get(EventPropertyKey.SUBMISSION_METHOD.value()), String.class));
   }
 
   public static EventBuilder builder() {

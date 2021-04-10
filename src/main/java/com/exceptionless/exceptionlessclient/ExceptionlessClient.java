@@ -11,24 +11,29 @@ import com.exceptionless.exceptionlessclient.models.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginRunner;
 import lombok.Builder;
+import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class ExceptionlessClient {
+  private static final Logger LOG = LoggerFactory.getLogger(ExceptionlessClient.class);
+  private static final String UPDATE_SETTINGS_TIMER_NAME = "update-settings-timer";
   private static final int UPDATE_SETTINGS_TIMER_INITIAL_DELAY = 5000;
 
-  private ConfigurationManager configurationManager;
-  private EventPluginRunner eventPluginRunner;
-  private Timer updateSettingsTimer;
+  @Getter private final ConfigurationManager configurationManager;
+  private final EventPluginRunner eventPluginRunner;
+  private final Timer updateSettingsTimer;
 
   @Builder
   public ExceptionlessClient(ConfigurationManager configurationManager) {
     this.configurationManager = configurationManager;
     this.eventPluginRunner =
         EventPluginRunner.builder().configurationManager(this.configurationManager).build();
-    this.updateSettingsTimer = new Timer();
+    this.updateSettingsTimer = new Timer(UPDATE_SETTINGS_TIMER_NAME);
     init();
   }
 
@@ -37,7 +42,11 @@ public class ExceptionlessClient {
         new TimerTask() {
           @Override
           public void run() {
-            configurationManager.getSettingsManager().updateSettingsThreadSafe();
+            try {
+              configurationManager.getSettingsManager().updateSettingsThreadSafe();
+            } catch (Exception e) {
+              LOG.error("Error in updating settings", e);
+            }
           }
         },
         UPDATE_SETTINGS_TIMER_INITIAL_DELAY,
@@ -144,14 +153,12 @@ public class ExceptionlessClient {
   }
 
   // todo this should be async
-  private void submitEvent(EventPluginContext eventPluginContext) {
+  public void submitEvent(EventPluginContext eventPluginContext) {
     eventPluginRunner.run(eventPluginContext);
   }
 
   public void submitSessionEnd(String sessionOrUserId) {
-    configurationManager
-        .getLog()
-        .info(String.format("Submitting session end: %s", sessionOrUserId));
+    LOG.info(String.format("Submitting session end: %s", sessionOrUserId));
     configurationManager.getSubmissionClient().sendHeartBeat(sessionOrUserId, true);
   }
 
@@ -164,11 +171,8 @@ public class ExceptionlessClient {
                 referenceId,
                 UserDescription.builder().description(description).emailAddress(email).build());
     if (!response.isSuccess()) {
-      configurationManager
-          .getLog()
-          .error(
-              String.format(
-                  "Failed to submit user email and description for event: %s", referenceId));
+      LOG.error(
+          String.format("Failed to submit user email and description for event: %s", referenceId));
     }
 
     return response;

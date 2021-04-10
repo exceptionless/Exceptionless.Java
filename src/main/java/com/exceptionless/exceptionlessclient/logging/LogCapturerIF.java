@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.logging;
 
-public interface LogIF {
+public interface LogCapturerIF {
     void trace(String message);
 
     void info(String message);

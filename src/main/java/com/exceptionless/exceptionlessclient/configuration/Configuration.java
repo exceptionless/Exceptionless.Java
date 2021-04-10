@@ -17,7 +17,7 @@ public class Configuration {
   @Getter private Integer submissionBatchSize;
   @Getter private Integer submissionClientTimeoutInMillis;
   @Getter private Integer settingsClientTimeoutInMillis;
-  private PropertyChangeSupport propertyChangeSupport;
+  private final PropertyChangeSupport propertyChangeSupport;
 
   @Builder
   public Configuration(

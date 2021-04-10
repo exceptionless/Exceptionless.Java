@@ -1,7 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
-import com.exceptionless.exceptionlessclient.logging.LogIF;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.enums.EventType;
@@ -9,16 +8,17 @@ import com.exceptionless.exceptionlessclient.models.services.error.Error;
 import com.exceptionless.exceptionlessclient.models.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.OptionalInt;
 
 public class EventExclusionPlugin implements EventPluginIF {
-  private LogIF log;
+  private static final Logger LOG = LoggerFactory.getLogger(EventExclusionPlugin.class);
 
   @Builder
-  public EventExclusionPlugin(LogIF log) {
-    this.log = log;
+  public EventExclusionPlugin() {
   }
 
   @Override
@@ -28,7 +28,7 @@ public class EventExclusionPlugin implements EventPluginIF {
 
   @Override
   public void run(
-          EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Event event = eventPluginContext.getEvent();
     ServerSettings serverSettings =
         configurationManager.getSettingsManager().getSavedServerSettings();
@@ -40,13 +40,14 @@ public class EventExclusionPlugin implements EventPluginIF {
     } else {
       Optional<String> maybeSetting =
           serverSettings.getTypeAndSourceSetting(event.getType(), event.getSource());
-      if (!maybeSetting.isPresent() || ServerSettings.getAsBoolean(maybeSetting.get())) {
+      if (maybeSetting.isEmpty() || ServerSettings.getAsBoolean(maybeSetting.get())) {
         return;
       }
-      log.info(
+      LOG.info(
           String.format(
               "Cancelling event from excluded type: %s and source :%s",
               event.getType(), event.getSource()));
+      eventPluginContext.getContext().setEventCancelled(true);
     }
   }
 
@@ -55,17 +56,17 @@ public class EventExclusionPlugin implements EventPluginIF {
     Event event = eventPluginContext.getEvent();
     Optional<String> maybeLogSetting =
         serverSettings.getTypeAndSourceSetting(EventType.LOG.value(), event.getSource());
-    if (!maybeLogSetting.isPresent()) {
+    if (maybeLogSetting.isEmpty()) {
       return;
     }
     Optional<String> maybeLogLevel = event.getLogLevel();
-    if (!maybeLogLevel.isPresent()) {
+    if (maybeLogLevel.isEmpty()) {
       return;
     }
 
     OptionalInt maybeMinLogPriority = getLogPriority(maybeLogSetting.get());
     OptionalInt maybeLogPriority = getLogPriority(maybeLogLevel.get());
-    if (!maybeLogPriority.isPresent() || !maybeMinLogPriority.isPresent()) {
+    if (maybeLogPriority.isEmpty() || maybeMinLogPriority.isEmpty()) {
       return;
     }
 
@@ -73,7 +74,6 @@ public class EventExclusionPlugin implements EventPluginIF {
       return;
     }
 
-    log.info("Cancelling log event due to minimum log level");
     eventPluginContext.getContext().setEventCancelled(true);
   }
 
@@ -107,7 +107,7 @@ public class EventExclusionPlugin implements EventPluginIF {
   private void handleErrorEvent(
       EventPluginContext eventPluginContext, ServerSettings serverSettings) {
     Optional<Error> maybeError = eventPluginContext.getEvent().getError();
-    if (!maybeError.isPresent()) {
+    if (maybeError.isEmpty()) {
       return;
     }
     Error error = maybeError.get();
@@ -116,7 +116,7 @@ public class EventExclusionPlugin implements EventPluginIF {
       Optional<String> maybeSetting =
           serverSettings.getTypeAndSourceSetting(EventType.ERROR.value(), error.getType());
       if (maybeSetting.isPresent() && !ServerSettings.getAsBoolean(maybeSetting.get())) {
-        log.info(
+        LOG.info(
             String.format("Cancelling error from excluded exception type: %s", error.getType()));
         eventPluginContext.getContext().setEventCancelled(true);
         break;

@@ -21,7 +21,7 @@ public class ModuleInfoPlugin implements EventPluginIF {
   public void run(
           EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Optional<Error> maybeError = eventPluginContext.getEvent().getError();
-    if (!maybeError.isPresent()) {
+    if (maybeError.isEmpty()) {
       return;
     }
     Error error = maybeError.get();
