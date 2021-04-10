@@ -13,12 +13,13 @@ import java.util.stream.Collectors;
 @Value
 @NonFinal
 public class ServerSettings {
-  private long version;
-  @Builder.Default private Map<String, String> settings = new HashMap<>();
+  long version;
+  @Builder.Default
+  Map<String, String> settings = new HashMap<>();
 
   public Optional<String> getTypeAndSourceSetting(String type, String source) {
     String prefix = String.format("@@%s", type);
-    String value = settings.get(String.format("%s%s", prefix, source));
+    String value = settings.get(String.format("%s:%s", prefix, source));
     if (value != null) {
       return Optional.of(value);
     }

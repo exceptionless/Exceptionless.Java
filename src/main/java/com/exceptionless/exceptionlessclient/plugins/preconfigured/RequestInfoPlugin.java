@@ -1,7 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
-import com.exceptionless.exceptionlessclient.logging.LogIF;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.services.RequestInfo;
@@ -9,15 +8,16 @@ import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import com.exceptionless.exceptionlessclient.services.RequestInfoGetArgs;
 import com.exceptionless.exceptionlessclient.utils.Utils;
 import lombok.Builder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.http.HttpRequest;
 
 public class RequestInfoPlugin implements EventPluginIF {
-  private final LogIF log;
+  private static final Logger LOG = LoggerFactory.getLogger(RequestInfoPlugin.class);
 
   @Builder
-  public RequestInfoPlugin(LogIF log) {
-    this.log = log;
+  public RequestInfoPlugin() {
   }
 
   @Override
@@ -55,7 +55,7 @@ public class RequestInfoPlugin implements EventPluginIF {
 
     if (configurationManager.getUserAgentBotPatterns().stream()
         .anyMatch(pattern -> Utils.match(requestInfo.getUserAgent(), pattern))) {
-      log.info("Cancelling event as the request user agent matches a known bot pattern");
+      LOG.info("Cancelling event as the request user agent matches a known bot pattern");
       eventPluginContext.getContext().setEventCancelled(true);
       return;
     }

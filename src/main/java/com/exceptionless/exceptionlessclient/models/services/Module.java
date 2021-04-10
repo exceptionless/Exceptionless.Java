@@ -13,10 +13,10 @@ import java.time.LocalDate;
 @NonFinal
 @EqualsAndHashCode(callSuper = true)
 public class Module extends Model {
-    private long moduleId;
-    private String name;
-    private String version;
-    private boolean isEntry;
-    private LocalDate createdDate;
-    private LocalDate modifiedDate;
+    Long moduleId;
+    String name;
+    String version;
+    Boolean isEntry;
+    LocalDate createdDate;
+    LocalDate modifiedDate;
 }

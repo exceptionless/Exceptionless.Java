@@ -5,21 +5,24 @@ import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.UserInfo;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class HeartbeatPlugin implements EventPluginIF {
+  private static final Logger LOG = LoggerFactory.getLogger(HeartbeatPlugin.class);
   private static final String HEART_BEAT_TIMER_NAME = "heart-beat-timer";
 
-  private final int heartbeatInterval;
+  private final int heartbeatIntervalInSecs;
   private Timer heartbeatTimer;
   private String prevIdentity;
 
   @Builder
-  public HeartbeatPlugin(int heartbeatInterval) {
-    this.heartbeatInterval = heartbeatInterval;
+  public HeartbeatPlugin(Integer heartbeatIntervalInSecs) {
+    this.heartbeatIntervalInSecs = heartbeatIntervalInSecs == null ? 1 : heartbeatIntervalInSecs;
     this.heartbeatTimer = new Timer(HEART_BEAT_TIMER_NAME);
   }
 
@@ -49,15 +52,13 @@ public class HeartbeatPlugin implements EventPluginIF {
             try {
               configurationManager.submitSessionHeartbeat(prevIdentity);
             } catch (Exception e) {
-              configurationManager
-                  .getLog()
-                  .error(
-                      String.format("Error in submitting hearbeat for identity: %s", prevIdentity),
-                      e);
+              LOG.error(
+                  String.format("Error in submitting hearbeat for identity: %s", prevIdentity), e);
             }
           }
         },
-        heartbeatInterval);
+        heartbeatIntervalInSecs * 1000L,
+        heartbeatIntervalInSecs * 1000L);
   }
 
   private void resetHeartbeatTimer() {

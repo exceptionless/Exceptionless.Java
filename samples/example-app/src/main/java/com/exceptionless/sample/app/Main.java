@@ -9,6 +9,8 @@ public class Main {
             System.getenv("EXCEPTIONLESS_SAMPLE_APP_API_KEY"),
             System.getenv("EXCEPTIONLESS_SAMPLE_APP_SERVER_URL"));
 
+    client.getConfigurationManager().useSessions();
+
     client.submitSessionStart();
 
     client.submitException(new RuntimeException("Test exception"));

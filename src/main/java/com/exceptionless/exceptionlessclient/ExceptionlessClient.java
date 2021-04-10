@@ -12,12 +12,15 @@ import com.exceptionless.exceptionlessclient.models.submission.SubmissionRespons
 import com.exceptionless.exceptionlessclient.plugins.EventPluginRunner;
 import lombok.Builder;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class ExceptionlessClient {
+  private static final Logger LOG = LoggerFactory.getLogger(ExceptionlessClient.class);
   private static final String UPDATE_SETTINGS_TIMER_NAME = "update-settings-timer";
   private static final int UPDATE_SETTINGS_TIMER_INITIAL_DELAY = 5000;
 
@@ -42,7 +45,7 @@ public class ExceptionlessClient {
             try {
               configurationManager.getSettingsManager().updateSettingsThreadSafe();
             } catch (Exception e) {
-              configurationManager.getLog().error("Error in updating settings", e);
+              LOG.error("Error in updating settings", e);
             }
           }
         },
@@ -155,9 +158,7 @@ public class ExceptionlessClient {
   }
 
   public void submitSessionEnd(String sessionOrUserId) {
-    configurationManager
-        .getLog()
-        .info(String.format("Submitting session end: %s", sessionOrUserId));
+    LOG.info(String.format("Submitting session end: %s", sessionOrUserId));
     configurationManager.getSubmissionClient().sendHeartBeat(sessionOrUserId, true);
   }
 
@@ -170,11 +171,8 @@ public class ExceptionlessClient {
                 referenceId,
                 UserDescription.builder().description(description).emailAddress(email).build());
     if (!response.isSuccess()) {
-      configurationManager
-          .getLog()
-          .error(
-              String.format(
-                  "Failed to submit user email and description for event: %s", referenceId));
+      LOG.error(
+          String.format("Failed to submit user email and description for event: %s", referenceId));
     }
 
     return response;

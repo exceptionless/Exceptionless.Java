@@ -13,10 +13,10 @@ import java.util.List;
 @NonFinal
 @EqualsAndHashCode(callSuper = true)
 public class InnerError extends Model {
-  private String message;
-  private String type;
-  private String code;
-  private InnerError inner;
-  private List<StackFrame> stackTrace;
-  private Method targetMethod;
+  String message;
+  String type;
+  String code;
+  InnerError inner;
+  List<StackFrame> stackTrace;
+  Method targetMethod;
 }

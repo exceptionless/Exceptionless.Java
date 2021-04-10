@@ -1,7 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
-import com.exceptionless.exceptionlessclient.logging.LogIF;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.plugins.MergedEvent;
@@ -10,14 +9,16 @@ import com.exceptionless.exceptionlessclient.models.services.error.InnerError;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class DuplicateErrorCheckerPlugin implements EventPluginIF {
+  private static final Logger LOG = LoggerFactory.getLogger(DuplicateErrorCheckerPlugin.class);
   private static final String MERGED_EVENTS_RESUBMISSION_TIMER_NAME =
       "merged-events-resubmission-timer";
 
-  private final LogIF log;
   private final int maxHashesCount;
   private final Queue<MergedEvent> mergedEvents;
   private final Timer mergedEventsResubmissionTimer;
@@ -25,9 +26,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
   private final Integer mergedEventsResubmissionInSecs;
 
   @Builder
-  public DuplicateErrorCheckerPlugin(
-      LogIF log, Integer mergedEventsResubmissionInSecs, Integer maxHashesCount) {
-    this.log = log;
+  public DuplicateErrorCheckerPlugin(Integer mergedEventsResubmissionInSecs, Integer maxHashesCount) {
     this.maxHashesCount = maxHashesCount == null ? 50 : maxHashesCount;
     this.mergedEvents = new ArrayDeque<>();
     this.mergedEventsResubmissionTimer = new Timer(MERGED_EVENTS_RESUBMISSION_TIMER_NAME);
@@ -48,10 +47,11 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
                 event.resubmit();
               }
             } catch (Exception e) {
-              log.error("Error in resubmitting merged events", e);
+              LOG.error("Error in resubmitting merged events", e);
             }
           }
         },
+        mergedEventsResubmissionInSecs * 1000,
         mergedEventsResubmissionInSecs * 1000);
   }
 
@@ -77,7 +77,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
       MergedEvent mergedEvent = maybeMergedEvent.get();
       mergedEvent.incrementCount(event.getCount());
       mergedEvent.updateDate(event.getDate());
-      log.info(String.format("Ignoring duplicate event with hash: %s", hash));
+      LOG.info(String.format("Ignoring duplicate event with hash: %s", hash));
       eventPluginContext.getContext().setEventCancelled(true);
       return;
     }
@@ -91,12 +91,13 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
                 timeStampedHash.getHash() == hash
                     && timeStampedHash.getTimestamp()
                         >= (now - mergedEventsResubmissionInSecs * 1000))) {
-      log.trace(String.format("Adding event with hash :%s", hash));
+      LOG.trace(String.format("Adding event with hash :%s", hash));
       mergedEvents.add(
           MergedEvent.builder()
               .count(event.getCount())
               .event(event)
               .eventQueue(configurationManager.getQueue())
+              .hash(hash)
               .build());
       eventPluginContext.getContext().setEventCancelled(true);
       return;

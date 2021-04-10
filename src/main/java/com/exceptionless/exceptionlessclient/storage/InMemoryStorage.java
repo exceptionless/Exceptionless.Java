@@ -15,7 +15,7 @@ public class InMemoryStorage<X> implements StorageIF<X> {
 
   @Builder
   public InMemoryStorage(Integer maxItems) {
-    this.maxItems = maxItems;
+    this.maxItems = maxItems == null ? 50 : maxItems;
     items = new LinkedList<>();
   }
 

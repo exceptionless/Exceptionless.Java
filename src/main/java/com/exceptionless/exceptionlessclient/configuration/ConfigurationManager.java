@@ -3,8 +3,9 @@ package com.exceptionless.exceptionlessclient.configuration;
 import com.exceptionless.exceptionlessclient.exceptions.ClientException;
 import com.exceptionless.exceptionlessclient.lastreferenceidmanager.DefaultLastReferenceIdManager;
 import com.exceptionless.exceptionlessclient.lastreferenceidmanager.LastReferenceIdManagerIF;
-import com.exceptionless.exceptionlessclient.logging.LogIF;
-import com.exceptionless.exceptionlessclient.logging.ConsoleLog;
+import com.exceptionless.exceptionlessclient.logging.LogCapturerAppender;
+import com.exceptionless.exceptionlessclient.logging.LogCapturerIF;
+import com.exceptionless.exceptionlessclient.logging.NullLogCapturer;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.UserInfo;
 import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
@@ -22,16 +23,19 @@ import com.exceptionless.exceptionlessclient.submission.DefaultSubmissionClient;
 import com.exceptionless.exceptionlessclient.submission.SubmissionClientIF;
 import lombok.Builder;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class ConfigurationManager {
+  private static final Logger LOG = LoggerFactory.getLogger(ConfigurationManager.class);
+
   @Getter private final EnvironmentInfoCollectorIF environmentInfoCollector;
   @Getter private final ErrorParserIF errorParser;
   @Getter private final LastReferenceIdManagerIF lastReferenceIdManager;
-  @Getter private final LogIF log;
   @Getter private final ModuleCollectorIF moduleCollector;
   @Getter private final RequestInfoCollectorIF requestInfoCollector;
   @Getter private final SubmissionClientIF submissionClient;
@@ -44,7 +48,7 @@ public class ConfigurationManager {
   private final Set<String> userAgentBotPatterns;
   @Getter private final PrivateInformationInclusions privateInformationInclusions;
   private final Set<String> dataExclusions;
-  private PluginManager pluginManager;
+  private final PluginManager pluginManager;
   @Getter private final StorageProviderIF storageProvider;
 
   @Builder
@@ -52,7 +56,7 @@ public class ConfigurationManager {
       EnvironmentInfoCollectorIF environmentInfoCollector,
       ErrorParserIF errorParser,
       LastReferenceIdManagerIF lastReferenceIdManager,
-      LogIF log,
+      LogCapturerIF logCatpurer,
       ModuleCollectorIF moduleCollector,
       RequestInfoCollectorIF requestInfoCollector,
       SubmissionClientIF submissionClient,
@@ -62,10 +66,9 @@ public class ConfigurationManager {
       Configuration configuration,
       Integer maxQueueItems,
       Integer processingIntervalInSecs) {
-    this.log = log == null ? ConsoleLog.builder().build() : log;
     this.environmentInfoCollector =
         environmentInfoCollector == null
-            ? DefaultEnvironmentInfoCollector.builder().log(this.log).build()
+            ? DefaultEnvironmentInfoCollector.builder().build()
             : environmentInfoCollector;
     this.errorParser = errorParser == null ? DefaultErrorParser.builder().build() : errorParser;
     this.lastReferenceIdManager =
@@ -76,21 +79,20 @@ public class ConfigurationManager {
         moduleCollector == null ? DefaultModuleCollector.builder().build() : moduleCollector;
     this.requestInfoCollector =
         requestInfoCollector == null
-            ? DefaultRequestInfoCollector.builder().log(this.log).build()
+            ? DefaultRequestInfoCollector.builder().build()
             : requestInfoCollector;
     this.storageProvider =
         storageProvider == null
             ? InMemoryStorageProvider.builder().maxQueueItems(maxQueueItems).build()
             : storageProvider;
     this.configuration =
-            configuration == null ? Configuration.defaultConfiguration() : configuration;
+        configuration == null ? Configuration.defaultConfiguration() : configuration;
     this.settingsManager =
         SettingsManager.builder()
             .settingsClient(
                 settingsClient == null
                     ? DefaultSettingsClient.builder().configuration(this.configuration).build()
                     : settingsClient)
-            .log(this.log)
             .storageProvider(this.storageProvider)
             .build();
     this.userAgentBotPatterns = new HashSet<>();
@@ -99,28 +101,26 @@ public class ConfigurationManager {
             ? DefaultSubmissionClient.builder()
                 .settingsManager(this.settingsManager)
                 .configuration(this.configuration)
-                .log(this.log)
                 .build()
             : submissionClient;
     this.queue =
         queue == null
             ? DefaultEventQueue.builder()
                 .configuration(this.configuration)
-                .log(this.log)
                 .processingIntervalInSecs(processingIntervalInSecs)
                 .storageProvider(this.storageProvider)
                 .submissionClient(this.submissionClient)
                 .build()
             : queue;
-    this.pluginManager = PluginManager.builder().log(this.log).build();
+    this.pluginManager = PluginManager.builder().build();
     this.defaultData = new HashMap<>();
     this.defaultTags = new HashSet<>();
     this.onChangedHandlers = new ArrayList<>();
     this.dataExclusions = new HashSet<>();
     this.privateInformationInclusions = PrivateInformationInclusions.builder().build();
-    this.pluginManager = PluginManager.builder().log(this.log).build();
     checkApiKeyIsValid();
     addPropertyChangeListeners();
+    addLogCapturer(logCatpurer);
   }
 
   private void addPropertyChangeListeners() {
@@ -136,6 +136,18 @@ public class ConfigurationManager {
 
     throw new ClientException(
         String.format("Apikey is not valid: [%s]", this.configuration.getApiKey()));
+  }
+
+  private void addLogCapturer(LogCapturerIF logCatpurer) {
+    logCatpurer = logCatpurer == null ? NullLogCapturer.builder().build() : logCatpurer;
+
+    ch.qos.logback.classic.Logger logBackRootLogger =
+        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+    logBackRootLogger.addAppender(LogCapturerAppender.builder().logCapturer(logCatpurer).build());
+  }
+
+  public void addDefaultTags(String... tags) {
+    defaultTags.addAll(Arrays.asList(tags));
   }
 
   public void addDataExclusions(String... exclusions) {
@@ -160,7 +172,7 @@ public class ConfigurationManager {
   }
 
   public void submitSessionHeartbeat(String sessionOrUserId) {
-    log.info(String.format("Submitting session heartbeat: %s", sessionOrUserId));
+    LOG.info(String.format("Submitting session heartbeat: %s", sessionOrUserId));
     submissionClient.sendHeartBeat(sessionOrUserId, false);
   }
 
@@ -216,12 +228,12 @@ public class ConfigurationManager {
     this.defaultData.put(EventPropertyKey.USER.value(), userInfo);
   }
 
-  public void useSession() {
+  public void useSessions() {
     useSessions(30000);
   }
 
-  public void useSessions(int heartbeatInterval) {
-    addPlugin(HeartbeatPlugin.builder().heartbeatInterval(heartbeatInterval).build());
+  public void useSessions(int heartbeatIntervalInSecs) {
+    addPlugin(HeartbeatPlugin.builder().heartbeatIntervalInSecs(heartbeatIntervalInSecs).build());
   }
 
   public void onChanged(Consumer<ConfigurationManager> onChangedHandler) {
@@ -233,7 +245,7 @@ public class ConfigurationManager {
       try {
         onChangedHandler.accept(this);
       } catch (Exception e) {
-        log.error(String.format("Error calling on changed handler: %s", e.getMessage()), e);
+        LOG.error(String.format("Error calling on changed handler: %s", e.getMessage()), e);
       }
     }
   }

@@ -2,13 +2,14 @@ package com.exceptionless.exceptionlessclient.submission;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.exceptions.ClientException;
-import com.exceptionless.exceptionlessclient.logging.LogIF;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.settings.SettingsManager;
 import com.exceptionless.exceptionlessclient.utils.Utils;
 import lombok.Builder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
@@ -22,18 +23,17 @@ import java.util.List;
 import java.util.OptionalLong;
 
 public class DefaultSubmissionClient implements SubmissionClientIF {
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultSubmissionClient.class);
   private static final String CONFIGURATION_VERSION_HEADER = "x-exceptionless-configversion";
 
   private final Configuration configuration;
-  private final LogIF log;
   private final SettingsManager settingsManager;
   private final HttpClient httpClient;
 
   @Builder
   private DefaultSubmissionClient(
-      Configuration configuration, LogIF log, SettingsManager settingsManager) {
+          Configuration configuration, SettingsManager settingsManager) {
     this.configuration = configuration;
-    this.log = log;
     this.settingsManager = settingsManager;
     this.httpClient = HttpClient.newHttpClient();
   }
@@ -88,7 +88,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
     if (maybeSettingsVersion.isPresent()) {
       settingsManager.checkVersion(maybeSettingsVersion.getAsLong());
     } else {
-      log.error("No config version header was returned");
+      LOG.error("No config version header was returned");
     }
   }
 
@@ -115,7 +115,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
           httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
       if (response.statusCode() != 200) {
-        log.error(
+        LOG.error(
             String.format(
                 "Error in submitting heartbeat to the server for sessionOrUserId: %s",
                 sessionIdOrUserId));

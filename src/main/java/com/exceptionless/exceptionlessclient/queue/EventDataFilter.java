@@ -28,10 +28,11 @@ public class EventDataFilter {
   }
 
   private Object filter(Object data, int currDepth) {
-    if (data == null || currDepth >= maxDepth) {
+    if (shouldNotFilter(data, currDepth)) {
       return data;
     }
 
+    // Object other than JSON primitive
     if (!(data instanceof Map || data instanceof List)) {
       data = Utils.JSON_MAPPER.convertValue(data, Map.class);
     }
@@ -45,11 +46,19 @@ public class EventDataFilter {
         .entrySet().stream()
             .filter(
                 entry ->
-                    exclusions.stream()
-                        .anyMatch(
-                            exclusion -> Utils.match(entry.getKey(), exclusion)))
+                    entry.getValue() != null
+                        && exclusions.stream()
+                            .noneMatch(exclusion -> Utils.match(entry.getKey(), exclusion)))
             .collect(
                 Collectors.toMap(
                     Map.Entry::getKey, entry -> filter(entry.getValue(), currDepth + 1)));
+  }
+
+  private boolean shouldNotFilter(Object data, int currentDepth) {
+    return currentDepth > maxDepth
+        || data == null
+        || (data instanceof Number)
+        || (data instanceof String)
+        || (data instanceof Boolean);
   }
 }
