@@ -7,6 +7,7 @@ import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.storage.StorageProviderIF;
 import com.exceptionless.exceptionlessclient.submission.SubmissionClientIF;
+import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;
 import lombok.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +62,7 @@ public class DefaultEventQueue implements EventQueueIF {
             }
           }
         },
+        processingIntervalInSecs * 1000,
         processingIntervalInSecs * 1000);
   }
 
@@ -84,17 +86,23 @@ public class DefaultEventQueue implements EventQueueIF {
     process(false);
   }
 
+  @VisibleForTesting
+  Boolean isProcessingCurrentlySuspended(){
+    return shouldSuspendProcessing();
+  }
+
   @Override
   public void enqueue(Event event) {
     if (shouldDiscard()) {
       LOG.info("Queue items are currently being discarded. This event will not be enqueued");
+      return;
     }
 
     long timestamp = storageProvider.getQueue().save(event);
     String logText =
         String.format("type: %s", event.getType())
             + (event.getReferenceId() != null
-                ? String.format("refId: %s", event.getReferenceId())
+                ? String.format(", refId: %s", event.getReferenceId())
                 : "");
     LOG.info(String.format("Enqueueing event: %s %s", timestamp, logText));
   }
@@ -109,17 +117,24 @@ public class DefaultEventQueue implements EventQueueIF {
 
   @Override
   public void process(boolean isAppExiting) {
-    if (processingQueue) {
-      return;
+    synchronized (this){
+      if (processingQueue) {
+        LOG.trace("Currently processing queue; Returning...");
+        return;
+      }
+      processingQueue = true;
     }
 
-    processingQueue = true;
     try {
       List<StorageItem<Event>> storedEvents =
           storageProvider.getQueue().get(currentSubmissionBatchSize);
+      if (storedEvents.isEmpty()) {
+        LOG.trace("No events found to submit; Returning...");
+        return;
+      }
+
       List<Event> events =
           storedEvents.stream().map(StorageItem::getValue).collect(Collectors.toList());
-
       LOG.info(
           String.format("Sending %s events to %s", events.size(), configuration.getServerUrl()));
       SubmissionResponse response = submissionClient.postEvents(events, isAppExiting);
@@ -129,7 +144,9 @@ public class DefaultEventQueue implements EventQueueIF {
       LOG.error("Error processing queue", e);
       suspendProcessing();
     } finally {
-      processingQueue = false;
+      synchronized (this){
+        processingQueue = false;
+      }
     }
   }
 

@@ -43,7 +43,7 @@ public class ExceptionlessClient {
           @Override
           public void run() {
             try {
-              configurationManager.getSettingsManager().updateSettingsThreadSafe();
+              configurationManager.getSettingsManager().updateSettings();
             } catch (Exception e) {
               LOG.error("Error in updating settings", e);
             }
@@ -53,12 +53,12 @@ public class ExceptionlessClient {
         configurationManager.getConfiguration().getUpdateSettingsWhenIdleInterval());
 
     configurationManager.onChanged(
-        ignored -> configurationManager.getSettingsManager().updateSettingsThreadSafe());
+        ignored -> configurationManager.getSettingsManager().updateSettings());
     configurationManager
         .getQueue()
         .onEventsPosted(
             (ignored1, ignored2) ->
-                configurationManager.getSettingsManager().updateSettingsThreadSafe());
+                configurationManager.getSettingsManager().updateSettings());
   }
 
   public static ExceptionlessClient from(String apiKey, String serverUrl) {

@@ -1,6 +1,5 @@
 package com.exceptionless.exceptionlessclient.queue;
 
-
 import com.exceptionless.exceptionlessclient.exceptions.BadEventDataException;
 
 public final class EventValidator {
@@ -12,12 +11,15 @@ public final class EventValidator {
   public static void validateIdentifier(String value) {
     if (value.length() < VALID_IDENTIFIER_MIN_LENGTH
         || value.length() > VALID_IDENTIFIER_MAX_LENGTH) {
-      throw new BadEventDataException("Value must contain between 8 and 100 characters");
+      throw new BadEventDataException(
+          String.format("Value must contain between 8 and 100 characters, found: [%s]", value));
     }
 
     if (!value.chars().allMatch(ch -> Character.isLetterOrDigit(ch) || ch == '-')) {
       throw new BadEventDataException(
-          "Value should contain only alphanumeric characters and minus sign");
+          String.format(
+              "Value should contain only alphanumeric characters and hyphen sign, found: [%s]",
+              value));
     }
   }
 
