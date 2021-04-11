@@ -37,7 +37,7 @@ public class InMemoryStorage<X> implements StorageIF<X> {
 
   @Override
   public List<StorageItem<X>> get(int limit) {
-    return items.subList(0, Math.min(limit, items.size()));
+    return new ArrayList<>(items.subList(0, Math.min(limit, items.size())));
   }
 
   @Override

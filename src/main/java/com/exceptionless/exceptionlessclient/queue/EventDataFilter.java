@@ -39,7 +39,7 @@ public class EventDataFilter {
 
     if (data instanceof List) {
       List<Object> dataList = (List<Object>) data;
-      return dataList.stream().map(val -> filter(val, currDepth + 1)).collect(Collectors.toList());
+      return dataList.stream().map(val -> filter(val, currDepth)).collect(Collectors.toList());
     }
 
     return ((Map<String, Object>) data)

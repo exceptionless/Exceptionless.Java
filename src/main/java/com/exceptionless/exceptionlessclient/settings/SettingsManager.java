@@ -40,7 +40,7 @@ public class SettingsManager {
     }
 
     LOG.info(String.format("Updating settings from v%s to v%s", currentVersion, version));
-    updateSettingsThreadSafe();
+    updateSettings();
   }
 
   private long getVersion() {
@@ -56,32 +56,31 @@ public class SettingsManager {
     return storageItem.getValue();
   }
 
-  // This method is thread safe as settings are updated both by the users and by the client at
-  // regular intervals
-  public synchronized void updateSettingsThreadSafe() {
-    if (updatingSettings) {
-      return;
+  public void updateSettings() {
+    synchronized (this) {
+      if (updatingSettings) {
+        LOG.trace("Already updating settings; Returning...");
+        return;
+      }
+      updatingSettings = true;
     }
 
-    updatingSettings = true;
     try {
-      updateSettings();
+      long currentVersion = getVersion();
+      LOG.info(String.format("Checking for updated settings  from: v%s", currentVersion));
+
+      SettingsResponse response = settingsClient.getSettings(currentVersion);
+      if (!response.isSuccess()) {
+        LOG.warn(String.format("Unable to update settings: %s:", response.getMessage()));
+        return;
+      }
+      ServerSettings prevValue = storageProvider.getSettings().peek().getValue();
+      storageProvider.getSettings().save(response.getSettings());
+      propertyChangeSupport.firePropertyChange("settings", prevValue, response.getSettings());
     } finally {
-      updatingSettings = false;
+      synchronized (this) {
+        updatingSettings = false;
+      }
     }
-  }
-
-  private void updateSettings() {
-    long currentVersion = getVersion();
-    LOG.info(String.format("Checking for updated settings  from: v%s", currentVersion));
-
-    SettingsResponse response = settingsClient.getSettings(currentVersion);
-    if (!response.isSuccess()) {
-      LOG.warn(String.format("Unable to update settings: %s:", response.getMessage()));
-      return;
-    }
-    ServerSettings prevValue = storageProvider.getSettings().peek().getValue();
-    storageProvider.getSettings().save(response.getSettings());
-    propertyChangeSupport.firePropertyChange("settings", prevValue, response.getSettings());
   }
 }

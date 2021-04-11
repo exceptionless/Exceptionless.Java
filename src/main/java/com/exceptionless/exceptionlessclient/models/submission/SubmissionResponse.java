@@ -8,8 +8,8 @@ import lombok.experimental.NonFinal;
 @Value
 @NonFinal
 public class SubmissionResponse {
-  private int statusCode;
-  private String message;
+  int statusCode;
+  String message;
 
   public boolean isSuccess() {
     return statusCode >= 200 && statusCode <= 299;
