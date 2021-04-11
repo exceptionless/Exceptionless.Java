@@ -44,9 +44,13 @@ public final class Utils {
   }
 
   public static Map<String, List<String>> getQueryParams(URI uri) {
-    Map<String, List<String>> queryParams = new HashMap<>();
+    String query = uri.getQuery();
+    if (query == null || query.isBlank()) {
+      return Map.of();
+    }
 
-    String[] rawQueryParams = uri.getQuery().split("&");
+    String[] rawQueryParams = query.split("&");
+    Map<String, List<String>> queryParams = new HashMap<>();
     for (String queryParamsNameAndValue : rawQueryParams) {
       String[] queryParamsNameAndValuePair = queryParamsNameAndValue.split("=");
       if (!queryParams.containsKey(queryParamsNameAndValuePair[0])) {
