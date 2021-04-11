@@ -61,20 +61,16 @@ public final class Utils {
 
   public static boolean match(String value, String pattern) {
     if (value == null) {
-      // todo remove
-      LOG.info("Null received for value");
       return false;
     }
     if (pattern == null) {
-      // todo remove
-      LOG.info("Null received for pattern");
       return false;
     }
     // todo check this works or not;
     boolean result = value.toLowerCase().matches(pattern);
+
     if (result) {
-      // todo remove
-      LOG.info(String.format("Value [%s] matches pattern [%s]", value, pattern));
+      LOG.trace(String.format("Value [%s] matches pattern [%s]", value, pattern));
       return true;
     }
     return false;

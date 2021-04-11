@@ -4,17 +4,15 @@ import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.models.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.utils.Utils;
+import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.Builder;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-
 
 public class DefaultSettingsClient implements SettingsClientIF {
   private final Configuration configuration;
@@ -26,6 +24,12 @@ public class DefaultSettingsClient implements SettingsClientIF {
     this.httpClient = HttpClient.newHttpClient();
   }
 
+  @VisibleForTesting
+  DefaultSettingsClient(Configuration configuration, HttpClient httpClient) {
+    this.configuration = configuration;
+    this.httpClient = httpClient;
+  }
+
   @Override
   public SettingsResponse getSettings(long version) {
     try {
@@ -33,7 +37,7 @@ public class DefaultSettingsClient implements SettingsClientIF {
           new URI(
               String.format(
                   "%s/api/v2/projects/config?v=%s&access_token=%s",
-                  version, configuration.getServerUrl(), configuration.getApiKey()));
+                  configuration.getServerUrl(), version, configuration.getApiKey()));
 
       HttpRequest request =
           HttpRequest.newBuilder()
@@ -54,7 +58,7 @@ public class DefaultSettingsClient implements SettingsClientIF {
           Utils.JSON_MAPPER.readValue(response.body(), new TypeReference<ServerSettings>() {});
 
       return SettingsResponse.builder().success(true).settings(serverSettings).build();
-    } catch (URISyntaxException | InterruptedException | IOException e) {
+    } catch (Exception e) {
       return SettingsResponse.builder().success(false).exception(e).message(e.getMessage()).build();
     }
   }
