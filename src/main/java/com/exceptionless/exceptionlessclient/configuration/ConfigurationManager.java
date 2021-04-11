@@ -1,6 +1,7 @@
 package com.exceptionless.exceptionlessclient.configuration;
 
-import com.exceptionless.exceptionlessclient.exceptions.SubmissionException;
+import ch.qos.logback.core.Context;
+import com.exceptionless.exceptionlessclient.exceptions.InvalidApiKeyException;
 import com.exceptionless.exceptionlessclient.lastreferenceidmanager.DefaultLastReferenceIdManager;
 import com.exceptionless.exceptionlessclient.lastreferenceidmanager.LastReferenceIdManagerIF;
 import com.exceptionless.exceptionlessclient.logging.LogCapturerAppender;
@@ -134,7 +135,7 @@ public class ConfigurationManager {
       return;
     }
 
-    throw new SubmissionException(
+    throw new InvalidApiKeyException(
         String.format("Apikey is not valid: [%s]", this.configuration.getApiKey()));
   }
 
@@ -143,7 +144,10 @@ public class ConfigurationManager {
 
     ch.qos.logback.classic.Logger logBackRootLogger =
         (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-    logBackRootLogger.addAppender(LogCapturerAppender.builder().logCapturer(logCatpurer).build());
+    LogCapturerAppender appender = LogCapturerAppender.builder().logCapturer(logCatpurer).build();
+    appender.setContext((Context) LoggerFactory.getILoggerFactory());
+    appender.start();
+    logBackRootLogger.addAppender(appender);
   }
 
   public void addDefaultTags(String... tags) {
@@ -212,6 +216,10 @@ public class ConfigurationManager {
     pluginManager.removePlugin(name);
   }
 
+  public List<EventPluginIF> getPlugins() {
+    return pluginManager.getPlugins();
+  }
+
   public void setVersion(String version) {
     this.defaultData.put(EventPropertyKey.VERSION.value(), version);
   }
@@ -229,7 +237,7 @@ public class ConfigurationManager {
   }
 
   public void useSessions() {
-    useSessions(30000);
+    useSessions(30);
   }
 
   public void useSessions(int heartbeatIntervalInSecs) {
@@ -248,9 +256,5 @@ public class ConfigurationManager {
         LOG.error(String.format("Error calling on changed handler: %s", e.getMessage()), e);
       }
     }
-  }
-
-  public List<EventPluginIF> getPlugins() {
-    return pluginManager.getPlugins();
   }
 }

@@ -49,7 +49,7 @@ public class PrivateInformationInclusions {
   public void setQueryString(Boolean queryString) {
     Boolean prevValue = this.queryString;
     this.queryString = queryString;
-    propertyChangeSupport.firePropertyChange("querString", prevValue, queryString);
+    propertyChangeSupport.firePropertyChange("queryString", prevValue, queryString);
   }
 
   public void setPostData(Boolean postData) {

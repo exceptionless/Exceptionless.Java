@@ -19,6 +19,8 @@ public class LogCapturerAppender extends AppenderBase<ILoggingEvent> {
   protected void append(ILoggingEvent loggingEvent) {
     if (loggingEvent.getLevel().equals(Level.TRACE)) {
       logCapturer.trace(loggingEvent.getMessage());
+    } else if (loggingEvent.getLevel().equals(Level.DEBUG)) {
+      logCapturer.debug(loggingEvent.getMessage());
     } else if (loggingEvent.getLevel().equals(Level.INFO)) {
       logCapturer.info(loggingEvent.getMessage());
     } else if (loggingEvent.getLevel().equals(Level.WARN)) {

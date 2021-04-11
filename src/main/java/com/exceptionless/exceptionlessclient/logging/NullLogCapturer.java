@@ -10,6 +10,9 @@ public class NullLogCapturer implements LogCapturerIF {
   public void trace(String message) {}
 
   @Override
+  public void debug(String message) {}
+
+  @Override
   public void info(String message) {}
 
   @Override

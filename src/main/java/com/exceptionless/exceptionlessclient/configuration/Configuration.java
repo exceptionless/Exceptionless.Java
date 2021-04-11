@@ -11,7 +11,6 @@ public class Configuration {
 
   @Getter private String apiKey;
   @Getter private String serverUrl;
-  @Getter private String configServerUrl;
   @Getter private String heartbeatServerUrl;
   @Getter private Long updateSettingsWhenIdleInterval;
   @Getter private Integer submissionBatchSize;
@@ -31,10 +30,6 @@ public class Configuration {
       Integer settingsClientTimeoutInMillis) {
     this.apiKey = apiKey;
     this.serverUrl = serverUrl == null ? "https://collector.exceptionless.io" : serverUrl;
-    this.configServerUrl =
-        configServerUrl == null
-            ? (serverUrl == null ? "https://config.exceptionless.io" : serverUrl)
-            : configServerUrl;
     this.heartbeatServerUrl =
         heartbeatServerUrl == null
             ? (serverUrl == null ? "https://heartbeat.exceptionless.io" : serverUrl)
@@ -69,11 +64,6 @@ public class Configuration {
     propertyChangeSupport.firePropertyChange("serverUrl", prevValue, serverUrl);
   }
 
-  public void setConfigServerUrl(String configServerUrl) {
-    String prevValue = this.configServerUrl;
-    this.configServerUrl = configServerUrl;
-    propertyChangeSupport.firePropertyChange("configServerUrl", prevValue, configServerUrl);
-  }
 
   public void setHeartbeatServerUrl(String heartbeatServerUrl) {
     String prevValue = this.heartbeatServerUrl;
