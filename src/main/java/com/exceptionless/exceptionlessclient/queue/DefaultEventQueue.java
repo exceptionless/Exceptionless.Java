@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.queue;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.ClientException;
+import com.exceptionless.exceptionlessclient.exceptions.SubmissionException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
@@ -82,10 +82,6 @@ public class DefaultEventQueue implements EventQueueIF {
     return LocalDateTime.now().isBefore(suspendProcessingUntil);
   }
 
-  private void process() {
-    process(false);
-  }
-
   @VisibleForTesting
   Boolean isProcessingCurrentlySuspended(){
     return shouldSuspendProcessing();
@@ -116,7 +112,7 @@ public class DefaultEventQueue implements EventQueueIF {
   }
 
   @Override
-  public void process(boolean isAppExiting) {
+  public void process() {
     synchronized (this){
       if (processingQueue) {
         LOG.trace("Currently processing queue; Returning...");
@@ -137,10 +133,10 @@ public class DefaultEventQueue implements EventQueueIF {
           storedEvents.stream().map(StorageItem::getValue).collect(Collectors.toList());
       LOG.info(
           String.format("Sending %s events to %s", events.size(), configuration.getServerUrl()));
-      SubmissionResponse response = submissionClient.postEvents(events, isAppExiting);
+      SubmissionResponse response = submissionClient.postEvents(events);
       processSubmissionResponse(response, storedEvents);
       eventPosted(response, events);
-    } catch (ClientException e) {
+    } catch (SubmissionException e) {
       LOG.error("Error processing queue", e);
       suspendProcessing();
     } finally {

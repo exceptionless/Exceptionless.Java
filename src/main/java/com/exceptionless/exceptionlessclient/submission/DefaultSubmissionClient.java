@@ -1,19 +1,18 @@
 package com.exceptionless.exceptionlessclient.submission;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.ClientException;
+import com.exceptionless.exceptionlessclient.exceptions.SubmissionException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.settings.SettingsManager;
 import com.exceptionless.exceptionlessclient.utils.Utils;
+import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;
 import lombok.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
@@ -31,15 +30,22 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
   private final HttpClient httpClient;
 
   @Builder
-  private DefaultSubmissionClient(
-          Configuration configuration, SettingsManager settingsManager) {
+  public DefaultSubmissionClient(Configuration configuration, SettingsManager settingsManager) {
     this.configuration = configuration;
     this.settingsManager = settingsManager;
     this.httpClient = HttpClient.newHttpClient();
   }
 
+  @VisibleForTesting
+  DefaultSubmissionClient(
+      Configuration configuration, SettingsManager settingsManager, HttpClient httpClient) {
+    this.configuration = configuration;
+    this.settingsManager = settingsManager;
+    this.httpClient = httpClient;
+  }
+
   @Override
-  public SubmissionResponse postEvents(List<Event> events, boolean isAppExiting) {
+  public SubmissionResponse postEvents(List<Event> events) {
     return postSubmission(
         String.format(
             "%s/api/v2/events?access_token=%s",
@@ -78,8 +84,8 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
           .statusCode(response.statusCode())
           .message(response.body())
           .build();
-    } catch (URISyntaxException | InterruptedException | IOException e) {
-      throw new ClientException(e);
+    } catch (Exception e) {
+      throw new SubmissionException(e);
     }
   }
 
@@ -108,7 +114,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
               .uri(uri)
               .GET()
               .header("X-Exceptionless-Client", Configuration.USER_AGENT)
-              .timeout(Duration.ofMillis(configuration.getSettingsClientTimeoutInMillis()))
+              .timeout(Duration.ofMillis(configuration.getSubmissionClientTimeoutInMillis()))
               .build();
 
       HttpResponse<String> response =
@@ -120,8 +126,8 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
                 "Error in submitting heartbeat to the server for sessionOrUserId: %s",
                 sessionIdOrUserId));
       }
-    } catch (URISyntaxException | InterruptedException | IOException e) {
-      throw new ClientException(e);
+    } catch (Exception e) {
+      throw new SubmissionException(e);
     }
   }
 }

@@ -8,8 +8,7 @@ import java.util.List;
 
 public interface SubmissionClientIF {
   SubmissionResponse postEvents(
-      List<Event> events,
-      boolean isAppExiting);
+      List<Event> events);
 
   SubmissionResponse postUserDescription(
       String referenceId,
