@@ -24,8 +24,8 @@ public class DefaultRequestInfoCollector implements RequestInfoCollectorIF {
   public RequestInfo getRequestInfo(HttpRequest request, RequestInfoGetArgs args) {
     RequestInfo.RequestInfoBuilder<?, ?> builder =
         RequestInfo.builder()
-            .userAgent(request.headers().firstValue("user-agent").orElse(null))
-            .isSecure(isSecure(request.uri()))
+            .userAgent(request.headers().firstValue("User-Agent").orElse(null))
+            .secure(isSecure(request.uri()))
             .httpMethod(request.method())
             .host(request.uri().getHost())
             .path(request.uri().getPath())
@@ -59,7 +59,7 @@ public class DefaultRequestInfoCollector implements RequestInfoCollectorIF {
     return map.entrySet().stream()
         .filter(
             entry ->
-                exclusions.stream().anyMatch(exclusion -> !Utils.match(entry.getKey(), exclusion)))
+                exclusions.stream().noneMatch(exclusion -> Utils.match(entry.getKey(), exclusion)))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
