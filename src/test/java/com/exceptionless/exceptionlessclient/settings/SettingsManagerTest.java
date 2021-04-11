@@ -10,8 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.beans.PropertyChangeListener;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -24,6 +23,7 @@ import static org.mockito.Mockito.*;
 public class SettingsManagerTest {
   @Mock private InMemoryStorageProvider storageProvider;
   @Mock private DefaultSettingsClient settingsClient;
+  @Mock private PropertyChangeListener listener;
   private SettingsManager settingsManager;
   private InMemoryStorage<ServerSettings> storage;
 
@@ -140,20 +140,16 @@ public class SettingsManagerTest {
         .when(settingsClient)
         .getSettings(anyLong());
 
-    List<String> invocations = new ArrayList<>();
-    settingsManager.addPropertyChangeListener(
-        evt ->
-            invocations.add(
-                String.format(
-                    "%s:%s=>%s",
-                    evt.getPropertyName(),
-                    ((ServerSettings) evt.getOldValue()).getVersion(),
-                    ((ServerSettings) evt.getNewValue()).getVersion())));
-
+    settingsManager.addPropertyChangeListener(listener);
     settingsManager.updateSettings();
 
     assertThat(storage.peek().getValue()).isEqualTo(newSettingsFromServer);
-    assertThat(invocations).hasSize(1);
-    assertThat(invocations.get(0)).isEqualTo("settings:0=>4");
+    verify(listener, times(1))
+        .propertyChange(
+            argThat(
+                event ->
+                    event.getPropertyName().equals("settings")
+                        && ((ServerSettings) event.getOldValue()).getVersion() == 0
+                        && ((ServerSettings) event.getNewValue()).getVersion() == 4));
   }
 }
