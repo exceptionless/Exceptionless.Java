@@ -32,9 +32,13 @@ public class Configuration {
     this.apiKey = apiKey;
     this.serverUrl = serverUrl == null ? "https://collector.exceptionless.io" : serverUrl;
     this.configServerUrl =
-        configServerUrl == null ? "https://config.exceptionless.io" : configServerUrl;
+        configServerUrl == null
+            ? (serverUrl == null ? "https://config.exceptionless.io" : serverUrl)
+            : configServerUrl;
     this.heartbeatServerUrl =
-        heartbeatServerUrl == null ? "https://heartbeat.exceptionless.io" : heartbeatServerUrl;
+        heartbeatServerUrl == null
+            ? (serverUrl == null ? "https://heartbeat.exceptionless.io" : serverUrl)
+            : heartbeatServerUrl;
     this.updateSettingsWhenIdleInterval =
         updateSettingsWhenIdleInterval == null ? 12000L : updateSettingsWhenIdleInterval;
     this.submissionBatchSize = submissionBatchSize == null ? 50 : submissionBatchSize;

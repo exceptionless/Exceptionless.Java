@@ -10,6 +10,7 @@ import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.models.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginRunner;
+import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;
 import lombok.Builder;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -34,10 +35,20 @@ public class ExceptionlessClient {
     this.eventPluginRunner =
         EventPluginRunner.builder().configurationManager(this.configurationManager).build();
     this.updateSettingsTimer = new Timer(UPDATE_SETTINGS_TIMER_NAME);
-    init();
+    init(UPDATE_SETTINGS_TIMER_INITIAL_DELAY);
   }
 
-  private void init() {
+  @VisibleForTesting
+  ExceptionlessClient(
+      ConfigurationManager configurationManager, long updateSettingsTimerInitialDelay) {
+    this.configurationManager = configurationManager;
+    this.eventPluginRunner =
+        EventPluginRunner.builder().configurationManager(this.configurationManager).build();
+    this.updateSettingsTimer = new Timer(UPDATE_SETTINGS_TIMER_NAME);
+    init(updateSettingsTimerInitialDelay);
+  }
+
+  private void init(long delay) {
     updateSettingsTimer.schedule(
         new TimerTask() {
           @Override
@@ -49,7 +60,7 @@ public class ExceptionlessClient {
             }
           }
         },
-        UPDATE_SETTINGS_TIMER_INITIAL_DELAY,
+        delay,
         configurationManager.getConfiguration().getUpdateSettingsWhenIdleInterval());
 
     configurationManager.onChanged(
@@ -57,8 +68,7 @@ public class ExceptionlessClient {
     configurationManager
         .getQueue()
         .onEventsPosted(
-            (ignored1, ignored2) ->
-                configurationManager.getSettingsManager().updateSettings());
+            (ignored1, ignored2) -> configurationManager.getSettingsManager().updateSettings());
   }
 
   public static ExceptionlessClient from(String apiKey, String serverUrl) {
@@ -76,7 +86,7 @@ public class ExceptionlessClient {
     submitEvent(EventPluginContext.builder().event(event).context(pluginContext).build());
   }
 
-  private Event.EventBuilder createException() {
+  public Event.EventBuilder createException() {
     return createEvent().type(EventType.ERROR.value());
   }
 
@@ -96,7 +106,7 @@ public class ExceptionlessClient {
     submitEvent(EventPluginContext.from(event));
   }
 
-  private Event.EventBuilder createFeatureUsage(String feature) {
+  public Event.EventBuilder createFeatureUsage(String feature) {
     return createEvent().type(EventType.USAGE.value()).source(feature);
   }
 
@@ -113,10 +123,23 @@ public class ExceptionlessClient {
     submitEvent(EventPluginContext.from(event));
   }
 
-  private Event.EventBuilder createLog(String message, String source, String level) {
+  public Event.EventBuilder createLog(String message) {
+    return createLog(message, null, null);
+  }
+
+  public Event.EventBuilder createLog(String message, String source) {
+    return createLog(message, source, null);
+  }
+
+  public Event.EventBuilder createLog(String message, String source, String level) {
     if (source == null) {
       // Calling method
-      source = Thread.currentThread().getStackTrace()[2].getMethodName();
+      StackTraceElement[] traceElements = Thread.currentThread().getStackTrace();
+      source = traceElements[2].getMethodName();
+      // Came from the overrided method
+      if (source.equals("createLog")) {
+        source = traceElements[3].getMethodName();
+      }
     }
 
     Event.EventBuilder builder =
@@ -133,7 +156,7 @@ public class ExceptionlessClient {
     submitEvent(EventPluginContext.from(event));
   }
 
-  private Event.EventBuilder createNotFound(String resource) {
+  public Event.EventBuilder createNotFound(String resource) {
     return createEvent().type(EventType.NOT_FOUND.value()).source(resource);
   }
 
@@ -142,11 +165,11 @@ public class ExceptionlessClient {
     submitEvent(EventPluginContext.from(event));
   }
 
-  private Event.EventBuilder createSessionStart() {
+  public Event.EventBuilder createSessionStart() {
     return createEvent().type(EventType.SESSION.value());
   }
 
-  private Event.EventBuilder createEvent() {
+  public Event.EventBuilder createEvent() {
     return Event.builder()
         .dataExclusions(configurationManager.getDataExclusions())
         .date(LocalDate.now());
