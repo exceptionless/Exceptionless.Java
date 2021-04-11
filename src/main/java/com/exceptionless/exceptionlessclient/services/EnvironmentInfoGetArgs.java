@@ -8,6 +8,14 @@ import lombok.experimental.NonFinal;
 @Value
 @NonFinal
 public class EnvironmentInfoGetArgs {
-  private boolean includeMachineName;
-  private boolean includeIpAddress;
+  @Builder.Default Boolean includeMachineName = false;
+  @Builder.Default Boolean includeIpAddress = false;
+
+  public Boolean isIncludeMachineName() {
+    return includeIpAddress;
+  }
+
+  public Boolean isIncludeIpAddress() {
+    return includeIpAddress;
+  }
 }

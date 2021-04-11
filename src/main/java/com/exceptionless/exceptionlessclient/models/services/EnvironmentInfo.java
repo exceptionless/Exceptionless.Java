@@ -11,19 +11,19 @@ import lombok.experimental.SuperBuilder;
 @NonFinal
 @EqualsAndHashCode(callSuper = true)
 public class EnvironmentInfo extends Model {
-  private int processorCount;
-  private long totalPhysicalMemory;
-  private long availablePhysicalMemory;
-  private String commandLine;
-  private String processName;
-  private String processId;
-  private long processMemorySize;
-  private String threadid;
-  private String architecture;
-  private String osName;
-  private String osVersion;
-  private String ipAddress;
-  private String machineName;
-  private String installId;
-  private String runtimeVersion;
+  Integer processorCount;
+  Long totalPhysicalMemory;
+  Long availablePhysicalMemory;
+  String commandLine;
+  String processName;
+  String processId;
+  Long processMemorySize;
+  String threadId;
+  String architecture;
+  String osName;
+  String osVersion;
+  String ipAddress;
+  String machineName;
+  String installId;
+  String runtimeVersion;
 }

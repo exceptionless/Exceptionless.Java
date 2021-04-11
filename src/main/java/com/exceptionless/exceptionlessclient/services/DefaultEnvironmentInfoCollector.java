@@ -54,7 +54,7 @@ public class DefaultEnvironmentInfoCollector implements EnvironmentInfoCollector
             .processName(defaultEnvironmentInfo.getProcessName())
             .processId(defaultEnvironmentInfo.getProcessId())
             .processMemorySize(ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed())
-            .threadid(String.valueOf(Thread.currentThread().getId()))
+            .threadId(String.valueOf(Thread.currentThread().getId()))
             .architecture(defaultEnvironmentInfo.getArchitecture())
             .osName(defaultEnvironmentInfo.getOsName())
             .osVersion(defaultEnvironmentInfo.getOsVersion())
