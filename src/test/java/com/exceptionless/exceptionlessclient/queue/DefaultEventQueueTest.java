@@ -2,7 +2,7 @@ package com.exceptionless.exceptionlessclient.queue;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.ClientException;
+import com.exceptionless.exceptionlessclient.exceptions.SubmissionException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorage;
@@ -64,10 +64,10 @@ public class DefaultEventQueueTest {
 
     SubmissionResponse response =
         SubmissionResponse.builder().message("test-message").statusCode(200).build();
-    doReturn(response).when(submissionClient).postEvents(List.of(event), false);
+    doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
-    queue.process(false);
+    queue.process();
 
     assertThat(storage.peek()).isNull();
     verify(testHandler, times(1)).accept(List.of(event), response);
@@ -87,11 +87,11 @@ public class DefaultEventQueueTest {
               return response;
             })
         .when(submissionClient)
-        .postEvents(List.of(event), false);
+        .postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
-    Future<?> future = Executors.newSingleThreadExecutor().submit(() -> queue.process(false));
-    queue.process(false);
+    Future<?> future = Executors.newSingleThreadExecutor().submit(() -> queue.process());
+    queue.process();
     future.get();
 
     assertThat(storage.get(2)).hasSize(1); // Only one is processed
@@ -101,7 +101,7 @@ public class DefaultEventQueueTest {
   @Test
   public void itShouldNotPostEmptyEvents() {
     queue.onEventsPosted(testHandler);
-    queue.process(false);
+    queue.process();
 
     verifyZeroInteractions(submissionClient);
     verifyZeroInteractions(testHandler);
@@ -111,10 +111,10 @@ public class DefaultEventQueueTest {
   public void itShouldSuspendProcessingOnClientException() {
     storage.save(event);
 
-    doThrow(new ClientException("test")).when(submissionClient).postEvents(List.of(event), false);
+    doThrow(new SubmissionException("test")).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
-    queue.process(false);
+    queue.process();
 
     assertThat(queue.isProcessingCurrentlySuspended()).isTrue();
     assertThat(storage.peek().getValue()).isEqualTo(event);
@@ -127,10 +127,10 @@ public class DefaultEventQueueTest {
 
     SubmissionResponse response =
         SubmissionResponse.builder().message("test-message").statusCode(503).build();
-    doReturn(response).when(submissionClient).postEvents(List.of(event), false);
+    doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
-    queue.process(false);
+    queue.process();
 
     assertThat(queue.isProcessingCurrentlySuspended()).isTrue();
     assertThat(storage.peek().getValue()).isEqualTo(event);
@@ -143,10 +143,10 @@ public class DefaultEventQueueTest {
 
     SubmissionResponse response =
         SubmissionResponse.builder().message("test-message").statusCode(402).build();
-    doReturn(response).when(submissionClient).postEvents(List.of(event), false);
+    doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
-    queue.process(false);
+    queue.process();
 
     assertThat(queue.isProcessingCurrentlySuspended()).isTrue();
     assertThat(storage.peek()).isNull(); // queue is cleared
@@ -163,10 +163,10 @@ public class DefaultEventQueueTest {
 
     SubmissionResponse response =
         SubmissionResponse.builder().message("test-message").statusCode(401).build();
-    doReturn(response).when(submissionClient).postEvents(List.of(event), false);
+    doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
-    queue.process(false);
+    queue.process();
 
     assertThat(queue.isProcessingCurrentlySuspended()).isTrue();
     assertThat(storage.peek()).isNull(); // queue is cleared
@@ -179,10 +179,10 @@ public class DefaultEventQueueTest {
 
     SubmissionResponse response =
         SubmissionResponse.builder().message("test-message").statusCode(404).build();
-    doReturn(response).when(submissionClient).postEvents(List.of(event), false);
+    doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
-    queue.process(false);
+    queue.process();
 
     assertThat(queue.isProcessingCurrentlySuspended()).isTrue();
     assertThat(storage.peek()).isNull(); // queue is cleared
@@ -195,10 +195,10 @@ public class DefaultEventQueueTest {
 
     SubmissionResponse response =
         SubmissionResponse.builder().message("test-message").statusCode(400).build();
-    doReturn(response).when(submissionClient).postEvents(List.of(event), false);
+    doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
-    queue.process(false);
+    queue.process();
 
     assertThat(queue.isProcessingCurrentlySuspended()).isTrue();
     assertThat(storage.peek()).isNull(); // queue is cleared
@@ -211,10 +211,10 @@ public class DefaultEventQueueTest {
 
     SubmissionResponse response =
         SubmissionResponse.builder().message("test-message").statusCode(-1).build();
-    doReturn(response).when(submissionClient).postEvents(List.of(event), false);
+    doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
-    queue.process(false);
+    queue.process();
 
     assertThat(queue.isProcessingCurrentlySuspended()).isTrue();
     assertThat(storage.peek().getValue()).isEqualTo(event);
@@ -239,22 +239,22 @@ public class DefaultEventQueueTest {
 
     SubmissionResponse response =
         SubmissionResponse.builder().message("test-message").statusCode(413).build();
-    doReturn(response).when(submissionClient).postEvents(anyList(), anyBoolean());
+    doReturn(response).when(submissionClient).postEvents(anyList());
 
     queue.onEventsPosted(testHandler);
-    queue.process(false);
+    queue.process();
 
     assertThat(storage.get(10)).hasSize(10);
     verify(testHandler, times(1)).accept(anyList(), eq(response));
 
-    queue.process(false);
+    queue.process();
 
     // One invocation with full batch
     verify(submissionClient, times(1))
-        .postEvents(argThat(argument -> argument.size() == 3), anyBoolean());
+        .postEvents(argThat(argument -> argument.size() == 3));
     // One invocation with reduced batch
     verify(submissionClient, times(1))
-        .postEvents(argThat(argument -> argument.size() == 2), anyBoolean());
+        .postEvents(argThat(argument -> argument.size() == 2));
   }
 
   @Test
@@ -265,10 +265,10 @@ public class DefaultEventQueueTest {
 
     SubmissionResponse response =
         SubmissionResponse.builder().message("test-message").statusCode(413).build();
-    doReturn(response).when(submissionClient).postEvents(anyList(), anyBoolean());
+    doReturn(response).when(submissionClient).postEvents(anyList());
 
     queue.onEventsPosted(testHandler);
-    queue.process(false);
+    queue.process();
 
     assertThat(storage.get(10)).hasSize(9);
     verify(testHandler, times(1)).accept(anyList(), eq(response));
@@ -292,22 +292,22 @@ public class DefaultEventQueueTest {
 
     doReturn(SubmissionResponse.builder().message("test-message").statusCode(413).build())
         .when(submissionClient)
-        .postEvents(anyList(), anyBoolean());
-    queue.process(false);
+        .postEvents(anyList());
+    queue.process();
 
     doReturn(SubmissionResponse.builder().message("test-message").statusCode(200).build())
         .when(submissionClient)
-        .postEvents(anyList(), anyBoolean());
-    queue.process(false);
-    queue.process(false);
+        .postEvents(anyList());
+    queue.process();
+    queue.process();
 
     // Two invocations with full batch; First with the default size and next after a successful
     // response
     verify(submissionClient, times(2))
-        .postEvents(argThat(argument -> argument.size() == 3), anyBoolean());
+        .postEvents(argThat(argument -> argument.size() == 3));
     // One invocation with reduced batch
     verify(submissionClient, times(1))
-        .postEvents(argThat(argument -> argument.size() == 2), anyBoolean());
+        .postEvents(argThat(argument -> argument.size() == 2));
   }
 
   @Test
@@ -315,7 +315,7 @@ public class DefaultEventQueueTest {
     storage.save(event);
     SubmissionResponse response =
         SubmissionResponse.builder().message("test-message").statusCode(200).build();
-    doReturn(response).when(submissionClient).postEvents(List.of(event), false);
+    doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     Configuration configuration =
         TestFixtures.aDefaultConfiguration().submissionBatchSize(1).build();

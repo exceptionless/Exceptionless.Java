@@ -10,7 +10,7 @@ import java.util.function.BiConsumer;
 public interface EventQueueIF {
   void enqueue(Event event);
 
-  void process(boolean isAppExiting);
+  void process();
 
   void suspendProcessing(Duration duration, boolean discardFutureQueueItems, boolean clearQueue);
 

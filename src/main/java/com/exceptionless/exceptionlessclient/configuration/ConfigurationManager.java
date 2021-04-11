@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.configuration;
 
-import com.exceptionless.exceptionlessclient.exceptions.ClientException;
+import com.exceptionless.exceptionlessclient.exceptions.SubmissionException;
 import com.exceptionless.exceptionlessclient.lastreferenceidmanager.DefaultLastReferenceIdManager;
 import com.exceptionless.exceptionlessclient.lastreferenceidmanager.LastReferenceIdManagerIF;
 import com.exceptionless.exceptionlessclient.logging.LogCapturerAppender;
@@ -134,7 +134,7 @@ public class ConfigurationManager {
       return;
     }
 
-    throw new ClientException(
+    throw new SubmissionException(
         String.format("Apikey is not valid: [%s]", this.configuration.getApiKey()));
   }
 
