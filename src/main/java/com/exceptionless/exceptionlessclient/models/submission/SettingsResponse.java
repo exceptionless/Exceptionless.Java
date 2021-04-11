@@ -9,8 +9,12 @@ import lombok.experimental.NonFinal;
 @Value
 @NonFinal
 public class SettingsResponse {
-  private boolean success;
-  private ServerSettings settings;
-  private Exception exception;
-  private String message;
+  @Builder.Default Boolean success = false;
+  ServerSettings settings;
+  Exception exception;
+  String message;
+
+  public Boolean isSuccess() {
+    return success;
+  }
 }

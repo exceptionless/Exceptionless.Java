@@ -2,6 +2,8 @@ package com.exceptionless.exceptionlessclient.models.settings;
 
 import com.exceptionless.exceptionlessclient.models.enums.ServerSettingKey;
 import com.exceptionless.exceptionlessclient.utils.Utils;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.NonFinal;
@@ -9,13 +11,17 @@ import lombok.experimental.NonFinal;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Builder
+@JsonDeserialize(builder = ServerSettings.ServerSettingsBuilder.class)
+@Builder(builderClassName = "ServerSettingsBuilder")
 @Value
 @NonFinal
 public class ServerSettings {
-  long version;
-  @Builder.Default
-  Map<String, String> settings = new HashMap<>();
+  Long version;
+  @Builder.Default Map<String, String> settings = new HashMap<>();
+
+  // Required for Jackson to work with Lombok Immutable(@Value + @Builder)
+  @JsonPOJOBuilder(withPrefix = "")
+  public static class ServerSettingsBuilder {}
 
   public Optional<String> getTypeAndSourceSetting(String type, String source) {
     String prefix = String.format("@@%s", type);

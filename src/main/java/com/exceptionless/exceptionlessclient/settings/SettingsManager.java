@@ -71,10 +71,10 @@ public class SettingsManager {
 
       SettingsResponse response = settingsClient.getSettings(currentVersion);
       if (!response.isSuccess()) {
-        LOG.warn(String.format("Unable to update settings: %s:", response.getMessage()));
+        LOG.warn(String.format("Unable to update settings: %s", response.getMessage()));
         return;
       }
-      ServerSettings prevValue = storageProvider.getSettings().peek().getValue();
+      ServerSettings prevValue = getSavedServerSettings();
       storageProvider.getSettings().save(response.getSettings());
       propertyChangeSupport.firePropertyChange("settings", prevValue, response.getSettings());
     } finally {
