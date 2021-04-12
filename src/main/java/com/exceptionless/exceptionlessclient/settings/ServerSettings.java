@@ -1,4 +1,4 @@
-package com.exceptionless.exceptionlessclient.models.settings;
+package com.exceptionless.exceptionlessclient.settings;
 
 import com.exceptionless.exceptionlessclient.models.enums.ServerSettingKey;
 import com.exceptionless.exceptionlessclient.utils.Utils;
@@ -24,8 +24,8 @@ public class ServerSettings {
   public static class ServerSettingsBuilder {}
 
   public Optional<String> getTypeAndSourceSetting(String type, String source) {
-    String prefix = String.format("@@%s", type);
-    String value = settings.get(String.format("%s:%s", prefix, source));
+    String prefix = String.format("@@%s:", type);
+    String value = settings.get(String.format("%s%s", prefix, source));
     if (value != null) {
       return Optional.of(value);
     }
@@ -35,7 +35,7 @@ public class ServerSettings {
     keys.sort(
         (o1, o2) -> o1.length() != o2.length() ? o2.length() - o1.length() : o1.compareTo(o2));
     for (String key : keys) {
-      if (!key.startsWith(prefix) || key.length() <= prefix.length()) {
+      if (!key.startsWith(prefix)) {
         continue;
       }
       if (Utils.match(source, key.substring(prefix.length()))) {

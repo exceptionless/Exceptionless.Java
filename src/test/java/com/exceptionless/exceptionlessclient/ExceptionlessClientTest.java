@@ -5,7 +5,7 @@ import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.models.enums.EventType;
-import com.exceptionless.exceptionlessclient.models.settings.ServerSettings;
+import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.queue.DefaultEventQueue;

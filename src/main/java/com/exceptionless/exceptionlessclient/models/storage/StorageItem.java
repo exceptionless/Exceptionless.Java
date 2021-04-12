@@ -8,6 +8,6 @@ import lombok.experimental.NonFinal;
 @Value
 @NonFinal
 public class StorageItem<X> {
-  private long timestamp;
-  private X value;
+  long timestamp;
+  X value;
 }

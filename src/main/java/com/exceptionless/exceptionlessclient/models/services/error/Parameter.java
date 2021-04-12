@@ -13,8 +13,8 @@ import java.util.List;
 @NonFinal
 @EqualsAndHashCode(callSuper = true)
 public class Parameter extends Model {
-    private List<String> genericArguments;
-    private String name;
-    private String type;
-    private String typeNamespace;
+    List<String> genericArguments;
+    String name;
+    String type;
+    String typeNamespace;
 }

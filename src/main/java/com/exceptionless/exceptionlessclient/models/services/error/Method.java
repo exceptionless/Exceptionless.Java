@@ -13,11 +13,11 @@ import java.util.List;
 @NonFinal
 @EqualsAndHashCode(callSuper = true)
 public class Method extends Model {
-    private List<String> genericArguments;
-    private List<Parameter> parameters;
-    private boolean isSignatureTarget;
-    private String declaringNamespace;
-    private String declaringType;
-    private String name;
-    private long moduleId;
+    List<String> genericArguments;
+    List<Parameter> parameters;
+    boolean isSignatureTarget;
+    String declaringNamespace;
+    String declaringType;
+    String name;
+    long moduleId;
 }

@@ -8,8 +8,8 @@ import lombok.experimental.NonFinal;
 @Value
 @NonFinal
 public class EventPluginContext {
-  private Event event;
-  private PluginContext context;
+  Event event;
+  PluginContext context;
 
   public static EventPluginContext from(Event event) {
     return EventPluginContext.builder()

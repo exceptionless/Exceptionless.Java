@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.storage;
 
 import com.exceptionless.exceptionlessclient.models.Event;
-import com.exceptionless.exceptionlessclient.models.settings.ServerSettings;
+import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

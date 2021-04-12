@@ -6,7 +6,7 @@ import com.exceptionless.exceptionlessclient.logging.LogCapturerIF;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.UserInfo;
 import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
-import com.exceptionless.exceptionlessclient.models.settings.ServerSettings;
+import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorage;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorageProvider;

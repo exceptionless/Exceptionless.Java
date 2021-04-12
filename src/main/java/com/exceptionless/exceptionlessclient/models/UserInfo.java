@@ -11,6 +11,6 @@ import lombok.experimental.SuperBuilder;
 @NonFinal
 @EqualsAndHashCode(callSuper = true)
 public class UserInfo extends Model {
-  private String identity;
-  private String name;
+  String identity;
+  String name;
 }
