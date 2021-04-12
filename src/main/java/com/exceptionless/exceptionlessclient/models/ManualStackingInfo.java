@@ -10,6 +10,6 @@ import java.util.Map;
 @Value
 @NonFinal
 public class ManualStackingInfo {
-  private String title;
-  private Map<String, String> signatureData;
+  String title;
+  Map<String, String> signatureData;
 }

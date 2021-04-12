@@ -56,7 +56,7 @@ public class Event extends Model {
         referenceId == null
             ? String.format("%s-%s", Thread.currentThread().getId(), UUID.randomUUID())
             : referenceId;
-    this.count = count;
+    this.count = count == null ? 1 : count;
     initData(data == null ? new HashMap<>() : data, dataExclusions);
   }
 

@@ -11,6 +11,6 @@ import lombok.experimental.SuperBuilder;
 @NonFinal
 @EqualsAndHashCode(callSuper = true)
 public class UserDescription extends Model {
-    private String emailAddress;
-    private String description;
+    String emailAddress;
+    String description;
 }

@@ -1,6 +1,5 @@
 package com.exceptionless.exceptionlessclient.settings;
 
-import com.exceptionless.exceptionlessclient.models.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorage;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorageProvider;

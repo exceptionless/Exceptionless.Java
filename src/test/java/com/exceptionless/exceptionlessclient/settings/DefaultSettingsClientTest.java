@@ -2,7 +2,6 @@ package com.exceptionless.exceptionlessclient.settings;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.models.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

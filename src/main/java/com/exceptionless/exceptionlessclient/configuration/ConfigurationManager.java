@@ -2,8 +2,8 @@ package com.exceptionless.exceptionlessclient.configuration;
 
 import ch.qos.logback.core.Context;
 import com.exceptionless.exceptionlessclient.exceptions.InvalidApiKeyException;
-import com.exceptionless.exceptionlessclient.lastreferenceidmanager.DefaultLastReferenceIdManager;
-import com.exceptionless.exceptionlessclient.lastreferenceidmanager.LastReferenceIdManagerIF;
+import com.exceptionless.exceptionlessclient.services.DefaultLastReferenceIdManager;
+import com.exceptionless.exceptionlessclient.services.LastReferenceIdManagerIF;
 import com.exceptionless.exceptionlessclient.logging.LogCapturerAppender;
 import com.exceptionless.exceptionlessclient.logging.LogCapturerIF;
 import com.exceptionless.exceptionlessclient.logging.NullLogCapturer;

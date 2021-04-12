@@ -2,7 +2,7 @@ package com.exceptionless.exceptionlessclient.plugins;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
-import com.exceptionless.exceptionlessclient.lastreferenceidmanager.DefaultLastReferenceIdManager;
+import com.exceptionless.exceptionlessclient.services.DefaultLastReferenceIdManager;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.queue.DefaultEventQueue;

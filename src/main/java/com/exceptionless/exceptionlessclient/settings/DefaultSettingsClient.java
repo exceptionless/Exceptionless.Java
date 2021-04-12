@@ -1,7 +1,6 @@
 package com.exceptionless.exceptionlessclient.settings;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.models.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.utils.Utils;
 import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;

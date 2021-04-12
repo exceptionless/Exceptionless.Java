@@ -3,7 +3,7 @@ package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
-import com.exceptionless.exceptionlessclient.models.plugins.MergedEvent;
+import com.exceptionless.exceptionlessclient.plugins.MergedEvent;
 import com.exceptionless.exceptionlessclient.models.services.error.Error;
 import com.exceptionless.exceptionlessclient.models.services.error.InnerError;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
@@ -94,7 +94,6 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
       LOG.trace(String.format("Adding event with hash :%s", hash));
       mergedEvents.add(
           MergedEvent.builder()
-              .count(event.getCount())
               .event(event)
               .eventQueue(configurationManager.getQueue())
               .hash(hash)

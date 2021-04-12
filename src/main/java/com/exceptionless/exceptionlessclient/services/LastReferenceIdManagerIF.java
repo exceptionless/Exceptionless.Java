@@ -1,4 +1,4 @@
-package com.exceptionless.exceptionlessclient.lastreferenceidmanager;
+package com.exceptionless.exceptionlessclient.services;
 
 public interface LastReferenceIdManagerIF {
     String getLast();
