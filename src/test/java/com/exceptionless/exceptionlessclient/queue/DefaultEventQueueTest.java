@@ -2,7 +2,7 @@ package com.exceptionless.exceptionlessclient.queue;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SubmissionException;
+import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorage;
@@ -63,7 +63,7 @@ public class DefaultEventQueueTest {
     storage.save(event);
 
     SubmissionResponse response =
-        SubmissionResponse.builder().message("test-message").statusCode(200).build();
+        SubmissionResponse.builder().body("test-message").code(200).build();
     doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
@@ -80,7 +80,7 @@ public class DefaultEventQueueTest {
     storage.save(event);
 
     SubmissionResponse response =
-        SubmissionResponse.builder().message("test-message").statusCode(200).build();
+        SubmissionResponse.builder().body("test-message").code(200).build();
     doAnswer(
             invocationOnMock -> {
               Thread.sleep(1000);
@@ -111,7 +111,7 @@ public class DefaultEventQueueTest {
   public void itShouldSuspendProcessingOnClientException() {
     storage.save(event);
 
-    doThrow(new SubmissionException("test")).when(submissionClient).postEvents(List.of(event));
+    doThrow(new SubmissionClientException("test")).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
     queue.process();
@@ -126,7 +126,7 @@ public class DefaultEventQueueTest {
     storage.save(event);
 
     SubmissionResponse response =
-        SubmissionResponse.builder().message("test-message").statusCode(503).build();
+        SubmissionResponse.builder().body("test-message").code(503).build();
     doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
@@ -142,7 +142,7 @@ public class DefaultEventQueueTest {
     storage.save(event);
 
     SubmissionResponse response =
-        SubmissionResponse.builder().message("test-message").statusCode(402).build();
+        SubmissionResponse.builder().body("test-message").code(402).build();
     doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
@@ -162,7 +162,7 @@ public class DefaultEventQueueTest {
     storage.save(event);
 
     SubmissionResponse response =
-        SubmissionResponse.builder().message("test-message").statusCode(401).build();
+        SubmissionResponse.builder().body("test-message").code(401).build();
     doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
@@ -178,7 +178,7 @@ public class DefaultEventQueueTest {
     storage.save(event);
 
     SubmissionResponse response =
-        SubmissionResponse.builder().message("test-message").statusCode(404).build();
+        SubmissionResponse.builder().body("test-message").code(404).build();
     doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
@@ -194,7 +194,7 @@ public class DefaultEventQueueTest {
     storage.save(event);
 
     SubmissionResponse response =
-        SubmissionResponse.builder().message("test-message").statusCode(400).build();
+        SubmissionResponse.builder().body("test-message").code(400).build();
     doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
@@ -210,7 +210,7 @@ public class DefaultEventQueueTest {
     storage.save(event);
 
     SubmissionResponse response =
-        SubmissionResponse.builder().message("test-message").statusCode(-1).build();
+        SubmissionResponse.builder().body("test-message").code(-1).build();
     doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
@@ -238,7 +238,7 @@ public class DefaultEventQueueTest {
     }
 
     SubmissionResponse response =
-        SubmissionResponse.builder().message("test-message").statusCode(413).build();
+        SubmissionResponse.builder().body("test-message").code(413).build();
     doReturn(response).when(submissionClient).postEvents(anyList());
 
     queue.onEventsPosted(testHandler);
@@ -264,7 +264,7 @@ public class DefaultEventQueueTest {
     }
 
     SubmissionResponse response =
-        SubmissionResponse.builder().message("test-message").statusCode(413).build();
+        SubmissionResponse.builder().body("test-message").code(413).build();
     doReturn(response).when(submissionClient).postEvents(anyList());
 
     queue.onEventsPosted(testHandler);
@@ -290,12 +290,12 @@ public class DefaultEventQueueTest {
       storage.save(event);
     }
 
-    doReturn(SubmissionResponse.builder().message("test-message").statusCode(413).build())
+    doReturn(SubmissionResponse.builder().body("test-message").code(413).build())
         .when(submissionClient)
         .postEvents(anyList());
     queue.process();
 
-    doReturn(SubmissionResponse.builder().message("test-message").statusCode(200).build())
+    doReturn(SubmissionResponse.builder().body("test-message").code(200).build())
         .when(submissionClient)
         .postEvents(anyList());
     queue.process();
@@ -314,7 +314,7 @@ public class DefaultEventQueueTest {
   public void itShouldProcessEventsUsingTimer() throws InterruptedException {
     storage.save(event);
     SubmissionResponse response =
-        SubmissionResponse.builder().message("test-message").statusCode(200).build();
+        SubmissionResponse.builder().body("test-message").code(200).build();
     doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     Configuration configuration =

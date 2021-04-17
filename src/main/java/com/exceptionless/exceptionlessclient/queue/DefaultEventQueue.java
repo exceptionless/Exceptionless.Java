@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.queue;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SubmissionException;
+import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
@@ -136,7 +136,7 @@ public class DefaultEventQueue implements EventQueueIF {
       SubmissionResponse response = submissionClient.postEvents(events);
       processSubmissionResponse(response, storedEvents);
       eventPosted(response, events);
-    } catch (SubmissionException e) {
+    } catch (SubmissionClientException e) {
       LOG.error("Error processing queue", e);
       suspendProcessing();
     } finally {
@@ -176,7 +176,7 @@ public class DefaultEventQueue implements EventQueueIF {
     }
 
     if (response.isNotFound() || response.isBadRequest()) {
-      LOG.error(String.format("Error while trying to submit data: %s", response.getMessage()));
+      LOG.error(String.format("Error while trying to submit data: %s", response.getBody()));
       suspendProcessing(Duration.ofMinutes(4));
       removeEvents(storedEvents);
       return;
@@ -195,7 +195,7 @@ public class DefaultEventQueue implements EventQueueIF {
       return;
     }
 
-    LOG.error(String.format("Error submitting events: %s", response.getMessage()));
+    LOG.error(String.format("Error submitting events: %s", response.getBody()));
     suspendProcessing();
   }
 

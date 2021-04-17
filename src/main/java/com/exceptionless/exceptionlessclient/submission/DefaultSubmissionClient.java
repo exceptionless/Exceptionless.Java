@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.submission;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SubmissionException;
+import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
@@ -81,11 +81,11 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
       }
 
       return SubmissionResponse.builder()
-          .statusCode(response.code())
-          .message(Utils.addCodeToResponseBodyStr(response))
+          .code(response.code())
+          .body(Utils.addCodeToResponseBodyStr(response))
           .build();
     } catch (Exception e) {
-      throw new SubmissionException(e);
+      throw new SubmissionClientException(e);
     }
   }
 
@@ -123,7 +123,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
                 sessionIdOrUserId));
       }
     } catch (Exception e) {
-      throw new SubmissionException(e);
+      throw new SubmissionClientException(e);
     }
   }
 }

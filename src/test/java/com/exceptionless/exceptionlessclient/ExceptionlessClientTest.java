@@ -281,7 +281,7 @@ public class ExceptionlessClientTest {
 
   @Test
   public void itCanUpdateEmailAndDescription() {
-    SubmissionResponse expectedResponse = SubmissionResponse.builder().statusCode(200).build();
+    SubmissionResponse expectedResponse = SubmissionResponse.builder().code(200).build();
     doReturn(expectedResponse)
         .when(submissionClient)
         .postUserDescription(

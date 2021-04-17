@@ -2,7 +2,7 @@ package com.exceptionless.exceptionlessclient.submission;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SubmissionException;
+import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
@@ -72,8 +72,8 @@ public class DefaultSubmissionClientTest {
     SubmissionResponse submissionResponse =
         submissionClient.postEvents(List.of(Event.builder().build()));
 
-    assertThat(submissionResponse.getMessage()).isEqualTo("Code: 200, Body: test-body");
-    assertThat(submissionResponse.getStatusCode()).isEqualTo(200);
+    assertThat(submissionResponse.getBody()).isEqualTo("Code: 200, Body: test-body");
+    assertThat(submissionResponse.getCode()).isEqualTo(200);
     verify(settingsManager, times(1)).checkVersion(3);
   }
 
@@ -85,8 +85,8 @@ public class DefaultSubmissionClientTest {
     SubmissionResponse submissionResponse =
         submissionClient.postEvents(List.of(Event.builder().build()));
 
-    assertThat(submissionResponse.getMessage()).isEqualTo("Code: 200, Body: test-body");
-    assertThat(submissionResponse.getStatusCode()).isEqualTo(200);
+    assertThat(submissionResponse.getBody()).isEqualTo("Code: 200, Body: test-body");
+    assertThat(submissionResponse.getCode()).isEqualTo(200);
     verifyZeroInteractions(settingsManager);
   }
 
@@ -95,7 +95,7 @@ public class DefaultSubmissionClientTest {
     doThrow(new RuntimeException("test")).when(httpClient).newCall(any());
 
     assertThatThrownBy(() -> submissionClient.postEvents(List.of(Event.builder().build())))
-        .isInstanceOf(SubmissionException.class)
+        .isInstanceOf(SubmissionClientException.class)
         .hasMessage("java.lang.RuntimeException: test");
   }
 
@@ -120,8 +120,8 @@ public class DefaultSubmissionClientTest {
         submissionClient.postUserDescription(
             "test-reference-id", UserDescription.builder().build());
 
-    assertThat(submissionResponse.getMessage()).isEqualTo("Code: 200, Body: test-body");
-    assertThat(submissionResponse.getStatusCode()).isEqualTo(200);
+    assertThat(submissionResponse.getBody()).isEqualTo("Code: 200, Body: test-body");
+    assertThat(submissionResponse.getCode()).isEqualTo(200);
     verify(settingsManager, times(1)).checkVersion(3);
   }
 
@@ -135,8 +135,8 @@ public class DefaultSubmissionClientTest {
         submissionClient.postUserDescription(
             "test-reference-id", UserDescription.builder().build());
 
-    assertThat(submissionResponse.getMessage()).isEqualTo("Code: 200, Body: test-body");
-    assertThat(submissionResponse.getStatusCode()).isEqualTo(200);
+    assertThat(submissionResponse.getBody()).isEqualTo("Code: 200, Body: test-body");
+    assertThat(submissionResponse.getCode()).isEqualTo(200);
     verifyZeroInteractions(settingsManager);
   }
 
@@ -148,7 +148,7 @@ public class DefaultSubmissionClientTest {
             () ->
                 submissionClient.postUserDescription(
                     "test-reference-id", UserDescription.builder().build()))
-        .isInstanceOf(SubmissionException.class)
+        .isInstanceOf(SubmissionClientException.class)
         .hasMessage("java.lang.RuntimeException: test");
   }
 
@@ -177,7 +177,7 @@ public class DefaultSubmissionClientTest {
     doThrow(new RuntimeException("test")).when(httpClient).newCall(any());
 
     assertThatThrownBy(() -> submissionClient.sendHeartBeat("test-user-id", true))
-        .isInstanceOf(SubmissionException.class)
+        .isInstanceOf(SubmissionClientException.class)
         .hasMessage("java.lang.RuntimeException: test");
   }
 }
