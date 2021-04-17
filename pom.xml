@@ -6,7 +6,7 @@
 
     <groupId>com.exceptionless</groupId>
     <artifactId>exceptionless-client</artifactId>
-    <version>1.0</version>
+    <version>1.0-beta1</version>
 
     <dependencies>
         <dependency>

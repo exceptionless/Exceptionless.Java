@@ -42,7 +42,7 @@ public class DefaultSettingsClient implements SettingsClientIF {
           HttpRequest.newBuilder()
               .uri(uri)
               .GET()
-              .header("X-Exceptionless-Client", Configuration.USER_AGENT)
+              .header("User-Agent", Configuration.USER_AGENT)
               .timeout(Duration.ofMillis(configuration.getSettingsClientTimeoutInMillis()))
               .build();
 

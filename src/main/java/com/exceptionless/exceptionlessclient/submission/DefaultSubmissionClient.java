@@ -75,7 +75,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
               .uri(uri)
               .POST(HttpRequest.BodyPublishers.ofString(requestJSON))
               .header("Content-Type", "application/json")
-              .header("X-Exceptionless-Client", Configuration.USER_AGENT)
+              .header("User-Agent", Configuration.USER_AGENT)
               .timeout(Duration.ofMillis(configuration.getSubmissionClientTimeoutInMillis()))
               .build();
 
