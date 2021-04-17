@@ -38,9 +38,9 @@ public class Configuration {
         updateSettingsWhenIdleInterval == null ? 12000L : updateSettingsWhenIdleInterval;
     this.submissionBatchSize = submissionBatchSize == null ? 50 : submissionBatchSize;
     this.submissionClientTimeoutInMillis =
-        submissionClientTimeoutInMillis == null ? 100 : submissionClientTimeoutInMillis;
+        submissionClientTimeoutInMillis == null ? 500 : submissionClientTimeoutInMillis;
     this.settingsClientTimeoutInMillis =
-        settingsClientTimeoutInMillis == null ? 100 : settingsClientTimeoutInMillis;
+        settingsClientTimeoutInMillis == null ? 500 : settingsClientTimeoutInMillis;
     this.propertyChangeSupport = new PropertyChangeSupport(this);
   }
 

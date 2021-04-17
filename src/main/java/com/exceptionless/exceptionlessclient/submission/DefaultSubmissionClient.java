@@ -13,13 +13,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.OptionalLong;
+import java.util.stream.Collectors;
 
 public class DefaultSubmissionClient implements SubmissionClientIF {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultSubmissionClient.class);
@@ -50,7 +53,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
         String.format(
             "%s/api/v2/events?access_token=%s",
             configuration.getServerUrl(), configuration.getApiKey()),
-        events);
+        events.stream().map(SubmissionMapper::toRequest).collect(Collectors.toList()));
   }
 
   @Override
@@ -59,7 +62,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
         String.format(
             "%s/api/v2/events/by-ref/%s/user-description?access_token=%s",
             configuration.getServerUrl(), referenceId, configuration.getApiKey()),
-        description);
+        SubmissionMapper.toRequest(description));
   }
 
   private SubmissionResponse postSubmission(String url, Object data) {
@@ -72,14 +75,17 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
               .uri(uri)
               .POST(HttpRequest.BodyPublishers.ofString(requestJSON))
               .header("Content-Type", "application/json")
-              .header("X-Exceptionless-Client", Configuration.USER_AGENT)
+              .header("User-Agent", Configuration.USER_AGENT)
               .timeout(Duration.ofMillis(configuration.getSubmissionClientTimeoutInMillis()))
               .build();
 
       HttpResponse<String> response =
           httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-      updateSettingsFromHeaders(response.headers());
+      if (response.statusCode() == 200) {
+        updateSettingsFromHeaders(response.headers());
+      }
+
       return SubmissionResponse.builder()
           .statusCode(response.statusCode())
           .message(response.body())
@@ -106,7 +112,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
               String.format(
                   "%s/api/v2/events/session/heartbeat?id=%s&close=%s&access_token=%s",
                   configuration.getHeartbeatServerUrl(),
-                  sessionIdOrUserId,
+                  URLEncoder.encode(sessionIdOrUserId, StandardCharsets.UTF_8),
                   closeSession,
                   configuration.getApiKey()));
       HttpRequest request =

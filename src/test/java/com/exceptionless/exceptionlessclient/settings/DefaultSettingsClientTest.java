@@ -48,10 +48,10 @@ public class DefaultSettingsClientTest {
                     httpRequest.method().equals("GET")
                         && httpRequest.timeout().isPresent()
                         && httpRequest.timeout().get().equals(Duration.ofMillis(10))
-                        && httpRequest.headers().firstValue("X-Exceptionless-Client").isPresent()
+                        && httpRequest.headers().firstValue("User-Agent").isPresent()
                         && httpRequest
                             .headers()
-                            .firstValue("X-Exceptionless-Client")
+                            .firstValue("User-Agent")
                             .get()
                             .equals("exceptionless-java")
                         && httpRequest
