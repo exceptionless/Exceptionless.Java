@@ -12,6 +12,7 @@ import java.util.*;
 
 public final class Utils {
   public static final ObjectMapper JSON_MAPPER;
+
   static {
     JSON_MAPPER = new ObjectMapper();
     JSON_MAPPER.registerModule(new JavaTimeModule());

@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.submission;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SubmissionException;
+import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
@@ -9,19 +9,15 @@ import com.exceptionless.exceptionlessclient.settings.SettingsManager;
 import com.exceptionless.exceptionlessclient.utils.Utils;
 import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;
 import lombok.Builder;
+import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpHeaders;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
-import java.util.OptionalLong;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class DefaultSubmissionClient implements SubmissionClientIF {
@@ -30,18 +26,22 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
 
   private final Configuration configuration;
   private final SettingsManager settingsManager;
-  private final HttpClient httpClient;
+  private final OkHttpClient httpClient;
 
   @Builder
   public DefaultSubmissionClient(Configuration configuration, SettingsManager settingsManager) {
     this.configuration = configuration;
     this.settingsManager = settingsManager;
-    this.httpClient = HttpClient.newHttpClient();
+    this.httpClient =
+        new OkHttpClient()
+            .newBuilder()
+            .connectTimeout(Duration.ofMillis(configuration.getSubmissionClientTimeoutInMillis()))
+            .build();
   }
 
   @VisibleForTesting
   DefaultSubmissionClient(
-      Configuration configuration, SettingsManager settingsManager, HttpClient httpClient) {
+      Configuration configuration, SettingsManager settingsManager, OkHttpClient httpClient) {
     this.configuration = configuration;
     this.settingsManager = settingsManager;
     this.httpClient = httpClient;
@@ -67,38 +67,34 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
 
   private SubmissionResponse postSubmission(String url, Object data) {
     try {
-      URI uri = new URI(url);
       String requestJSON = Utils.JSON_MAPPER.writeValueAsString(data);
-
-      HttpRequest request =
-          HttpRequest.newBuilder()
-              .uri(uri)
-              .POST(HttpRequest.BodyPublishers.ofString(requestJSON))
-              .header("Content-Type", "application/json")
-              .header("User-Agent", Configuration.USER_AGENT)
-              .timeout(Duration.ofMillis(configuration.getSubmissionClientTimeoutInMillis()))
+      Request request =
+          new Request.Builder()
+              .url(url)
+              .post(RequestBody.create(requestJSON, MediaType.parse("application/json")))
               .build();
 
-      HttpResponse<String> response =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      Response response = httpClient.newCall(request).execute();
 
-      if (response.statusCode() == 200) {
+      if (response.code() / 100 == 2) {
         updateSettingsFromHeaders(response.headers());
       }
 
+      ResponseBody body = response.body();
       return SubmissionResponse.builder()
-          .statusCode(response.statusCode())
-          .message(response.body())
+          .code(response.code())
+          .body(body == null ? "" : body.string())
           .build();
     } catch (Exception e) {
-      throw new SubmissionException(e);
+      throw new SubmissionClientException(e);
     }
   }
 
-  private void updateSettingsFromHeaders(HttpHeaders headers) {
-    OptionalLong maybeSettingsVersion = headers.firstValueAsLong(CONFIGURATION_VERSION_HEADER);
+  private void updateSettingsFromHeaders(Headers headers) {
+    Optional<String> maybeSettingsVersion =
+        Optional.ofNullable(headers.get(CONFIGURATION_VERSION_HEADER));
     if (maybeSettingsVersion.isPresent()) {
-      settingsManager.checkVersion(maybeSettingsVersion.getAsLong());
+      settingsManager.checkVersion(Long.parseLong(maybeSettingsVersion.get()));
     } else {
       LOG.error("No config version header was returned");
     }
@@ -107,33 +103,28 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
   @Override
   public void sendHeartBeat(String sessionIdOrUserId, boolean closeSession) {
     try {
-      URI uri =
-          new URI(
-              String.format(
-                  "%s/api/v2/events/session/heartbeat?id=%s&close=%s&access_token=%s",
-                  configuration.getHeartbeatServerUrl(),
-                  URLEncoder.encode(sessionIdOrUserId, StandardCharsets.UTF_8),
-                  closeSession,
-                  configuration.getApiKey()));
-      HttpRequest request =
-          HttpRequest.newBuilder()
-              .uri(uri)
-              .GET()
-              .header("X-Exceptionless-Client", Configuration.USER_AGENT)
-              .timeout(Duration.ofMillis(configuration.getSubmissionClientTimeoutInMillis()))
+      Request request =
+          new Request.Builder()
+              .url(
+                  String.format(
+                      "%s/api/v2/events/session/heartbeat?id=%s&close=%s&access_token=%s",
+                      configuration.getHeartbeatServerUrl(),
+                      URLEncoder.encode(sessionIdOrUserId, StandardCharsets.UTF_8),
+                      closeSession,
+                      configuration.getApiKey()))
+              .get()
               .build();
 
-      HttpResponse<String> response =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      Response response = httpClient.newCall(request).execute();
 
-      if (response.statusCode() != 200) {
+      if (response.code() / 100 != 2) {
         LOG.error(
             String.format(
                 "Error in submitting heartbeat to the server for sessionOrUserId: %s",
                 sessionIdOrUserId));
       }
     } catch (Exception e) {
-      throw new SubmissionException(e);
+      throw new SubmissionClientException(e);
     }
   }
 }

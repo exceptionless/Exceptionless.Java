@@ -55,7 +55,7 @@ public class ExceptionlessClientTest {
   public void itCanSetupASettingsChangeTimer() throws InterruptedException {
     doReturn(settingsStorage).when(storageProvider).getSettings();
     settingsStorage.save(ServerSettings.builder().version(3L).build());
-    doReturn(SettingsResponse.builder().message("test-message").success(false).build())
+    doReturn(SettingsResponse.builder().body("test-message").code(400).build())
         .when(settingsClient)
         .getSettings(anyLong());
 
@@ -281,7 +281,7 @@ public class ExceptionlessClientTest {
 
   @Test
   public void itCanUpdateEmailAndDescription() {
-    SubmissionResponse expectedResponse = SubmissionResponse.builder().statusCode(200).build();
+    SubmissionResponse expectedResponse = SubmissionResponse.builder().code(200).build();
     doReturn(expectedResponse)
         .when(submissionClient)
         .postUserDescription(

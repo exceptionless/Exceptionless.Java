@@ -2,11 +2,12 @@ package com.exceptionless.exceptionlessclient.submission;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SubmissionException;
+import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.settings.SettingsManager;
+import okhttp3.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,10 +15,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
-import java.net.http.HttpClient;
-import java.net.http.HttpHeaders;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -30,9 +27,10 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class DefaultSubmissionClientTest {
   @Mock private SettingsManager settingsManager;
-  @Mock private HttpClient httpClient;
-  @Mock private HttpResponse<String> httpResponse;
+  @Mock private OkHttpClient httpClient;
+  @Mock private Call call;
   private DefaultSubmissionClient submissionClient;
+  private Response.Builder responseBuilder;
 
   @BeforeEach
   public void setup() {
@@ -45,184 +43,141 @@ public class DefaultSubmissionClientTest {
             .build();
 
     submissionClient = new DefaultSubmissionClient(configuration, settingsManager, httpClient);
+    responseBuilder =
+        new Response.Builder()
+            .request(new Request.Builder().url("http://test-url").build())
+            .protocol(Protocol.HTTP_2)
+            .body(ResponseBody.create("test-body", MediaType.get("text/plain")))
+            .message("test-message")
+            .code(200);
   }
 
   @Test
-  public void itCanPostEventsSuccessfully() throws IOException, InterruptedException {
-    doReturn("test-body").when(httpResponse).body();
-    doReturn(200).when(httpResponse).statusCode();
-    doReturn(HttpHeaders.of(Map.of("x-exceptionless-configversion", List.of("3")), (s, s2) -> true))
-        .when(httpResponse)
-        .headers();
-    doReturn(httpResponse)
+  public void itCanPostEventsSuccessfully() throws IOException {
+    Response response =
+        responseBuilder.headers(Headers.of(Map.of("x-exceptionless-configversion", "3"))).build();
+    doReturn(response).when(call).execute();
+    doReturn(call)
         .when(httpClient)
-        .send(
+        .newCall(
             argThat(
                 request ->
                     request
-                            .uri()
+                            .url()
                             .toString()
                             .equals(
                                 "http://test-server-url/api/v2/events?access_token=test-api-key")
-                        && request.method().equals("POST")
-                        && request.headers().firstValue("Content-Type").isPresent()
-                        && request
-                            .headers()
-                            .firstValue("Content-Type")
-                            .get()
-                            .equals("application/json")
-                        && request.headers().firstValue("User-Agent").isPresent()
-                        && request
-                            .headers()
-                            .firstValue("User-Agent")
-                            .get()
-                            .equals("exceptionless-java")
-                        && request.timeout().isPresent()
-                        && request.timeout().get().equals(Duration.ofMillis(10))),
-            any());
+                        && request.method().equals("POST")));
 
     SubmissionResponse submissionResponse =
         submissionClient.postEvents(List.of(Event.builder().build()));
 
-    assertThat(submissionResponse.getMessage()).isEqualTo("test-body");
-    assertThat(submissionResponse.getStatusCode()).isEqualTo(200);
+    assertThat(submissionResponse.getBody()).isEqualTo("test-body");
+    assertThat(submissionResponse.getCode()).isEqualTo(200);
     verify(settingsManager, times(1)).checkVersion(3);
   }
 
   @Test
-  public void itCanPostEventsSuccessfullyWhenNoSettingHeaderIsReturned()
-      throws IOException, InterruptedException {
-    doReturn("test-body").when(httpResponse).body();
-    doReturn(200).when(httpResponse).statusCode();
-    doReturn(HttpHeaders.of(Map.of(), (s, s2) -> false)).when(httpResponse).headers();
-    doReturn(httpResponse).when(httpClient).send(any(), any());
+  public void itCanPostEventsSuccessfullyWhenNoSettingHeaderIsReturned() throws IOException {
+    doReturn(responseBuilder.build()).when(call).execute();
+    doReturn(call).when(httpClient).newCall(any());
 
     SubmissionResponse submissionResponse =
         submissionClient.postEvents(List.of(Event.builder().build()));
 
-    assertThat(submissionResponse.getMessage()).isEqualTo("test-body");
-    assertThat(submissionResponse.getStatusCode()).isEqualTo(200);
+    assertThat(submissionResponse.getBody()).isEqualTo("test-body");
+    assertThat(submissionResponse.getCode()).isEqualTo(200);
     verifyZeroInteractions(settingsManager);
   }
 
   @Test
-  public void itCanThrowAllExceptionsAsSubmissionExceptionWhilePostingEvents()
-      throws IOException, InterruptedException {
-    doThrow(new RuntimeException("test")).when(httpClient).send(any(), any());
+  public void itCanThrowAllExceptionsAsSubmissionExceptionWhilePostingEvents() {
+    doThrow(new RuntimeException("test")).when(httpClient).newCall(any());
 
     assertThatThrownBy(() -> submissionClient.postEvents(List.of(Event.builder().build())))
-        .isInstanceOf(SubmissionException.class)
+        .isInstanceOf(SubmissionClientException.class)
         .hasMessage("java.lang.RuntimeException: test");
   }
 
   @Test
-  public void itCanPostUserDescriptionSuccessfully() throws IOException, InterruptedException {
-    doReturn("test-body").when(httpResponse).body();
-    doReturn(200).when(httpResponse).statusCode();
-    doReturn(HttpHeaders.of(Map.of("x-exceptionless-configversion", List.of("3")), (s, s2) -> true))
-        .when(httpResponse)
-        .headers();
-    doReturn(httpResponse)
+  public void itCanPostUserDescriptionSuccessfully() throws IOException {
+    Response response =
+        responseBuilder.headers(Headers.of(Map.of("x-exceptionless-configversion", "3"))).build();
+    doReturn(response).when(call).execute();
+    doReturn(call)
         .when(httpClient)
-        .send(
+        .newCall(
             argThat(
                 request ->
                     request
-                            .uri()
+                            .url()
                             .toString()
                             .equals(
                                 "http://test-server-url/api/v2/events/by-ref/test-reference-id/user-description?access_token=test-api-key")
-                        && request.method().equals("POST")
-                        && request.headers().firstValue("Content-Type").isPresent()
-                        && request
-                            .headers()
-                            .firstValue("Content-Type")
-                            .get()
-                            .equals("application/json")
-                        && request.headers().firstValue("User-Agent").isPresent()
-                        && request
-                            .headers()
-                            .firstValue("User-Agent")
-                            .get()
-                            .equals("exceptionless-java")
-                        && request.timeout().isPresent()
-                        && request.timeout().get().equals(Duration.ofMillis(10))),
-            any());
+                        && request.method().equals("POST")));
 
     SubmissionResponse submissionResponse =
         submissionClient.postUserDescription(
             "test-reference-id", UserDescription.builder().build());
 
-    assertThat(submissionResponse.getMessage()).isEqualTo("test-body");
-    assertThat(submissionResponse.getStatusCode()).isEqualTo(200);
+    assertThat(submissionResponse.getBody()).isEqualTo("test-body");
+    assertThat(submissionResponse.getCode()).isEqualTo(200);
     verify(settingsManager, times(1)).checkVersion(3);
   }
 
   @Test
   public void itCanPostUserDescriptionSuccessfullyWhenNoSettingHeaderIsReturned()
-      throws IOException, InterruptedException {
-    doReturn("test-body").when(httpResponse).body();
-    doReturn(200).when(httpResponse).statusCode();
-    doReturn(HttpHeaders.of(Map.of(), (s, s2) -> false)).when(httpResponse).headers();
-    doReturn(httpResponse).when(httpClient).send(any(), any());
+      throws IOException {
+    doReturn(responseBuilder.build()).when(call).execute();
+    doReturn(call).when(httpClient).newCall(any());
 
     SubmissionResponse submissionResponse =
         submissionClient.postUserDescription(
             "test-reference-id", UserDescription.builder().build());
 
-    assertThat(submissionResponse.getMessage()).isEqualTo("test-body");
-    assertThat(submissionResponse.getStatusCode()).isEqualTo(200);
+    assertThat(submissionResponse.getBody()).isEqualTo("test-body");
+    assertThat(submissionResponse.getCode()).isEqualTo(200);
     verifyZeroInteractions(settingsManager);
   }
 
   @Test
-  public void itCanThrowAllExceptionsAsSubmissionExceptionWhilePostingUserDescription()
-      throws IOException, InterruptedException {
-    doThrow(new RuntimeException("test")).when(httpClient).send(any(), any());
+  public void itCanThrowAllExceptionsAsSubmissionExceptionWhilePostingUserDescription() {
+    doThrow(new RuntimeException("test")).when(httpClient).newCall(any());
 
     assertThatThrownBy(
             () ->
                 submissionClient.postUserDescription(
                     "test-reference-id", UserDescription.builder().build()))
-        .isInstanceOf(SubmissionException.class)
+        .isInstanceOf(SubmissionClientException.class)
         .hasMessage("java.lang.RuntimeException: test");
   }
 
   @Test
-  public void itCanSendHeartbeatSuccessfully() throws IOException, InterruptedException {
-    doReturn(200).when(httpResponse).statusCode();
-    doReturn(httpResponse).when(httpClient).send(any(), any());
-
-    submissionClient.sendHeartBeat("test-user-id", true);
-
-    verify(httpClient, times(1))
-        .send(
+  public void itCanSendHeartbeatSuccessfully() throws IOException {
+    doReturn(responseBuilder.build()).when(call).execute();
+    doReturn(call)
+        .when(httpClient)
+        .newCall(
             argThat(
                 request ->
                     request
-                            .uri()
+                            .url()
                             .toString()
                             .equals(
                                 "http://test-heartbeat-server-url/api/v2/events/session/heartbeat?id=test-user-id&close=true&access_token=test-api-key")
-                        && request.method().equals("GET")
-                        && request.timeout().isPresent()
-                        && request.timeout().get().equals(Duration.ofMillis(10))
-                        && request.headers().firstValue("X-Exceptionless-Client").isPresent()
-                        && request
-                            .headers()
-                            .firstValue("X-Exceptionless-Client")
-                            .get()
-                            .equals("exceptionless-java")),
-            any());
+                        && request.method().equals("GET")));
+
+    submissionClient.sendHeartBeat("test-user-id", true);
+
+    verify(call, times(1)).execute();
   }
 
   @Test
-  public void itCanThrowAllExceptionsAsSubmissionExceptionWhileSendingHeartbeat()
-      throws IOException, InterruptedException {
-    doThrow(new RuntimeException("test")).when(httpClient).send(any(), any());
+  public void itCanThrowAllExceptionsAsSubmissionExceptionWhileSendingHeartbeat() {
+    doThrow(new RuntimeException("test")).when(httpClient).newCall(any());
 
     assertThatThrownBy(() -> submissionClient.sendHeartBeat("test-user-id", true))
-        .isInstanceOf(SubmissionException.class)
+        .isInstanceOf(SubmissionClientException.class)
         .hasMessage("java.lang.RuntimeException: test");
   }
 }

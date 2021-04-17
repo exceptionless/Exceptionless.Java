@@ -1,5 +1,6 @@
 package com.exceptionless.exceptionlessclient.settings;
 
+import com.exceptionless.exceptionlessclient.exceptions.SettingsClientException;
 import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
 import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.storage.StorageProviderIF;
@@ -66,20 +67,39 @@ public class SettingsManager {
 
     try {
       long currentVersion = getVersion();
-      LOG.info(String.format("Checking for updated settings  from: v%s", currentVersion));
+      LOG.info(String.format("Checking for updated settings  from v%s", currentVersion));
 
       SettingsResponse response = settingsClient.getSettings(currentVersion);
-      if (!response.isSuccess()) {
-        LOG.warn(String.format("Unable to update settings: %s", response.getMessage()));
+      if (shouldNotUpdate(response)) {
         return;
       }
+
       ServerSettings prevValue = getSavedServerSettings();
       storageProvider.getSettings().save(response.getSettings());
       propertyChangeSupport.firePropertyChange("settings", prevValue, response.getSettings());
+    } catch (SettingsClientException e) {
+      LOG.error(String.format("Error retrieving settings for v%s", getVersion()), e);
     } finally {
       synchronized (this) {
         updatingSettings = false;
       }
     }
+  }
+
+  private boolean shouldNotUpdate(SettingsResponse response) {
+    if (response.isNotModified()) {
+      LOG.info("No need to update, settings are not modified");
+      return true;
+    }
+    if (!response.isSuccess()) {
+      LOG.warn(String.format("Unable to update settings: %s", response.getBody()));
+      return true;
+    }
+    if (response.getSettings() == null) {
+      LOG.warn("Not settings returned by server!");
+      return true;
+    }
+
+    return false;
   }
 }

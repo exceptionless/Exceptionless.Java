@@ -1,5 +1,6 @@
 package com.exceptionless.exceptionlessclient.settings;
 
+import com.exceptionless.exceptionlessclient.exceptions.SettingsClientException;
 import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorage;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorageProvider;
@@ -87,7 +88,7 @@ public class SettingsManagerTest {
 
     ServerSettings newSettingsFromServer =
         ServerSettings.builder().version(4L).settings(Map.of("new-key", "new-value")).build();
-    doReturn(SettingsResponse.builder().success(true).settings(newSettingsFromServer).build())
+    doReturn(SettingsResponse.builder().code(200).settings(newSettingsFromServer).build())
         .when(settingsClient)
         .getSettings(3);
 
@@ -104,10 +105,7 @@ public class SettingsManagerTest {
     doAnswer(
             invocation -> {
               Thread.sleep(1000);
-              return SettingsResponse.builder()
-                  .success(true)
-                  .settings(newSettingsFromServer)
-                  .build();
+              return SettingsResponse.builder().code(200).settings(newSettingsFromServer).build();
             })
         .when(settingsClient)
         .getSettings(anyLong());
@@ -121,8 +119,8 @@ public class SettingsManagerTest {
   }
 
   @Test
-  public void itWillNotSaveSettingsIfNotAbleToGetSettingsFromServer() {
-    doReturn(SettingsResponse.builder().success(false).message("test-message").build())
+  public void itWillNotSaveSettingsIfSettingsAreNotModified() {
+    doReturn(SettingsResponse.builder().code(304).body("test-message").build())
         .when(settingsClient)
         .getSettings(anyLong());
 
@@ -132,10 +130,39 @@ public class SettingsManagerTest {
   }
 
   @Test
+  public void itWillNotSaveSettingsIfUnableToGetSettingsFromServer() {
+    doReturn(SettingsResponse.builder().code(400).body("test-message").build())
+        .when(settingsClient)
+        .getSettings(anyLong());
+
+    settingsManager.updateSettings();
+
+    assertThat(storage.peek()).isNull();
+  }
+
+  @Test
+  public void itWillNotSaveSettingsIfNoSettingsReturnedByTheServer() {
+    doReturn(SettingsResponse.builder().code(200).body("test-message").build())
+        .when(settingsClient)
+        .getSettings(anyLong());
+
+    settingsManager.updateSettings();
+
+    assertThat(storage.peek()).isNull();
+  }
+
+  @Test
+  public void itCanHandleSettingsClientException() {
+    doThrow(new SettingsClientException("test")).when(settingsClient).getSettings(anyLong());
+
+    settingsManager.updateSettings();
+  }
+
+  @Test
   public void itCanSuccessfullyUpdateSettingsAndNotifyListeners() {
     ServerSettings newSettingsFromServer =
         ServerSettings.builder().version(4L).settings(Map.of("new-key", "new-value")).build();
-    doReturn(SettingsResponse.builder().success(true).settings(newSettingsFromServer).build())
+    doReturn(SettingsResponse.builder().code(200).settings(newSettingsFromServer).build())
         .when(settingsClient)
         .getSettings(anyLong());
 

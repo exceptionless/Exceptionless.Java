@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.queue;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SubmissionException;
+import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
@@ -83,7 +83,7 @@ public class DefaultEventQueue implements EventQueueIF {
   }
 
   @VisibleForTesting
-  Boolean isProcessingCurrentlySuspended(){
+  Boolean isProcessingCurrentlySuspended() {
     return shouldSuspendProcessing();
   }
 
@@ -113,7 +113,7 @@ public class DefaultEventQueue implements EventQueueIF {
 
   @Override
   public void process() {
-    synchronized (this){
+    synchronized (this) {
       if (processingQueue) {
         LOG.trace("Currently processing queue; Returning...");
         return;
@@ -136,11 +136,11 @@ public class DefaultEventQueue implements EventQueueIF {
       SubmissionResponse response = submissionClient.postEvents(events);
       processSubmissionResponse(response, storedEvents);
       eventPosted(response, events);
-    } catch (SubmissionException e) {
-      LOG.error("Error processing queue", e);
+    } catch (SubmissionClientException e) {
+      LOG.error("Error submitting events from queue", e);
       suspendProcessing();
     } finally {
-      synchronized (this){
+      synchronized (this) {
         processingQueue = false;
       }
     }
@@ -176,7 +176,10 @@ public class DefaultEventQueue implements EventQueueIF {
     }
 
     if (response.isNotFound() || response.isBadRequest()) {
-      LOG.error(String.format("Error while trying to submit data: %s", response.getMessage()));
+      LOG.error(
+          String.format(
+              "Error while trying to submit data, Code:%s, Body:%s",
+              response.getCode(), response.getBody()));
       suspendProcessing(Duration.ofMinutes(4));
       removeEvents(storedEvents);
       return;
@@ -195,7 +198,9 @@ public class DefaultEventQueue implements EventQueueIF {
       return;
     }
 
-    LOG.error(String.format("Error submitting events: %s", response.getMessage()));
+    LOG.error(
+        String.format(
+            "Error submitting events, Code: %s, Body: %s", response.getCode(), response.getBody()));
     suspendProcessing();
   }
 
