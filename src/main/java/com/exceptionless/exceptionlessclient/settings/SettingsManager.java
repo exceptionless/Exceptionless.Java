@@ -88,7 +88,7 @@ public class SettingsManager {
 
   private boolean shouldNotUpdate(SettingsResponse response) {
     if (response.isNotModified()) {
-      LOG.trace("No need to update, settings are not modified");
+      LOG.info("No need to update, settings are not modified");
       return true;
     }
     if (!response.isSuccess()) {
