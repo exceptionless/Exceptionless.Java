@@ -2,6 +2,7 @@ package com.exceptionless.exceptionlessclient.settings;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
+import com.exceptionless.exceptionlessclient.exceptions.SettingsClientException;
 import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import okhttp3.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doReturn;
@@ -74,24 +76,17 @@ public class DefaultSettingsClientTest {
 
     SettingsResponse response = settingsClient.getSettings(1);
 
-    assertThat(response.getMessage()).isNull();
-    assertThat(response.getException()).isNull();
-    assertThat(response.isSuccess()).isTrue();
+    assertThat(response.getBody())
+        .isEqualTo(
+            "{\n"
+                + "\t\"version\":1,\n"
+                + "\t\"settings\":{\n"
+                + "\t\t\"key\":\"value\"\n"
+                + "\t}\n"
+                + "}");
+    assertThat(response.getCode()).isEqualTo(200);
     assertThat(response.getSettings())
         .isEqualTo(ServerSettings.builder().version(1L).settings(Map.of("key", "value")).build());
-  }
-
-  @Test
-  public void itCanHandleAUnsuccessfulResponse() throws IOException {
-    doReturn(responseBuilder.code(400).build()).when(call).execute();
-    doReturn(call).when(httpClient).newCall(any());
-
-    SettingsResponse response = settingsClient.getSettings(1);
-
-    assertThat(response.getMessage()).isEqualTo("Code: 400, Body: test-body");
-    assertThat(response.getException()).isNull();
-    assertThat(response.isSuccess()).isFalse();
-    assertThat(response.getSettings()).isNull();
   }
 
   @Test
@@ -101,22 +96,18 @@ public class DefaultSettingsClientTest {
 
     SettingsResponse response = settingsClient.getSettings(1);
 
-    assertThat(response.getMessage()).isEqualTo("No settings returned by server!");
-    assertThat(response.getException()).isNull();
-    assertThat(response.isSuccess()).isFalse();
+    assertThat(response.getBody()).isEqualTo("");
+    assertThat(response.getCode()).isEqualTo(200);
     assertThat(response.getSettings()).isNull();
   }
 
   @Test
-  public void itCanHandleAnyException() {
+  public void itCanMapAnyExceptionToSettingsClientException() {
     RuntimeException e = new RuntimeException("test");
     doThrow(e).when(httpClient).newCall(any());
 
-    SettingsResponse response = settingsClient.getSettings(1);
-
-    assertThat(response.getMessage()).isEqualTo("test");
-    assertThat(response.getException()).isEqualTo(e);
-    assertThat(response.isSuccess()).isFalse();
-    assertThat(response.getSettings()).isNull();
+    assertThatThrownBy(() -> settingsClient.getSettings(1))
+        .isInstanceOf(SettingsClientException.class)
+        .hasMessage("java.lang.RuntimeException: test");
   }
 }

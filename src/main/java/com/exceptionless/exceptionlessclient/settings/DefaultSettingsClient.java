@@ -1,6 +1,7 @@
 package com.exceptionless.exceptionlessclient.settings;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
+import com.exceptionless.exceptionlessclient.exceptions.SettingsClientException;
 import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.utils.Utils;
 import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;
@@ -25,7 +26,6 @@ public class DefaultSettingsClient implements SettingsClientIF {
             .newBuilder()
             .connectTimeout(Duration.ofMillis(configuration.getSettingsClientTimeoutInMillis()))
             .build();
-    ;
   }
 
   @VisibleForTesting
@@ -49,24 +49,20 @@ public class DefaultSettingsClient implements SettingsClientIF {
       Response response = httpClient.newCall(request).execute();
 
       ResponseBody body = response.body();
-      if (response.code() / 100 != 2) {
-        return SettingsResponse.builder()
-            .success(false)
-            .message(Utils.addCodeToResponseBodyStr(response))
-            .build();
-      }
-      if (body == null) {
-        return SettingsResponse.builder()
-            .success(false)
-            .message("No settings returned by server!")
-            .build();
+      String bodyStr = body == null ? null : body.string();
+      if (bodyStr == null) {
+        return SettingsResponse.builder().code(response.code()).body("").build();
       }
 
       ServerSettings serverSettings =
-          Utils.JSON_MAPPER.readValue(body.string(), new TypeReference<ServerSettings>() {});
-      return SettingsResponse.builder().success(true).settings(serverSettings).build();
+          Utils.JSON_MAPPER.readValue(bodyStr, new TypeReference<ServerSettings>() {});
+      return SettingsResponse.builder()
+          .code(response.code())
+          .body(bodyStr)
+          .settings(serverSettings)
+          .build();
     } catch (Exception e) {
-      return SettingsResponse.builder().success(false).exception(e).message(e.getMessage()).build();
+      throw new SettingsClientException(e);
     }
   }
 }

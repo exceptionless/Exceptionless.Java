@@ -80,9 +80,10 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
         updateSettingsFromHeaders(response.headers());
       }
 
+      ResponseBody body = response.body();
       return SubmissionResponse.builder()
           .code(response.code())
-          .body(Utils.addCodeToResponseBodyStr(response))
+          .body(body == null ? "" : body.string())
           .build();
     } catch (Exception e) {
       throw new SubmissionClientException(e);

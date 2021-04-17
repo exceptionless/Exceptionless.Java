@@ -72,7 +72,7 @@ public class DefaultSubmissionClientTest {
     SubmissionResponse submissionResponse =
         submissionClient.postEvents(List.of(Event.builder().build()));
 
-    assertThat(submissionResponse.getBody()).isEqualTo("Code: 200, Body: test-body");
+    assertThat(submissionResponse.getBody()).isEqualTo("test-body");
     assertThat(submissionResponse.getCode()).isEqualTo(200);
     verify(settingsManager, times(1)).checkVersion(3);
   }
@@ -85,7 +85,7 @@ public class DefaultSubmissionClientTest {
     SubmissionResponse submissionResponse =
         submissionClient.postEvents(List.of(Event.builder().build()));
 
-    assertThat(submissionResponse.getBody()).isEqualTo("Code: 200, Body: test-body");
+    assertThat(submissionResponse.getBody()).isEqualTo("test-body");
     assertThat(submissionResponse.getCode()).isEqualTo(200);
     verifyZeroInteractions(settingsManager);
   }
@@ -120,7 +120,7 @@ public class DefaultSubmissionClientTest {
         submissionClient.postUserDescription(
             "test-reference-id", UserDescription.builder().build());
 
-    assertThat(submissionResponse.getBody()).isEqualTo("Code: 200, Body: test-body");
+    assertThat(submissionResponse.getBody()).isEqualTo("test-body");
     assertThat(submissionResponse.getCode()).isEqualTo(200);
     verify(settingsManager, times(1)).checkVersion(3);
   }
@@ -135,7 +135,7 @@ public class DefaultSubmissionClientTest {
         submissionClient.postUserDescription(
             "test-reference-id", UserDescription.builder().build());
 
-    assertThat(submissionResponse.getBody()).isEqualTo("Code: 200, Body: test-body");
+    assertThat(submissionResponse.getBody()).isEqualTo("test-body");
     assertThat(submissionResponse.getCode()).isEqualTo(200);
     verifyZeroInteractions(settingsManager);
   }
