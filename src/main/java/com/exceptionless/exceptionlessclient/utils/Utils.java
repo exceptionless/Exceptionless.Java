@@ -3,15 +3,19 @@ package com.exceptionless.exceptionlessclient.utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.util.*;
 
 public final class Utils {
   public static final ObjectMapper JSON_MAPPER;
+
   static {
     JSON_MAPPER = new ObjectMapper();
     JSON_MAPPER.registerModule(new JavaTimeModule());
@@ -85,5 +89,14 @@ public final class Utils {
       return true;
     }
     return false;
+  }
+
+  public static String addCodeToResponseBodyStr(Response response) throws IOException {
+    ResponseBody body = response.body();
+    if (body == null) {
+      return String.format("Code: %s", response.code());
+    }
+
+    return String.format("Code: %s, Body: %s", response.code(), body.string());
   }
 }

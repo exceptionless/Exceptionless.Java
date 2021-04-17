@@ -6,25 +6,30 @@ import com.exceptionless.exceptionlessclient.utils.Utils;
 import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.Builder;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
 
 public class DefaultSettingsClient implements SettingsClientIF {
   private final Configuration configuration;
-  private final HttpClient httpClient;
+  private final OkHttpClient httpClient;
 
   @Builder
   public DefaultSettingsClient(Configuration configuration) {
     this.configuration = configuration;
-    this.httpClient = HttpClient.newHttpClient();
+    this.httpClient =
+        new OkHttpClient()
+            .newBuilder()
+            .connectTimeout(Duration.ofMillis(configuration.getSettingsClientTimeoutInMillis()))
+            .build();
+    ;
   }
 
   @VisibleForTesting
-  DefaultSettingsClient(Configuration configuration, HttpClient httpClient) {
+  DefaultSettingsClient(Configuration configuration, OkHttpClient httpClient) {
     this.configuration = configuration;
     this.httpClient = httpClient;
   }
@@ -32,30 +37,33 @@ public class DefaultSettingsClient implements SettingsClientIF {
   @Override
   public SettingsResponse getSettings(long version) {
     try {
-      URI uri =
-          new URI(
-              String.format(
-                  "%s/api/v2/projects/config?v=%s&access_token=%s",
-                  configuration.getServerUrl(), version, configuration.getApiKey()));
-
-      HttpRequest request =
-          HttpRequest.newBuilder()
-              .uri(uri)
-              .GET()
-              .header("User-Agent", Configuration.USER_AGENT)
-              .timeout(Duration.ofMillis(configuration.getSettingsClientTimeoutInMillis()))
+      Request request =
+          new Request.Builder()
+              .url(
+                  String.format(
+                      "%s/api/v2/projects/config?v=%s&access_token=%s",
+                      configuration.getServerUrl(), version, configuration.getApiKey()))
+              .get()
               .build();
 
-      HttpResponse<String> response =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      Response response = httpClient.newCall(request).execute();
 
-      if (response.statusCode() != 200) {
-        return SettingsResponse.builder().success(false).message(response.body()).build();
+      ResponseBody body = response.body();
+      if (response.code() / 100 != 2) {
+        return SettingsResponse.builder()
+            .success(false)
+            .message(Utils.addCodeToResponseBodyStr(response))
+            .build();
+      }
+      if (body == null) {
+        return SettingsResponse.builder()
+            .success(false)
+            .message("No settings returned by server!")
+            .build();
       }
 
       ServerSettings serverSettings =
-          Utils.JSON_MAPPER.readValue(response.body(), new TypeReference<ServerSettings>() {});
-
+          Utils.JSON_MAPPER.readValue(body.string(), new TypeReference<ServerSettings>() {});
       return SettingsResponse.builder().success(true).settings(serverSettings).build();
     } catch (Exception e) {
       return SettingsResponse.builder().success(false).exception(e).message(e.getMessage()).build();
