@@ -6,9 +6,9 @@ The definition of the word exceptionless is: to be without exception. [Exception
 
 Refer to the Exceptionless documentation here: [Exceptionless Docs](http://docs.exceptionless.io).
 
-### Warning! This package is still in Beta and not yet published to Maven Central. If you need it right now feel free to contact us on [Discord]((https://discord.gg/6HxgFCx)) or create an [Issue](https://github.com/exceptionless/Exceptionless.Java/issues/new).
+### Warning! This package is still in Beta and not yet published to Maven Central. If you need it right now feel free to contact us on [Discord]((https://discord.gg/6HxgFCx)) or create an [Issue](https://github.com/exceptionless/Exceptionless.Java/issues/new)
 
-## Show me the code!
+## Show me the code
 
 ```java
 class ExampleApp{
@@ -36,7 +36,7 @@ class ExampleApp{
 
 You can observe `NoClassDefFoundError` in your Spring-boot apps because Spring-boot uses v3 of `OkHttpClient` while this client uses v4. In that case you have to explicitly declare v4 of the library in you `pom.xml/build.gradle`.
 
-```
+```xml
 <dependencies>
     <dependency>
         <groupId>com.exceptionless</groupId>
