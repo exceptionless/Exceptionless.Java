@@ -26,6 +26,7 @@ public class DefaultEventQueue implements EventQueueIF {
   private static final String QUEUE_TIMER_NAME = "queue-timer";
   private static final Integer DEFAULT_PROCESSING_INTERVAL_IN_SECS = 10;
   private static final Double BATCH_SIZE_DIVISOR = 1.5;
+  private static final Integer DEFAULT_SUSPENSION_DURATION_IN_MINS = 5;
 
   private final StorageProviderIF storageProvider;
   private final Configuration configuration;
@@ -100,12 +101,10 @@ public class DefaultEventQueue implements EventQueueIF {
     }
 
     long timestamp = storageProvider.getQueue().save(event);
-    String logText =
-        String.format("type: %s", event.getType())
-            + (event.getReferenceId() != null
-                ? String.format(", refId: %s", event.getReferenceId())
-                : "");
-    LOG.info(String.format("Enqueueing event: %s %s", timestamp, logText));
+    LOG.info(
+        String.format(
+            "Enqueueing event: %s type: %s, refId: %s",
+            timestamp, event.getType(), event.getReferenceId()));
   }
 
   private boolean shouldDiscard() {
@@ -245,7 +244,7 @@ public class DefaultEventQueue implements EventQueueIF {
   public void suspendProcessing(
       Duration duration, boolean discardFutureQueueItems, boolean clearQueue) {
     if (duration == null) {
-      duration = Duration.ofMinutes(5);
+      duration = Duration.ofMinutes(DEFAULT_SUSPENSION_DURATION_IN_MINS);
     }
 
     LOG.info(String.format("Suspending processing for %s", duration));
