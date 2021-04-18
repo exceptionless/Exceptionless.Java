@@ -15,6 +15,8 @@ import java.util.TimerTask;
 public class HeartbeatPlugin implements EventPluginIF {
   private static final Logger LOG = LoggerFactory.getLogger(HeartbeatPlugin.class);
   private static final String HEART_BEAT_TIMER_NAME = "heart-beat-timer";
+  private static final Integer DEFAULT_PRIORITY = 100;
+  private static final Integer DEFAULT_HEART_BEAT_INTERVAL_IN_SECS = 1;
 
   private final int heartbeatIntervalInSecs;
   private Timer heartbeatTimer;
@@ -22,13 +24,16 @@ public class HeartbeatPlugin implements EventPluginIF {
 
   @Builder
   public HeartbeatPlugin(Integer heartbeatIntervalInSecs) {
-    this.heartbeatIntervalInSecs = heartbeatIntervalInSecs == null ? 1 : heartbeatIntervalInSecs;
+    this.heartbeatIntervalInSecs =
+        heartbeatIntervalInSecs == null
+            ? DEFAULT_HEART_BEAT_INTERVAL_IN_SECS
+            : heartbeatIntervalInSecs;
     this.heartbeatTimer = new Timer(HEART_BEAT_TIMER_NAME);
   }
 
   @Override
   public int getPriority() {
-    return 100;
+    return DEFAULT_PRIORITY;
   }
 
   @Override

@@ -15,19 +15,19 @@ import java.net.http.HttpRequest;
 
 public class RequestInfoPlugin implements EventPluginIF {
   private static final Logger LOG = LoggerFactory.getLogger(RequestInfoPlugin.class);
+  private static final Integer DEFAULT_PRIORITY = 70;
 
   @Builder
-  public RequestInfoPlugin() {
-  }
+  public RequestInfoPlugin() {}
 
   @Override
   public int getPriority() {
-    return 70;
+    return DEFAULT_PRIORITY;
   }
 
   @Override
   public void run(
-          EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Event event = eventPluginContext.getEvent();
     if (event.getRequestInfo().isPresent()) {
       return;

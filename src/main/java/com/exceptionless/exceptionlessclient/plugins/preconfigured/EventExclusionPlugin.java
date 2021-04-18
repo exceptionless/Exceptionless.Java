@@ -16,6 +16,7 @@ import java.util.OptionalInt;
 
 public class EventExclusionPlugin implements EventPluginIF {
   private static final Logger LOG = LoggerFactory.getLogger(EventExclusionPlugin.class);
+  private static final Integer DEFAULT_PRIORITY = 0;
 
   @Builder
   public EventExclusionPlugin() {
@@ -23,7 +24,7 @@ public class EventExclusionPlugin implements EventPluginIF {
 
   @Override
   public int getPriority() {
-    return 0;
+    return DEFAULT_PRIORITY;
   }
 
   @Override

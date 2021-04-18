@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class ErrorPlugin implements EventPluginIF {
+  private static final Integer DEFAULT_PRIORITY = 30;
 
   private final Set<String> dataExclusions;
 
@@ -42,7 +43,7 @@ public class ErrorPlugin implements EventPluginIF {
 
   @Override
   public int getPriority() {
-    return 30;
+    return DEFAULT_PRIORITY;
   }
 
   @Override

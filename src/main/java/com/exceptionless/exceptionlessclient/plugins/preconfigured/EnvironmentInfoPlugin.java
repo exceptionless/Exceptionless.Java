@@ -8,17 +8,19 @@ import com.exceptionless.exceptionlessclient.services.EnvironmentInfoGetArgs;
 import lombok.Builder;
 
 public class EnvironmentInfoPlugin implements EventPluginIF {
+  private static final Integer DEFAULT_PRIORITY = 80;
+
   @Builder
   public EnvironmentInfoPlugin() {}
 
   @Override
   public int getPriority() {
-    return 80;
+    return DEFAULT_PRIORITY;
   }
 
   @Override
   public void run(
-          EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Event event = eventPluginContext.getEvent();
     if (event.getEnvironmentInfo().isEmpty()) {
       event.addEnvironmentInfo(

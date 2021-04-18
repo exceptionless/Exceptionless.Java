@@ -17,11 +17,13 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
-// Warning `SuperBuilder` will not work for any class extending this. This class breaks the chain
+// WARNING: `SuperBuilder` will not work for any class extending this. This class breaks the chain
 // for customization
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class Event extends Model {
+  private static final Integer DEFAULT_COUNT = 1;
+
   private String type;
   private String source;
   private LocalDate date;
@@ -52,12 +54,13 @@ public class Event extends Model {
     this.message = message;
     this.geo = geo;
     this.value = value;
-    this.referenceId =
-        referenceId == null
-            ? String.format("%s-%s", Thread.currentThread().getId(), UUID.randomUUID())
-            : referenceId;
-    this.count = count == null ? 1 : count;
+    this.referenceId = referenceId == null ? getDefaultReferenceId() : referenceId;
+    this.count = count == null ? DEFAULT_COUNT : count;
     initData(data == null ? new HashMap<>() : data, dataExclusions);
+  }
+
+  private String getDefaultReferenceId() {
+    return String.format("%s-%s", Thread.currentThread().getId(), UUID.randomUUID());
   }
 
   private void initData(Map<String, Object> data, Set<String> dataExclusions) {

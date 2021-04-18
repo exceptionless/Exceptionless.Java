@@ -9,17 +9,19 @@ import lombok.Builder;
 import java.util.Optional;
 
 public class ModuleInfoPlugin implements EventPluginIF {
+  private static final Integer DEFAULT_PRIORITY = 50;
+
   @Builder
   public ModuleInfoPlugin() {}
 
   @Override
   public int getPriority() {
-    return 50;
+    return DEFAULT_PRIORITY;
   }
 
   @Override
   public void run(
-          EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Optional<Error> maybeError = eventPluginContext.getEvent().getError();
     if (maybeError.isEmpty()) {
       return;

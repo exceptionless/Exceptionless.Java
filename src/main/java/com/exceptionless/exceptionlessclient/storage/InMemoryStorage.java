@@ -8,6 +8,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class InMemoryStorage<X> implements StorageIF<X> {
+  private static final Integer DEFAULT_MAX_ITEMS = 50;
+
   private final Integer maxItems;
   // Used linked list because we are always appending at end and removing is fast than `ArrayList`
   private List<StorageItem<X>> items;
@@ -15,7 +17,7 @@ public class InMemoryStorage<X> implements StorageIF<X> {
 
   @Builder
   public InMemoryStorage(Integer maxItems) {
-    this.maxItems = maxItems == null ? 50 : maxItems;
+    this.maxItems = maxItems == null ? DEFAULT_MAX_ITEMS : maxItems;
     items = new LinkedList<>();
   }
 

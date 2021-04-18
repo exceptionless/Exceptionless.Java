@@ -7,7 +7,7 @@ import lombok.EqualsAndHashCode;
 
 import java.net.http.HttpRequest;
 
-// Warning `SuperBuilder` will not work for any class extending this. This class breaks the chain
+// WARNING: `SuperBuilder` will not work for any class extending this. This class breaks the chain
 // for customization
 @Data
 @EqualsAndHashCode(callSuper = true)

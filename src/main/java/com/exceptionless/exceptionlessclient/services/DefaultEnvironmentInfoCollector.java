@@ -1,5 +1,6 @@
 package com.exceptionless.exceptionlessclient.services;
 
+import com.exceptionless.exceptionlessclient.models.enums.EnvironmentInfoPropertyKey;
 import com.exceptionless.exceptionlessclient.models.services.EnvironmentInfo;
 import com.sun.management.OperatingSystemMXBean;
 import lombok.Builder;
@@ -80,10 +81,14 @@ public class DefaultEnvironmentInfoCollector implements EnvironmentInfoCollector
     Map<String, Object> data = new HashMap<>();
     OperatingSystemMXBean operatingSystemMXBean =
         (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-    data.put("loadavg", String.valueOf(operatingSystemMXBean.getSystemLoadAverage()));
-    data.put("tmpdir", System.getProperty("java.io.tmpdir"));
-    data.put("uptime", String.valueOf(ManagementFactory.getRuntimeMXBean().getUptime()));
-    data.put("endianess", getEndianess());
+    data.put(
+        EnvironmentInfoPropertyKey.LOAD_AVG.value(),
+        String.valueOf(operatingSystemMXBean.getSystemLoadAverage()));
+    data.put(EnvironmentInfoPropertyKey.TMP_DIR.value(), System.getProperty("java.io.tmpdir"));
+    data.put(
+        EnvironmentInfoPropertyKey.UP_TIME.value(),
+        String.valueOf(ManagementFactory.getRuntimeMXBean().getUptime()));
+    data.put(EnvironmentInfoPropertyKey.ENDIANESS.value(), getEndianess());
 
     return data;
   }

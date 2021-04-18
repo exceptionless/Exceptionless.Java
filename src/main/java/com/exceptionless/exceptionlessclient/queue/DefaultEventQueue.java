@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 public class DefaultEventQueue implements EventQueueIF {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultEventQueue.class);
   private static final String QUEUE_TIMER_NAME = "queue-timer";
+  private static final Integer DEFAULT_PROCESSING_INTERVAL_IN_SECS = 10;
+  private static final Double BATCH_SIZE_DIVISOR = 1.5;
 
   private final StorageProviderIF storageProvider;
   private final Configuration configuration;
@@ -47,7 +49,10 @@ public class DefaultEventQueue implements EventQueueIF {
     this.queueTimer = new Timer(QUEUE_TIMER_NAME);
     this.handlers = new ArrayList<>();
     this.currentSubmissionBatchSize = configuration.getSubmissionBatchSize();
-    init(processingIntervalInSecs == null ? 10 : processingIntervalInSecs);
+    init(
+        processingIntervalInSecs == null
+            ? DEFAULT_PROCESSING_INTERVAL_IN_SECS
+            : processingIntervalInSecs);
   }
 
   private void init(Integer processingIntervalInSecs) {
@@ -190,7 +195,7 @@ public class DefaultEventQueue implements EventQueueIF {
         LOG.error(
             "Event submission discarded for being too large. Retrying with smaller batch size");
         currentSubmissionBatchSize =
-            Math.max(1, (int) Math.round(currentSubmissionBatchSize / 1.5));
+            Math.max(1, (int) Math.round(currentSubmissionBatchSize / BATCH_SIZE_DIVISOR));
       } else {
         LOG.error("Event submission discarded for being too large. Events will not be submitted");
         removeEvents(storedEvents);
