@@ -1,9 +1,9 @@
-package com.exceptionless.sample.app;
+package com.exceptionless.example.app;
 
 import com.exceptionless.exceptionlessclient.ExceptionlessClient;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 
-public class Main {
+public class ExampleApp {
   private static final ExceptionlessClient client =
       ExceptionlessClient.from(
           System.getenv("EXCEPTIONLESS_SAMPLE_APP_API_KEY"),
