@@ -32,6 +32,30 @@ class ExampleApp{
 }
 ```
 
+## Spring Boot Users
+
+You can observe `NoClassDefFoundError` in your Spring-boot apps because Spring-boot uses v3 of `OkHttpClient` while this client uses v4. In that case you have to explicitly declare v4 of the library in you `pom.xml/build.gradle`.
+
+```
+<dependencies>
+    <dependency>
+        <groupId>com.exceptionless</groupId>
+        <artifactId>exceptionless-client</artifactId>
+        <version>1.0-beta1</version>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <!-- EXPLICIT DECLARATION -->
+    <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>okhttp</artifactId>
+        <version>4.9.1</version>
+    </dependency>
+</dependencies>
+```
+
 ## General Data Protection Regulation
 
 By default the Exceptionless Client will report all available metadata including potential PII data.
