@@ -5,11 +5,11 @@ import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.models.enums.EventType;
-import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.queue.DefaultEventQueue;
 import com.exceptionless.exceptionlessclient.settings.DefaultSettingsClient;
+import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorage;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorageProvider;
 import com.exceptionless.exceptionlessclient.submission.DefaultSubmissionClient;
@@ -48,7 +48,7 @@ public class ExceptionlessClientTest {
             .submissionClient(submissionClient)
             .queue(eventQueue)
             .build();
-    client = new ExceptionlessClient(configurationManager, 1000);
+    client = new ExceptionlessClient(configurationManager, 1000, 10);
   }
 
   @Test
