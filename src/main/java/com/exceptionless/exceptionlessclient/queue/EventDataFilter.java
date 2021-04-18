@@ -10,13 +10,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class EventDataFilter {
+  private static final Integer DEFAULT_MAX_DEPTH = 3;
   private final Set<String> exclusions;
   private final int maxDepth;
 
   @Builder
   public EventDataFilter(Set<String> exclusions, Integer maxDepth) {
     this.exclusions = exclusions == null ? new HashSet<>() : exclusions;
-    this.maxDepth = maxDepth == null ? 3 : maxDepth;
+    this.maxDepth = maxDepth == null ? DEFAULT_MAX_DEPTH : maxDepth;
   }
 
   public Object filter(Object data) {

@@ -16,6 +16,10 @@ public class SettingsManager {
   private static final Logger LOG = LoggerFactory.getLogger(SettingsManager.class);
   private static final long DEFAULT_VERSION = 0;
 
+  public static class Property {
+    public static final String SETTINGS = "settings";
+  }
+
   private final StorageProviderIF storageProvider;
   private final SettingsClientIF settingsClient;
   private Boolean updatingSettings;
@@ -76,7 +80,8 @@ public class SettingsManager {
 
       ServerSettings prevValue = getSavedServerSettings();
       storageProvider.getSettings().save(response.getSettings());
-      propertyChangeSupport.firePropertyChange("settings", prevValue, response.getSettings());
+      propertyChangeSupport.firePropertyChange(
+          Property.SETTINGS, prevValue, response.getSettings());
     } catch (SettingsClientException e) {
       LOG.error(String.format("Error retrieving settings for v%s", getVersion()), e);
     } finally {

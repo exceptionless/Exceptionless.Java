@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 
 public class PluginManager {
   private static final Logger LOG = LoggerFactory.getLogger(PluginManager.class);
+  private static final Integer DEFAULT_PLUGIN_PRIORITY = 0;
 
   @Getter private List<EventPluginIF> plugins;
 
@@ -54,7 +55,7 @@ public class PluginManager {
   }
 
   public void addPlugin(BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
-    addPlugin(UUID.randomUUID().toString(), 0, pluginAction);
+    addPlugin(UUID.randomUUID().toString(), DEFAULT_PLUGIN_PRIORITY, pluginAction);
   }
 
   public void addPlugin(

@@ -5,6 +5,8 @@ import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import lombok.Builder;
 
 public class InMemoryStorageProvider implements StorageProviderIF {
+  private static final Integer DEFAULT_MAX_QUEUE_ITEMS = 250;
+
   private final StorageIF<Event> eventQueue;
   private final StorageIF<ServerSettings> settingsStore;
 
@@ -12,7 +14,7 @@ public class InMemoryStorageProvider implements StorageProviderIF {
   private InMemoryStorageProvider(Integer maxQueueItems) {
     this.eventQueue =
         InMemoryStorage.<Event>builder()
-            .maxItems(maxQueueItems == null ? 250 : maxQueueItems)
+            .maxItems(maxQueueItems == null ? DEFAULT_MAX_QUEUE_ITEMS : maxQueueItems)
             .build();
     this.settingsStore = InMemoryStorage.<ServerSettings>builder().maxItems(1).build();
   }

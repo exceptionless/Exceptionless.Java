@@ -2,8 +2,6 @@ package com.exceptionless.exceptionlessclient.configuration;
 
 import ch.qos.logback.core.Context;
 import com.exceptionless.exceptionlessclient.exceptions.InvalidApiKeyException;
-import com.exceptionless.exceptionlessclient.services.DefaultLastReferenceIdManager;
-import com.exceptionless.exceptionlessclient.services.LastReferenceIdManagerIF;
 import com.exceptionless.exceptionlessclient.logging.LogCapturerAppender;
 import com.exceptionless.exceptionlessclient.logging.LogCapturerIF;
 import com.exceptionless.exceptionlessclient.logging.NullLogCapturer;
@@ -33,6 +31,8 @@ import java.util.function.Consumer;
 
 public class ConfigurationManager {
   private static final Logger LOG = LoggerFactory.getLogger(ConfigurationManager.class);
+  private static final Integer API_KEY_MIN_LENGTH = 11;
+  private static final Integer DEFAULT_HEART_BEAT_INTERVAL_IN_SECS = 30;
 
   @Getter private final EnvironmentInfoCollectorIF environmentInfoCollector;
   @Getter private final ErrorParserIF errorParser;
@@ -131,7 +131,8 @@ public class ConfigurationManager {
   }
 
   private void checkApiKeyIsValid() {
-    if (configuration.getApiKey() != null && configuration.getApiKey().length() > 10) {
+    if (configuration.getApiKey() != null
+        && configuration.getApiKey().length() >= API_KEY_MIN_LENGTH) {
       return;
     }
 
@@ -185,31 +186,14 @@ public class ConfigurationManager {
   }
 
   public void addPlugin(BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
-    addPlugin(UUID.randomUUID().toString(), 0, pluginAction);
+    pluginManager.addPlugin(pluginAction);
   }
 
   public void addPlugin(
       String name,
       int priority,
       BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
-    addPlugin(
-        new EventPluginIF() {
-          @Override
-          public int getPriority() {
-            return priority;
-          }
-
-          @Override
-          public String getName() {
-            return name;
-          }
-
-          @Override
-          public void run(
-              EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
-            pluginAction.accept(eventPluginContext, configurationManager);
-          }
-        });
+    pluginManager.addPlugin(name, priority, pluginAction);
   }
 
   public void removePlugin(String name) {
@@ -237,7 +221,7 @@ public class ConfigurationManager {
   }
 
   public void useSessions() {
-    useSessions(30);
+    useSessions(DEFAULT_HEART_BEAT_INTERVAL_IN_SECS);
   }
 
   public void useSessions(int heartbeatIntervalInSecs) {

@@ -3,10 +3,10 @@ package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
-import com.exceptionless.exceptionlessclient.plugins.MergedEvent;
 import com.exceptionless.exceptionlessclient.models.services.error.Error;
 import com.exceptionless.exceptionlessclient.models.services.error.InnerError;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
+import com.exceptionless.exceptionlessclient.plugins.MergedEvent;
 import lombok.Builder;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -18,6 +18,9 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
   private static final Logger LOG = LoggerFactory.getLogger(DuplicateErrorCheckerPlugin.class);
   private static final String MERGED_EVENTS_RESUBMISSION_TIMER_NAME =
       "merged-events-resubmission-timer";
+  private static final Integer DEFAULT_PRIORITY = 1010;
+  private static final Integer DEFAULT_MAX_HASHES_COUNT = 50;
+  private static final Integer DEFAULT_MERGED_EVENTS_RESUBMISSION_IN_SECS = 30;
 
   private final int maxHashesCount;
   private final Queue<MergedEvent> mergedEvents;
@@ -26,13 +29,16 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
   private final Integer mergedEventsResubmissionInSecs;
 
   @Builder
-  public DuplicateErrorCheckerPlugin(Integer mergedEventsResubmissionInSecs, Integer maxHashesCount) {
-    this.maxHashesCount = maxHashesCount == null ? 50 : maxHashesCount;
+  public DuplicateErrorCheckerPlugin(
+      Integer mergedEventsResubmissionInSecs, Integer maxHashesCount) {
+    this.maxHashesCount = maxHashesCount == null ? DEFAULT_MAX_HASHES_COUNT : maxHashesCount;
     this.mergedEvents = new ArrayDeque<>();
     this.mergedEventsResubmissionTimer = new Timer(MERGED_EVENTS_RESUBMISSION_TIMER_NAME);
     this.hashes = new ArrayList<>();
     this.mergedEventsResubmissionInSecs =
-        mergedEventsResubmissionInSecs == null ? 30 : mergedEventsResubmissionInSecs;
+        mergedEventsResubmissionInSecs == null
+            ? DEFAULT_MERGED_EVENTS_RESUBMISSION_IN_SECS
+            : mergedEventsResubmissionInSecs;
     init();
   }
 
@@ -57,7 +63,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
 
   @Override
   public int getPriority() {
-    return 1010;
+    return DEFAULT_PRIORITY;
   }
 
   @Override
