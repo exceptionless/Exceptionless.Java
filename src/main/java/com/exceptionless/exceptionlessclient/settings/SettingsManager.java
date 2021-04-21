@@ -71,7 +71,7 @@ public class SettingsManager {
 
     try {
       long currentVersion = getVersion();
-      LOG.info(String.format("Checking for updated settings  from v%s", currentVersion));
+      LOG.debug(String.format("Checking for updated settings  from v%s", currentVersion));
 
       SettingsResponse response = settingsClient.getSettings(currentVersion);
       if (shouldNotUpdate(response)) {
@@ -93,7 +93,7 @@ public class SettingsManager {
 
   private boolean shouldNotUpdate(SettingsResponse response) {
     if (response.isNotModified()) {
-      LOG.info("No need to update, settings are not modified");
+      LOG.debug("No need to update, settings are not modified");
       return true;
     }
     if (!response.isSuccess()) {
