@@ -9,9 +9,8 @@ import com.exceptionless.exceptionlessclient.settings.SettingsManager;
 import com.exceptionless.exceptionlessclient.utils.Utils;
 import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;
 import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -20,8 +19,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class DefaultSubmissionClient implements SubmissionClientIF {
-  private static final Logger LOG = LoggerFactory.getLogger(DefaultSubmissionClient.class);
   private static final String CONFIGURATION_VERSION_HEADER = "x-exceptionless-configversion";
 
   private final Configuration configuration;
@@ -96,7 +95,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
     if (maybeSettingsVersion.isPresent()) {
       settingsManager.checkVersion(Long.parseLong(maybeSettingsVersion.get()));
     } else {
-      LOG.error("No config version header was returned");
+      log.error("No config version header was returned");
     }
   }
 
@@ -118,7 +117,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
       Response response = httpClient.newCall(request).execute();
 
       if (response.code() / 100 != 2) {
-        LOG.error(
+        log.error(
             String.format(
                 "Error in submitting heartbeat to the server for sessionOrUserId: %s",
                 sessionIdOrUserId));

@@ -5,17 +5,16 @@ import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.services.error.Error;
-import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
+import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import lombok.Builder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 import java.util.OptionalInt;
 
+@Slf4j
 public class EventExclusionPlugin implements EventPluginIF {
-  private static final Logger LOG = LoggerFactory.getLogger(EventExclusionPlugin.class);
   private static final Integer DEFAULT_PRIORITY = 0;
 
   @Builder
@@ -44,7 +43,7 @@ public class EventExclusionPlugin implements EventPluginIF {
       if (maybeSetting.isEmpty() || ServerSettings.getAsBoolean(maybeSetting.get())) {
         return;
       }
-      LOG.info(
+      log.info(
           String.format(
               "Cancelling event from excluded type: %s and source :%s",
               event.getType(), event.getSource()));
@@ -117,7 +116,7 @@ public class EventExclusionPlugin implements EventPluginIF {
       Optional<String> maybeSetting =
           serverSettings.getTypeAndSourceSetting(EventType.ERROR.value(), error.getType());
       if (maybeSetting.isPresent() && !ServerSettings.getAsBoolean(maybeSetting.get())) {
-        LOG.info(
+        log.info(
             String.format("Cancelling error from excluded exception type: %s", error.getType()));
         eventPluginContext.getContext().setEventCancelled(true);
         break;

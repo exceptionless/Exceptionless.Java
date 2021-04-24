@@ -22,6 +22,7 @@ import com.exceptionless.exceptionlessclient.submission.DefaultSubmissionClient;
 import com.exceptionless.exceptionlessclient.submission.SubmissionClientIF;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,8 +30,8 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+@Slf4j
 public class ConfigurationManager {
-  private static final Logger LOG = LoggerFactory.getLogger(ConfigurationManager.class);
   private static final Integer API_KEY_MIN_LENGTH = 11;
   private static final Integer DEFAULT_HEART_BEAT_INTERVAL_IN_SECS = 30;
 
@@ -177,7 +178,7 @@ public class ConfigurationManager {
   }
 
   public void submitSessionHeartbeat(String sessionOrUserId) {
-    LOG.info(String.format("Submitting session heartbeat: %s", sessionOrUserId));
+    log.info(String.format("Submitting session heartbeat: %s", sessionOrUserId));
     submissionClient.sendHeartBeat(sessionOrUserId, false);
   }
 
@@ -237,7 +238,7 @@ public class ConfigurationManager {
       try {
         onChangedHandler.accept(this);
       } catch (Exception e) {
-        LOG.error(String.format("Error calling on changed handler: %s", e.getMessage()), e);
+        log.error(String.format("Error calling on changed handler: %s", e.getMessage()), e);
       }
     }
   }

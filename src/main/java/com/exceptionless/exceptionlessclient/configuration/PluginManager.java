@@ -5,8 +5,7 @@ import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import com.exceptionless.exceptionlessclient.plugins.preconfigured.*;
 import lombok.Builder;
 import lombok.Getter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +13,8 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class PluginManager {
-  private static final Logger LOG = LoggerFactory.getLogger(PluginManager.class);
   private static final Integer DEFAULT_PLUGIN_PRIORITY = 0;
 
   @Getter private List<EventPluginIF> plugins;
@@ -40,7 +39,7 @@ public class PluginManager {
 
   public void addPlugin(EventPluginIF eventPlugin) {
     if (plugins.stream().anyMatch(plugin -> plugin.getName().equals(eventPlugin.getName()))) {
-      LOG.info(
+      log.info(
           String.format(
               "Can't add plugin, name: %s, priority: %s as a plugin with this name already configured",
               eventPlugin.getName(), eventPlugin.getPriority()));
