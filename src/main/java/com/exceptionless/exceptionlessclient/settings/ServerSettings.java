@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import lombok.Builder;
 import lombok.Value;
-import lombok.experimental.NonFinal;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -14,7 +13,6 @@ import java.util.stream.Collectors;
 @JsonDeserialize(builder = ServerSettings.ServerSettingsBuilder.class)
 @Builder(builderClassName = "ServerSettingsBuilder")
 @Value
-@NonFinal
 public class ServerSettings {
   Long version;
   @Builder.Default Map<String, String> settings = new HashMap<>();
