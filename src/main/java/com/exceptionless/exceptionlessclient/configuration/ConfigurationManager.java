@@ -37,7 +37,6 @@ public class ConfigurationManager {
 
   @Getter private final ErrorParserIF errorParser;
   @Getter private final LastReferenceIdManagerIF lastReferenceIdManager;
-  @Getter private final ModuleCollectorIF moduleCollector;
   @Getter private final SubmissionClientIF submissionClient;
   @Getter private final EventQueueIF queue;
   @Getter private final Configuration configuration;
@@ -56,7 +55,6 @@ public class ConfigurationManager {
       ErrorParserIF errorParser,
       LastReferenceIdManagerIF lastReferenceIdManager,
       LogCapturerIF logCatpurer,
-      ModuleCollectorIF moduleCollector,
       SubmissionClientIF submissionClient,
       SettingsClientIF settingsClient,
       StorageProviderIF storageProvider,
@@ -69,8 +67,6 @@ public class ConfigurationManager {
         lastReferenceIdManager == null
             ? DefaultLastReferenceIdManager.builder().build()
             : lastReferenceIdManager;
-    this.moduleCollector =
-        moduleCollector == null ? DefaultModuleCollector.builder().build() : moduleCollector;
     this.storageProvider =
         storageProvider == null
             ? InMemoryStorageProvider.builder().maxQueueItems(maxQueueItems).build()
