@@ -8,7 +8,6 @@ import com.exceptionless.exceptionlessclient.models.enums.EventType;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -16,30 +15,8 @@ import java.util.Set;
 public class ErrorPlugin implements EventPluginIF {
   private static final Integer DEFAULT_PRIORITY = 30;
 
-  private final Set<String> dataExclusions;
-
   @Builder
-  public ErrorPlugin() {
-    this.dataExclusions =
-        new HashSet<>(
-            Arrays.asList(
-                "arguments",
-                "column",
-                "columnNumber",
-                "description",
-                "fileName",
-                "message",
-                "name",
-                "number",
-                "line",
-                "lineNumber",
-                "opera#sourceloc",
-                "sourceId",
-                "sourceURL",
-                "stack",
-                "stackArray",
-                "stacktrace"));
-  }
+  public ErrorPlugin() {}
 
   @Override
   public int getPriority() {
@@ -48,7 +25,7 @@ public class ErrorPlugin implements EventPluginIF {
 
   @Override
   public void run(
-          EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Exception exception = eventPluginContext.getContext().getException();
     if (exception == null) {
       return;
@@ -63,7 +40,6 @@ public class ErrorPlugin implements EventPluginIF {
     event.addError(configurationManager.getErrorParser().parse(exception));
 
     Set<String> dataExclusions = new HashSet<>(configurationManager.getDataExclusions());
-    dataExclusions.addAll(this.dataExclusions);
     event.addData(Map.of(EventPropertyKey.EXTRA.value(), exception), dataExclusions);
   }
 }
