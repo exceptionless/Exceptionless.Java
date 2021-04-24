@@ -9,13 +9,12 @@ import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import com.exceptionless.exceptionlessclient.plugins.MergedEvent;
 import lombok.Builder;
 import lombok.Getter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 
+@Slf4j
 public class DuplicateErrorCheckerPlugin implements EventPluginIF {
-  private static final Logger LOG = LoggerFactory.getLogger(DuplicateErrorCheckerPlugin.class);
   private static final String MERGED_EVENTS_RESUBMISSION_TIMER_NAME =
       "merged-events-resubmission-timer";
   private static final Integer DEFAULT_PRIORITY = 1010;
@@ -53,7 +52,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
                 event.resubmit();
               }
             } catch (Exception e) {
-              LOG.error("Error in resubmitting merged events", e);
+              log.error("Error in resubmitting merged events", e);
             }
           }
         },
@@ -83,7 +82,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
       MergedEvent mergedEvent = maybeMergedEvent.get();
       mergedEvent.incrementCount(event.getCount());
       mergedEvent.updateDate(event.getDate());
-      LOG.info(String.format("Ignoring duplicate event with hash: %s", hash));
+      log.info(String.format("Ignoring duplicate event with hash: %s", hash));
       eventPluginContext.getContext().setEventCancelled(true);
       return;
     }
@@ -97,7 +96,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
                 timeStampedHash.getHash() == hash
                     && timeStampedHash.getTimestamp()
                         >= (now - mergedEventsResubmissionInSecs * 1000))) {
-      LOG.trace(String.format("Adding event with hash :%s", hash));
+      log.trace(String.format("Adding event with hash :%s", hash));
       mergedEvents.add(
           MergedEvent.builder()
               .event(event)

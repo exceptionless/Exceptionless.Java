@@ -3,8 +3,7 @@ package com.exceptionless.exceptionlessclient.services;
 import com.exceptionless.exceptionlessclient.models.services.RequestInfo;
 import com.exceptionless.exceptionlessclient.utils.Utils;
 import lombok.Builder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
 import java.net.URI;
@@ -14,9 +13,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class DefaultRequestInfoCollector implements RequestInfoCollectorIF {
-  private static final Logger LOG = LoggerFactory.getLogger(DefaultRequestInfoCollector.class);
-
   @Builder
   public DefaultRequestInfoCollector() {}
 
@@ -36,7 +34,7 @@ public class DefaultRequestInfoCollector implements RequestInfoCollectorIF {
         InetAddress address = InetAddress.getByName(request.uri().getHost());
         builder.clientIpAddress(address.getHostAddress());
       } catch (UnknownHostException e) {
-        LOG.error(
+        log.error(
             String.format("Error while getting ip-address for host: %s", request.uri().getHost()));
       }
     }

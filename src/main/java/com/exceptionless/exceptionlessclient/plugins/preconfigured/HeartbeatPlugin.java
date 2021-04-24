@@ -5,15 +5,14 @@ import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.UserInfo;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 
+@Slf4j
 public class HeartbeatPlugin implements EventPluginIF {
-  private static final Logger LOG = LoggerFactory.getLogger(HeartbeatPlugin.class);
   private static final String HEART_BEAT_TIMER_NAME = "heart-beat-timer";
   private static final Integer DEFAULT_PRIORITY = 100;
   private static final Integer DEFAULT_HEART_BEAT_INTERVAL_IN_SECS = 1;
@@ -57,7 +56,7 @@ public class HeartbeatPlugin implements EventPluginIF {
             try {
               configurationManager.submitSessionHeartbeat(prevIdentity);
             } catch (Exception e) {
-              LOG.error(
+              log.error(
                   String.format("Error in submitting hearbeat for identity: %s", prevIdentity), e);
             }
           }

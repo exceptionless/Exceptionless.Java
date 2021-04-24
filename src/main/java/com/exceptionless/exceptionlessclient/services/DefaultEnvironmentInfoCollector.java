@@ -4,8 +4,7 @@ import com.exceptionless.exceptionlessclient.models.enums.EnvironmentInfoPropert
 import com.exceptionless.exceptionlessclient.models.services.EnvironmentInfo;
 import com.sun.management.OperatingSystemMXBean;
 import lombok.Builder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -14,9 +13,8 @@ import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 public class DefaultEnvironmentInfoCollector implements EnvironmentInfoCollectorIF {
-  private static final Logger LOG = LoggerFactory.getLogger(DefaultEnvironmentInfoCollector.class);
-
   private EnvironmentInfo defaultEnvironmentInfo;
 
   @Builder
@@ -71,7 +69,7 @@ public class DefaultEnvironmentInfoCollector implements EnvironmentInfoCollector
         builder.ipAddress(localhost.getHostAddress());
       }
     } catch (UnknownHostException e) {
-      LOG.error("Error while getting machine name", e);
+      log.error("Error while getting machine name", e);
     }
 
     return builder.build();
