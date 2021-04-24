@@ -6,7 +6,7 @@ import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.enums.EnvironmentInfoPropertyKey;
 import com.exceptionless.exceptionlessclient.models.services.EnvironmentInfo;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
-import com.exceptionless.exceptionlessclient.services.EnvironmentInfoGetArgs;
+import com.exceptionless.exceptionlessclient.plugins.preconfigured.args.EnvironmentInfoGetArgs;
 import com.sun.management.OperatingSystemMXBean;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -67,7 +67,7 @@ public class EnvironmentInfoPlugin implements EventPluginIF {
     }
   }
 
-  public EnvironmentInfo getEnvironmentInfo(EnvironmentInfoGetArgs args) {
+  private EnvironmentInfo getEnvironmentInfo(EnvironmentInfoGetArgs args) {
     OperatingSystemMXBean operatingSystemMXBean =
         (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
 

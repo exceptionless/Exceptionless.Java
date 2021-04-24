@@ -35,7 +35,6 @@ public class ConfigurationManager {
   private static final Integer API_KEY_MIN_LENGTH = 11;
   private static final Integer DEFAULT_HEART_BEAT_INTERVAL_IN_SECS = 30;
 
-  @Getter private final ErrorParserIF errorParser;
   @Getter private final LastReferenceIdManagerIF lastReferenceIdManager;
   @Getter private final SubmissionClientIF submissionClient;
   @Getter private final EventQueueIF queue;
@@ -52,7 +51,6 @@ public class ConfigurationManager {
 
   @Builder
   public ConfigurationManager(
-      ErrorParserIF errorParser,
       LastReferenceIdManagerIF lastReferenceIdManager,
       LogCapturerIF logCatpurer,
       SubmissionClientIF submissionClient,
@@ -62,7 +60,6 @@ public class ConfigurationManager {
       Configuration configuration,
       Integer maxQueueItems,
       Integer processingIntervalInSecs) {
-    this.errorParser = errorParser == null ? DefaultErrorParser.builder().build() : errorParser;
     this.lastReferenceIdManager =
         lastReferenceIdManager == null
             ? DefaultLastReferenceIdManager.builder().build()

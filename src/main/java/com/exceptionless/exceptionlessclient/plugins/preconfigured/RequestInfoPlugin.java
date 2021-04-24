@@ -5,7 +5,7 @@ import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.services.RequestInfo;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
-import com.exceptionless.exceptionlessclient.services.RequestInfoGetArgs;
+import com.exceptionless.exceptionlessclient.plugins.preconfigured.args.RequestInfoGetArgs;
 import com.exceptionless.exceptionlessclient.utils.Utils;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -65,7 +65,7 @@ public class RequestInfoPlugin implements EventPluginIF {
     event.addRequestInfo(requestInfo);
   }
 
-  public RequestInfo getRequestInfo(HttpRequest request, RequestInfoGetArgs args) {
+  private RequestInfo getRequestInfo(HttpRequest request, RequestInfoGetArgs args) {
     RequestInfo.RequestInfoBuilder<?, ?> builder =
         RequestInfo.builder()
             .userAgent(request.headers().firstValue("User-Agent").orElse(null))
