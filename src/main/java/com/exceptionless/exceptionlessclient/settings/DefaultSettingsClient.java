@@ -42,7 +42,7 @@ public class DefaultSettingsClient implements SettingsClientIF {
               .url(
                   String.format(
                       "%s/api/v2/projects/config?v=%s&access_token=%s",
-                      configuration.getServerUrl(), version, configuration.getApiKey()))
+                      configuration.getConfigServerUrl(), version, configuration.getApiKey()))
               .get()
               .build();
 

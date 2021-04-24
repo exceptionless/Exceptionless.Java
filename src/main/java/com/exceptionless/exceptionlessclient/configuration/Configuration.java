@@ -9,6 +9,7 @@ import java.beans.PropertyChangeSupport;
 public class Configuration {
   private static final String DEFAULT_SERVER_URL = "https://collector.exceptionless.io";
   private static final String DEFAULT_HEARTBEAT_SERVER_URL = "https://heartbeat.exceptionless.io";
+  private static final String DEFAULT_CONFIG_SERVER_URL = "https://config.exceptionless.io";
   private static final Long DEFAULT_UPDATE_SETTINGS_WHEN_IDLE_INTERVAL = 12000L;
   private static final Integer DEFAULT_SUBMISSION_BATCH_SIZE = 50;
   private static final Integer DEFAULT_SUBMISSION_CLIENT_TIMEOUT_IN_MILLIS = 500;
@@ -29,6 +30,7 @@ public class Configuration {
   @Getter private String apiKey;
   @Getter private String serverUrl;
   @Getter private String heartbeatServerUrl;
+  @Getter private String configServerUrl;
   @Getter private Long updateSettingsWhenIdleInterval;
   @Getter private Integer submissionBatchSize;
   @Getter private Integer submissionClientTimeoutInMillis;
@@ -51,6 +53,10 @@ public class Configuration {
         heartbeatServerUrl == null
             ? (serverUrl == null ? DEFAULT_HEARTBEAT_SERVER_URL : serverUrl)
             : heartbeatServerUrl;
+    this.configServerUrl =
+        configServerUrl == null
+            ? (serverUrl == null ? DEFAULT_CONFIG_SERVER_URL : serverUrl)
+            : configServerUrl;
     this.updateSettingsWhenIdleInterval =
         updateSettingsWhenIdleInterval == null
             ? DEFAULT_UPDATE_SETTINGS_WHEN_IDLE_INTERVAL
