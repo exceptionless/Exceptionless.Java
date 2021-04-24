@@ -30,7 +30,7 @@ public class PluginManager {
   private void configureDefaultPlugins() {
     addPlugin(ConfigurationDefaultsPlugin.builder().build());
     addPlugin(ErrorPlugin.builder().build());
-    addPlugin(DuplicateErrorCheckerPlugin.builder().build());
+    addPlugin(DuplicateCheckerPlugin.builder().build());
     addPlugin(EventExclusionPlugin.builder().build());
     addPlugin(ModuleInfoPlugin.builder().build());
     addPlugin(RequestInfoPlugin.builder().build());

@@ -3,8 +3,6 @@ package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
-import com.exceptionless.exceptionlessclient.models.services.error.Error;
-import com.exceptionless.exceptionlessclient.models.services.error.InnerError;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import com.exceptionless.exceptionlessclient.plugins.MergedEvent;
 import lombok.Builder;
@@ -14,8 +12,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-public class DuplicateErrorCheckerPlugin implements EventPluginIF {
-  private static final Logger LOG = LoggerFactory.getLogger(DuplicateErrorCheckerPlugin.class);
+public class DuplicateCheckerPlugin implements EventPluginIF {
+  private static final Logger LOG = LoggerFactory.getLogger(DuplicateCheckerPlugin.class);
   private static final String MERGED_EVENTS_RESUBMISSION_TIMER_NAME =
       "merged-events-resubmission-timer";
   private static final Integer DEFAULT_PRIORITY = 1010;
@@ -29,7 +27,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
   private final Integer mergedEventsResubmissionInSecs;
 
   @Builder
-  public DuplicateErrorCheckerPlugin(
+  public DuplicateCheckerPlugin(
       Integer mergedEventsResubmissionInSecs, Integer maxHashesCount) {
     this.maxHashesCount = maxHashesCount == null ? DEFAULT_MAX_HASHES_COUNT : maxHashesCount;
     this.mergedEvents = new ArrayDeque<>();
@@ -70,13 +68,7 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
   public void run(
       EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
     Event event = eventPluginContext.getEvent();
-    Optional<Error> maybeError = event.getError();
-    if (maybeError.isEmpty()) {
-      return;
-    }
-    Error error = maybeError.get();
-
-    long hash = getHashCode(error);
+    long hash = getHash(event);
     Optional<MergedEvent> maybeMergedEvent =
         mergedEvents.stream().filter(mergedEvent -> mergedEvent.getHash() == hash).findFirst();
     if (maybeMergedEvent.isPresent()) {
@@ -119,13 +111,14 @@ public class DuplicateErrorCheckerPlugin implements EventPluginIF {
     hashes.add(TimeStampedHash.builder().hash(hash).timestamp(now).build());
   }
 
-  private long getHashCode(InnerError error) {
-    long hash = 0L;
-    while (error != null) {
-      hash += Objects.hash(error.getMessage(), error.getStackTrace());
-      error = error.getInner();
-    }
-    return hash;
+  private long getHash(Event event) {
+    return Objects.hash(
+        event.getType(),
+        event.getSource(),
+        event.getDate(),
+        event.getTags(),
+        event.getMessage(),
+        event.getData());
   }
 
   @Builder

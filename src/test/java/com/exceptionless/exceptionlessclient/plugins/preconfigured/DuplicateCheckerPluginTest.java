@@ -7,7 +7,6 @@ import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.models.services.error.Error;
 import com.exceptionless.exceptionlessclient.models.services.error.StackFrame;
-import com.exceptionless.exceptionlessclient.plugins.preconfigured.DuplicateErrorCheckerPlugin;
 import com.exceptionless.exceptionlessclient.queue.DefaultEventQueue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +21,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-public class DuplicateErrorCheckerPluginTest {
+public class DuplicateCheckerPluginTest {
   private static final String EVENT_REF_ID = "test-event";
   private static final Long EVENT_COUNT = 100L;
 
@@ -30,7 +29,7 @@ public class DuplicateErrorCheckerPluginTest {
 
   private EventPluginContext context;
   private ConfigurationManager configurationManager;
-  private DuplicateErrorCheckerPlugin plugin;
+  private DuplicateCheckerPlugin plugin;
 
   @BeforeEach
   public void setup() {
@@ -56,7 +55,7 @@ public class DuplicateErrorCheckerPluginTest {
   @Test
   public void itCanDetectAPotentialToBeMergedEvent() throws InterruptedException {
     plugin =
-        DuplicateErrorCheckerPlugin.builder()
+        DuplicateCheckerPlugin.builder()
             .mergedEventsResubmissionInSecs(1)
             .build();
     plugin.run(context, configurationManager);
@@ -74,7 +73,7 @@ public class DuplicateErrorCheckerPluginTest {
   @Test
   public void itCanMergeEventsWithSameHash() throws InterruptedException {
     plugin =
-        DuplicateErrorCheckerPlugin.builder()
+        DuplicateCheckerPlugin.builder()
             .mergedEventsResubmissionInSecs(1)
             .build();
     plugin.run(context, configurationManager);
