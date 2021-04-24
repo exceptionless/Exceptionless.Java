@@ -20,15 +20,12 @@ public class ExampleApp {
 
   public static void sampleUseOfSessions() {
     client.getConfigurationManager().useSessions();
-    client.submitEvent(
-        EventPluginContext.from(client.createSessionStart().userIdentity("test-user").build()));
+    client.submitEvent(client.createSessionStart().userIdentity("test-user").build());
     client.submitSessionEnd("test-user");
   }
 
   public static void sampleUseOfUpdatingEmailAndDescription() {
-    client.submitEvent(
-        EventPluginContext.from(
-            client.createLog("test-log").referenceId("test-reference-id").build()));
+    client.submitEvent(client.createLog("test-log").referenceId("test-reference-id").build());
     client.updateEmailAndDescription("test-reference-id", "test@email.com", "test-description");
   }
 

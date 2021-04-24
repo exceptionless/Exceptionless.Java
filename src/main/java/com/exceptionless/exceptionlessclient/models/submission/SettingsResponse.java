@@ -3,11 +3,9 @@ package com.exceptionless.exceptionlessclient.models.submission;
 import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import lombok.Builder;
 import lombok.Value;
-import lombok.experimental.NonFinal;
 
 @Builder
 @Value
-@NonFinal
 public class SettingsResponse {
   int code;
   String body;
