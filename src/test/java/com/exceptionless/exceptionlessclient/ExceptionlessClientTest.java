@@ -86,7 +86,7 @@ public class ExceptionlessClientTest {
   public void itCanCreateAnExceptionEvent() {
     doReturn(settingsStorage).when(storageProvider).getSettings();
 
-    Event event = client.createException().build();
+    Event event = client.createError().build();
 
     assertThat(event.getType()).isEqualTo(EventType.ERROR.value());
     assertThat(event.getDate()).isNotNull();

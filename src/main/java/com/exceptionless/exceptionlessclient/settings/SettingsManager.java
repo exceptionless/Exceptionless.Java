@@ -97,7 +97,10 @@ public class SettingsManager {
       return true;
     }
     if (!response.isSuccess()) {
-      LOG.warn(String.format("Unable to update settings: %s", response.getBody()));
+      LOG.warn(
+          String.format(
+              "Unable to update settings, body: %s, code: %s",
+              response.getBody(), response.getCode()));
       return true;
     }
     if (response.getSettings() == null) {

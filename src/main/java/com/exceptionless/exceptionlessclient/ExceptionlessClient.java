@@ -92,12 +92,26 @@ public class ExceptionlessClient {
   }
 
   public void submitException(Exception exception) {
-    Event event = createException().build();
-    PluginContext pluginContext = PluginContext.builder().exception(exception).build();
-    submitEvent(EventPluginContext.builder().event(event).context(pluginContext).build());
+    submitException(null, exception);
   }
 
-  public Event.EventBuilder createException() {
+  public CompletableFuture<Void> submitExceptionAsync(String message, Exception exception) {
+    return CompletableFuture.runAsync(() -> submitException(message, exception), executorService);
+  }
+
+  public void submitException(String message, Exception exception) {
+    Event event;
+    if (message == null) {
+      event = createError().build();
+    } else {
+      event = createError().message(message).build();
+    }
+    PluginContext pluginContext = PluginContext.builder().exception(exception).build();
+    submitEventWithContext(
+        EventPluginContext.builder().event(event).context(pluginContext).build());
+  }
+
+  public Event.EventBuilder createError() {
     return createEvent().type(EventType.ERROR.value());
   }
 
@@ -108,14 +122,15 @@ public class ExceptionlessClient {
   }
 
   public void submitUnhandledException(Exception exception, String submissionMethod) {
-    Event event = createException().build();
+    Event event = createError().build();
     PluginContext pluginContext =
         PluginContext.builder()
             .exception(exception)
             .unhandledError(true)
             .submissionMethod(submissionMethod)
             .build();
-    submitEvent(EventPluginContext.builder().event(event).context(pluginContext).build());
+    submitEventWithContext(
+        EventPluginContext.builder().event(event).context(pluginContext).build());
   }
 
   public CompletableFuture<Void> submitFeatureUsageAsync(String feature) {
@@ -123,8 +138,7 @@ public class ExceptionlessClient {
   }
 
   public void submitFeatureUsage(String feature) {
-    Event event = createFeatureUsage(feature).build();
-    submitEvent(EventPluginContext.from(event));
+    submitEvent(createFeatureUsage(feature).build());
   }
 
   public Event.EventBuilder createFeatureUsage(String feature) {
@@ -152,8 +166,7 @@ public class ExceptionlessClient {
   }
 
   public void submitLog(String message, String source, String level) {
-    Event event = createLog(message, source, level).build();
-    submitEvent(EventPluginContext.from(event));
+    submitEvent(createLog(message, source, level).build());
   }
 
   public Event.EventBuilder createLog(String message) {
@@ -166,13 +179,7 @@ public class ExceptionlessClient {
 
   public Event.EventBuilder createLog(String message, String source, String level) {
     if (source == null) {
-      // Calling method
-      StackTraceElement[] traceElements = Thread.currentThread().getStackTrace();
-      source = traceElements[2].getMethodName();
-      // Came from the overrided method
-      if (source.equals("createLog")) {
-        source = traceElements[3].getMethodName();
-      }
+      source = getCallingMethod();
     }
 
     Event.EventBuilder builder =
@@ -184,13 +191,20 @@ public class ExceptionlessClient {
     return builder.property(EventPropertyKey.LOG_LEVEL.value(), level);
   }
 
+  private String getCallingMethod() {
+    StackTraceElement[] traceElements = Thread.currentThread().getStackTrace();
+    String source = traceElements[3].getMethodName();
+    boolean cameFromOverridenMethod = source.equals("createLog");
+
+    return cameFromOverridenMethod ? traceElements[4].getMethodName() : source;
+  }
+
   public CompletableFuture<Void> submitNotFoundAsync(String resource) {
     return CompletableFuture.runAsync(() -> submitNotFound(resource), executorService);
   }
 
   public void submitNotFound(String resource) {
-    Event event = createNotFound(resource).build();
-    submitEvent(EventPluginContext.from(event));
+    submitEvent(createNotFound(resource).build());
   }
 
   public Event.EventBuilder createNotFound(String resource) {
@@ -202,8 +216,7 @@ public class ExceptionlessClient {
   }
 
   public void submitSessionStart() {
-    Event event = createSessionStart().build();
-    submitEvent(EventPluginContext.from(event));
+    submitEvent(createSessionStart().build());
   }
 
   public Event.EventBuilder createSessionStart() {
@@ -216,11 +229,21 @@ public class ExceptionlessClient {
         .date(LocalDate.now());
   }
 
-  public CompletableFuture<Void> submitEventAsync(EventPluginContext eventPluginContext) {
-    return CompletableFuture.runAsync(() -> submitEvent(eventPluginContext), executorService);
+  public CompletableFuture<Void> submitEventAsync(Event event) {
+    return CompletableFuture.runAsync(() -> submitEvent(event), executorService);
   }
 
-  public void submitEvent(EventPluginContext eventPluginContext) {
+  public void submitEvent(Event event) {
+    eventPluginRunner.run(EventPluginContext.from(event));
+  }
+
+  public CompletableFuture<Void> submitEventWithContextAsync(
+      EventPluginContext eventPluginContext) {
+    return CompletableFuture.runAsync(
+        () -> submitEventWithContext(eventPluginContext), executorService);
+  }
+
+  public void submitEventWithContext(EventPluginContext eventPluginContext) {
     eventPluginRunner.run(eventPluginContext);
   }
 
