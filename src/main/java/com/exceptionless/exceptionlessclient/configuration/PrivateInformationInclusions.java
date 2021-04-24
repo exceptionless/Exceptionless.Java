@@ -33,12 +33,12 @@ public class PrivateInformationInclusions {
       Boolean ipAddress,
       Boolean machineName,
       Boolean userName) {
-    this.queryString = queryString == null || queryString;
-    this.postData = postData == null || postData;
-    this.cookies = cookies == null || cookies;
-    this.ipAddress = ipAddress == null || ipAddress;
-    this.machineName = machineName == null || machineName;
-    this.userName = userName == null || userName;
+    this.queryString = queryString != null && queryString;
+    this.postData = postData != null && postData;
+    this.cookies = cookies != null && cookies;
+    this.ipAddress = ipAddress != null && ipAddress;
+    this.machineName = machineName != null && machineName;
+    this.userName = userName != null && userName;
     this.propertyChangeSupport = new PropertyChangeSupport(this);
   }
 

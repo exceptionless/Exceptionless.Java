@@ -35,11 +35,9 @@ public class ConfigurationManager {
   private static final Integer API_KEY_MIN_LENGTH = 11;
   private static final Integer DEFAULT_HEART_BEAT_INTERVAL_IN_SECS = 30;
 
-  @Getter private final EnvironmentInfoCollectorIF environmentInfoCollector;
   @Getter private final ErrorParserIF errorParser;
   @Getter private final LastReferenceIdManagerIF lastReferenceIdManager;
   @Getter private final ModuleCollectorIF moduleCollector;
-  @Getter private final RequestInfoCollectorIF requestInfoCollector;
   @Getter private final SubmissionClientIF submissionClient;
   @Getter private final EventQueueIF queue;
   @Getter private final Configuration configuration;
@@ -55,12 +53,10 @@ public class ConfigurationManager {
 
   @Builder
   public ConfigurationManager(
-      EnvironmentInfoCollectorIF environmentInfoCollector,
       ErrorParserIF errorParser,
       LastReferenceIdManagerIF lastReferenceIdManager,
       LogCapturerIF logCatpurer,
       ModuleCollectorIF moduleCollector,
-      RequestInfoCollectorIF requestInfoCollector,
       SubmissionClientIF submissionClient,
       SettingsClientIF settingsClient,
       StorageProviderIF storageProvider,
@@ -68,10 +64,6 @@ public class ConfigurationManager {
       Configuration configuration,
       Integer maxQueueItems,
       Integer processingIntervalInSecs) {
-    this.environmentInfoCollector =
-        environmentInfoCollector == null
-            ? DefaultEnvironmentInfoCollector.builder().build()
-            : environmentInfoCollector;
     this.errorParser = errorParser == null ? DefaultErrorParser.builder().build() : errorParser;
     this.lastReferenceIdManager =
         lastReferenceIdManager == null
@@ -79,10 +71,6 @@ public class ConfigurationManager {
             : lastReferenceIdManager;
     this.moduleCollector =
         moduleCollector == null ? DefaultModuleCollector.builder().build() : moduleCollector;
-    this.requestInfoCollector =
-        requestInfoCollector == null
-            ? DefaultRequestInfoCollector.builder().build()
-            : requestInfoCollector;
     this.storageProvider =
         storageProvider == null
             ? InMemoryStorageProvider.builder().maxQueueItems(maxQueueItems).build()
