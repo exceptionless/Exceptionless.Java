@@ -77,6 +77,36 @@ public class DefaultSubmissionClientTest {
   }
 
   @Test
+  public void itCanDetectRateLimitingFromHeaders() throws IOException {
+    Response response =
+        responseBuilder
+            .headers(
+                Headers.of(
+                    Map.of("x-exceptionless-configversion", "3", "x-ratelimit-remaining", "0")))
+            .build();
+    doReturn(response).when(call).execute();
+    doReturn(call)
+        .when(httpClient)
+        .newCall(
+            argThat(
+                request ->
+                    request
+                            .url()
+                            .toString()
+                            .equals(
+                                "http://test-server-url/api/v2/events?access_token=test-api-key")
+                        && request.method().equals("POST")));
+
+    SubmissionResponse submissionResponse =
+        submissionClient.postEvents(List.of(Event.builder().build()));
+
+    assertThat(submissionResponse.getBody()).isEqualTo("test-body");
+    assertThat(submissionResponse.getCode()).isEqualTo(200);
+    verify(settingsManager, times(1)).checkVersion(3);
+    assertThat(submissionResponse.isRateLimited()).isTrue();
+  }
+
+  @Test
   public void itCanPostEventsSuccessfullyWhenNoSettingHeaderIsReturned() throws IOException {
     doReturn(responseBuilder.build()).when(call).execute();
     doReturn(call).when(httpClient).newCall(any());

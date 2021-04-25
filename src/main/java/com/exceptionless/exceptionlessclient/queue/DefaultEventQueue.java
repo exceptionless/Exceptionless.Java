@@ -4,9 +4,9 @@ import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
-import com.exceptionless.exceptionlessclient.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.storage.StorageProviderIF;
 import com.exceptionless.exceptionlessclient.submission.SubmissionClientIF;
+import com.exceptionless.exceptionlessclient.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -155,6 +155,13 @@ public class DefaultEventQueue implements EventQueueIF {
       log.info(String.format("Sent %s events", storedEvents.size()));
       setBatchSizeToConfigured();
       removeEvents(storedEvents);
+      return;
+    }
+
+    if (response.isRateLimited()) {
+      log.error(
+          "Service is rate limited because of either you have exceeded your rate limit or server is under stress.");
+      suspendProcessing();
       return;
     }
 
