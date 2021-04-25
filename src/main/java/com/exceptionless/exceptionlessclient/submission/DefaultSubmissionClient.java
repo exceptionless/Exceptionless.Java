@@ -1,7 +1,6 @@
 package com.exceptionless.exceptionlessclient.submission;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.settings.SettingsManager;
@@ -84,7 +83,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
           .body(body == null ? "" : body.string())
           .build();
     } catch (Exception e) {
-      throw new SubmissionClientException(e);
+      return SubmissionResponse.builder().exception(e).build();
     }
   }
 
@@ -122,7 +121,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
                 sessionIdOrUserId));
       }
     } catch (Exception e) {
-      throw new SubmissionClientException(e);
+      log.error("Error while submitting heartbeat", e);
     }
   }
 }
