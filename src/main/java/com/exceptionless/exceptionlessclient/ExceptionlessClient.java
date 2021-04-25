@@ -2,14 +2,14 @@ package com.exceptionless.exceptionlessclient;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
+import com.exceptionless.exceptionlessclient.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.PluginContext;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
-import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
-import com.exceptionless.exceptionlessclient.enums.EventType;
-import com.exceptionless.exceptionlessclient.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginRunner;
+import com.exceptionless.exceptionlessclient.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;
 import lombok.Builder;
 import lombok.Getter;
@@ -269,9 +269,16 @@ public class ExceptionlessClient {
             .postUserDescription(
                 referenceId,
                 UserDescription.builder().description(description).emailAddress(email).build());
+    if (response.hasException()) {
+      log.error(
+          String.format("Failed to submit user email and description for event: %s", referenceId),
+          response.getException());
+    }
     if (!response.isSuccess()) {
       log.error(
-          String.format("Failed to submit user email and description for event: %s", referenceId));
+          String.format(
+              "Failed to submit user email and description for event: %s, code: %s",
+              referenceId, response.getCode()));
     }
 
     return response;

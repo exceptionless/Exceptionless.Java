@@ -2,7 +2,6 @@ package com.exceptionless.exceptionlessclient.settings;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SettingsClientException;
 import okhttp3.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,7 +13,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doReturn;
@@ -101,12 +99,13 @@ public class DefaultSettingsClientTest {
   }
 
   @Test
-  public void itCanMapAnyExceptionToSettingsClientException() {
-    RuntimeException e = new RuntimeException("test");
+  public void itCanHandleAllExceptions() {
+    Exception e = new RuntimeException("test");
     doThrow(e).when(httpClient).newCall(any());
 
-    assertThatThrownBy(() -> settingsClient.getSettings(1))
-        .isInstanceOf(SettingsClientException.class)
-        .hasMessage("java.lang.RuntimeException: test");
+    SettingsResponse response = settingsClient.getSettings(1);
+
+    assertThat(response.hasException()).isTrue();
+    assertThat(response.getException()).isSameAs(e);
   }
 }
