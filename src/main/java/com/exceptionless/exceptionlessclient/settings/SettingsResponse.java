@@ -1,6 +1,5 @@
-package com.exceptionless.exceptionlessclient.models.submission;
+package com.exceptionless.exceptionlessclient.settings;
 
-import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import lombok.Builder;
 import lombok.Value;
 

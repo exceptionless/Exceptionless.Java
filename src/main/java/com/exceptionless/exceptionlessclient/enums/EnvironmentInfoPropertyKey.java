@@ -1,4 +1,4 @@
-package com.exceptionless.exceptionlessclient.models.enums;
+package com.exceptionless.exceptionlessclient.enums;
 
 public enum EnvironmentInfoPropertyKey {
   LOAD_AVG("loadavg"),

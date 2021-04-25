@@ -2,7 +2,6 @@ package com.exceptionless.exceptionlessclient.settings;
 
 import com.exceptionless.exceptionlessclient.exceptions.SettingsClientException;
 import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
-import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.storage.StorageProviderIF;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;

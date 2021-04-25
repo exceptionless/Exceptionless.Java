@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.queue;
 
 import com.exceptionless.exceptionlessclient.models.Event;
-import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
+import com.exceptionless.exceptionlessclient.submission.SubmissionResponse;
 
 import java.time.Duration;
 import java.util.List;

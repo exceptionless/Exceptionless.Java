@@ -1,4 +1,4 @@
-package com.exceptionless.exceptionlessclient.models.submission;
+package com.exceptionless.exceptionlessclient.submission;
 
 import lombok.Builder;
 import lombok.Value;

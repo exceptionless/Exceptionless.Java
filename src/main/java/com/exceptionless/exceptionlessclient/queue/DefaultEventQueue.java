@@ -4,7 +4,7 @@ import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
-import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
+import com.exceptionless.exceptionlessclient.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.storage.StorageProviderIF;
 import com.exceptionless.exceptionlessclient.submission.SubmissionClientIF;
 import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;
