@@ -8,7 +8,7 @@ import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.PluginContext;
 import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.models.enums.ServerSettingKey;
-import com.exceptionless.exceptionlessclient.models.services.RequestInfo;
+import com.exceptionless.exceptionlessclient.models.RequestInfo;
 import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorageProvider;
 import org.junit.jupiter.api.BeforeEach;

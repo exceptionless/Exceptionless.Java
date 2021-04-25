@@ -7,7 +7,7 @@ import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.PluginContext;
 import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.models.enums.EventType;
-import com.exceptionless.exceptionlessclient.models.services.error.StackFrame;
+import com.exceptionless.exceptionlessclient.models.error.StackFrame;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

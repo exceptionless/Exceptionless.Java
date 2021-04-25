@@ -1,4 +1,4 @@
-package com.exceptionless.exceptionlessclient.models.services.error;
+package com.exceptionless.exceptionlessclient.models.error;
 
 import com.exceptionless.exceptionlessclient.models.base.Model;
 import lombok.EqualsAndHashCode;

@@ -4,7 +4,7 @@ import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.enums.EnvironmentInfoPropertyKey;
-import com.exceptionless.exceptionlessclient.models.services.EnvironmentInfo;
+import com.exceptionless.exceptionlessclient.models.EnvironmentInfo;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import com.exceptionless.exceptionlessclient.plugins.preconfigured.args.EnvironmentInfoGetArgs;
 import com.sun.management.OperatingSystemMXBean;

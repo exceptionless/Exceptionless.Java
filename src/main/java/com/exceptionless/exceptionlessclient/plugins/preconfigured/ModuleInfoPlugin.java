@@ -2,8 +2,8 @@ package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
-import com.exceptionless.exceptionlessclient.models.services.Module;
-import com.exceptionless.exceptionlessclient.models.services.error.Error;
+import com.exceptionless.exceptionlessclient.models.Module;
+import com.exceptionless.exceptionlessclient.models.error.Error;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
 

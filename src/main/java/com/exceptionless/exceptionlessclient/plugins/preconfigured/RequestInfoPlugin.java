@@ -3,7 +3,7 @@ package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
-import com.exceptionless.exceptionlessclient.models.services.RequestInfo;
+import com.exceptionless.exceptionlessclient.models.RequestInfo;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import com.exceptionless.exceptionlessclient.plugins.preconfigured.args.RequestInfoGetArgs;
 import com.exceptionless.exceptionlessclient.utils.Utils;

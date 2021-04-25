@@ -5,7 +5,7 @@ import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
 import com.exceptionless.exceptionlessclient.configuration.PrivateInformationInclusions;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
-import com.exceptionless.exceptionlessclient.models.services.EnvironmentInfo;
+import com.exceptionless.exceptionlessclient.models.EnvironmentInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
