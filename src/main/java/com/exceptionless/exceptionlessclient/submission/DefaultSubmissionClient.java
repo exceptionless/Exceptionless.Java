@@ -115,7 +115,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
 
       Response response = httpClient.newCall(request).execute();
 
-      if (response.isSuccessful()) {
+      if (!response.isSuccessful()) {
         log.error(
             String.format(
                 "Error in submitting heartbeat to the server for sessionOrUserId: %s",
