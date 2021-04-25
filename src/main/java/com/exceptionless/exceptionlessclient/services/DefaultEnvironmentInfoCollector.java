@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.services;
 
-import com.exceptionless.exceptionlessclient.models.enums.EnvironmentInfoPropertyKey;
+import com.exceptionless.exceptionlessclient.enums.EnvironmentInfoPropertyKey;
 import com.exceptionless.exceptionlessclient.models.services.EnvironmentInfo;
 import com.sun.management.OperatingSystemMXBean;
 import lombok.Builder;

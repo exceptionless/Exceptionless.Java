@@ -3,7 +3,6 @@ package com.exceptionless.exceptionlessclient.settings;
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.exceptions.SettingsClientException;
-import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import okhttp3.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

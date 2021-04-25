@@ -2,7 +2,6 @@ package com.exceptionless.exceptionlessclient.submission;
 
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
-import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 
 import java.util.List;
 
