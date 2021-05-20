@@ -51,7 +51,7 @@ public class DefaultSettingsClient implements SettingsClientIF {
       if (bodyStr == null) {
         return SettingsResponse.builder().code(response.code()).body("").build();
       }
-      if (response.code() / 100 != 2) {
+      if (!response.isSuccessful()) {
         return SettingsResponse.builder().code(response.code()).body(bodyStr).build();
       }
 

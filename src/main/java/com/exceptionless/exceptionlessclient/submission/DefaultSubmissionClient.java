@@ -73,7 +73,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
 
       Response response = httpClient.newCall(request).execute();
 
-      if (response.code() / 100 == 2) {
+      if (response.isSuccessful()) {
         updateSettingsFromHeaders(response.headers());
       }
 
@@ -114,7 +114,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
 
       Response response = httpClient.newCall(request).execute();
 
-      if (response.code() / 100 != 2) {
+      if (!response.isSuccessful()) {
         log.error(
             String.format(
                 "Error in submitting heartbeat to the server for sessionOrUserId: %s",
