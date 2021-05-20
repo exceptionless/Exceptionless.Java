@@ -8,6 +8,7 @@ import lombok.Value;
 public class SubmissionResponse {
   int code;
   String body;
+  Exception exception;
 
   public boolean isSuccess() {
     return code >= 200 && code <= 299;
@@ -35,5 +36,9 @@ public class SubmissionResponse {
 
   public boolean isRequestEntityTooLarge() {
     return code == 413;
+  }
+
+  public boolean hasException() {
+    return exception != null;
   }
 }

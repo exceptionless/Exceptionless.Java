@@ -1,6 +1,5 @@
 package com.exceptionless.exceptionlessclient.settings;
 
-import com.exceptionless.exceptionlessclient.exceptions.SettingsClientException;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorage;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorageProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -152,7 +151,9 @@ public class SettingsManagerTest {
 
   @Test
   public void itCanHandleSettingsClientException() {
-    doThrow(new SettingsClientException("test")).when(settingsClient).getSettings(anyLong());
+    doReturn(SettingsResponse.builder().exception(new RuntimeException("test")).build())
+        .when(settingsClient)
+        .getSettings(anyLong());
 
     settingsManager.updateSettings();
   }
