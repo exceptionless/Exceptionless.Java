@@ -114,7 +114,11 @@ public class ConfigurationManager {
         SettingsManager.builder()
             .settingsClient(
                 settingsClient == null
-                    ? DefaultSettingsClient.builder().configuration(this.configuration).build()
+                    ? DefaultSettingsClient.builder()
+                        .configServerUrl(this.configServerUrl)
+                        .settingsClientTimeoutInMillis(this.settingsClientTimeoutInMillis)
+                        .apiKey(this.apiKey)
+                        .build()
                     : settingsClient)
             .storageProvider(this.storageProvider)
             .build();
@@ -185,8 +189,7 @@ public class ConfigurationManager {
   }
 
   private void checkApiKeyIsValid() {
-    if (configuration.getApiKey() != null
-        && configuration.getApiKey().length() >= API_KEY_MIN_LENGTH) {
+    if (this.apiKey.get() != null && this.apiKey.get().length() >= API_KEY_MIN_LENGTH) {
       return;
     }
 
