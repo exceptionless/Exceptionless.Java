@@ -70,14 +70,14 @@ public class ConfigurationManager {
   private final Set<String> dataExclusions;
   private final PluginManager pluginManager;
   @Getter private final StorageProviderIF storageProvider;
-  @Getter private ValueProvider<String> apiKey;
-  @Getter private ValueProvider<String> serverUrl;
-  @Getter private ValueProvider<String> heartbeatServerUrl;
-  @Getter private ValueProvider<String> configServerUrl;
-  @Getter private ValueProvider<Long> updateSettingsWhenIdleInterval;
-  @Getter private ValueProvider<Integer> submissionBatchSize;
-  @Getter private ValueProvider<Integer> submissionClientTimeoutInMillis;
-  @Getter private ValueProvider<Integer> settingsClientTimeoutInMillis;
+  @Getter private final ValueProvider<String> apiKey;
+  @Getter private final ValueProvider<String> serverUrl;
+  @Getter private final ValueProvider<String> heartbeatServerUrl;
+  @Getter private final ValueProvider<String> configServerUrl;
+  @Getter private final ValueProvider<Long> updateSettingsWhenIdleInterval;
+  @Getter private final ValueProvider<Integer> submissionBatchSize;
+  @Getter private final ValueProvider<Integer> submissionClientTimeoutInMillis;
+  @Getter private final ValueProvider<Integer> settingsClientTimeoutInMillis;
   private final PropertyChangeSupport propertyChangeSupport;
 
   @Builder
@@ -98,6 +98,38 @@ public class ConfigurationManager {
       Integer submissionBatchSize,
       Integer submissionClientTimeoutInMillis,
       Integer settingsClientTimeoutInMillis) {
+    this.apiKey = ValueProvider.of(apiKey);
+    this.serverUrl =
+        serverUrl == null ? ValueProvider.of(DEFAULT_SERVER_URL) : ValueProvider.of(serverUrl);
+    this.heartbeatServerUrl =
+        heartbeatServerUrl == null
+            ? (serverUrl == null
+                ? ValueProvider.of(DEFAULT_HEARTBEAT_SERVER_URL)
+                : ValueProvider.of(serverUrl))
+            : ValueProvider.of(heartbeatServerUrl);
+    this.configServerUrl =
+        configServerUrl == null
+            ? (serverUrl == null
+                ? ValueProvider.of(DEFAULT_CONFIG_SERVER_URL)
+                : ValueProvider.of(serverUrl))
+            : ValueProvider.of(configServerUrl);
+    this.updateSettingsWhenIdleInterval =
+        updateSettingsWhenIdleInterval == null
+            ? ValueProvider.of(DEFAULT_UPDATE_SETTINGS_WHEN_IDLE_INTERVAL)
+            : ValueProvider.of(updateSettingsWhenIdleInterval);
+    this.submissionBatchSize =
+        submissionBatchSize == null
+            ? ValueProvider.of(DEFAULT_SUBMISSION_BATCH_SIZE)
+            : ValueProvider.of(submissionBatchSize);
+    this.submissionClientTimeoutInMillis =
+        submissionClientTimeoutInMillis == null
+            ? ValueProvider.of(DEFAULT_SUBMISSION_CLIENT_TIMEOUT_IN_MILLIS)
+            : ValueProvider.of(submissionClientTimeoutInMillis);
+    this.settingsClientTimeoutInMillis =
+        settingsClientTimeoutInMillis == null
+            ? ValueProvider.of(DEFAULT_SETTINGS_CLIENT_TIMEOUT_IN_MILLIS)
+            : ValueProvider.of(settingsClientTimeoutInMillis);
+    this.propertyChangeSupport = new PropertyChangeSupport(this);
     this.lastReferenceIdManager =
         lastReferenceIdManager == null
             ? DefaultLastReferenceIdManager.builder().build()
@@ -144,38 +176,6 @@ public class ConfigurationManager {
     this.onChangedHandlers = new ArrayList<>();
     this.dataExclusions = new HashSet<>();
     this.privateInformationInclusions = PrivateInformationInclusions.builder().build();
-    this.apiKey = ValueProvider.of(apiKey);
-    this.serverUrl =
-        serverUrl == null ? ValueProvider.of(DEFAULT_SERVER_URL) : ValueProvider.of(serverUrl);
-    this.heartbeatServerUrl =
-        heartbeatServerUrl == null
-            ? (serverUrl == null
-                ? ValueProvider.of(DEFAULT_HEARTBEAT_SERVER_URL)
-                : ValueProvider.of(serverUrl))
-            : ValueProvider.of(heartbeatServerUrl);
-    this.configServerUrl =
-        configServerUrl == null
-            ? (serverUrl == null
-                ? ValueProvider.of(DEFAULT_CONFIG_SERVER_URL)
-                : ValueProvider.of(serverUrl))
-            : ValueProvider.of(configServerUrl);
-    this.updateSettingsWhenIdleInterval =
-        updateSettingsWhenIdleInterval == null
-            ? ValueProvider.of(DEFAULT_UPDATE_SETTINGS_WHEN_IDLE_INTERVAL)
-            : ValueProvider.of(updateSettingsWhenIdleInterval);
-    this.submissionBatchSize =
-        submissionBatchSize == null
-            ? ValueProvider.of(DEFAULT_SUBMISSION_BATCH_SIZE)
-            : ValueProvider.of(submissionBatchSize);
-    this.submissionClientTimeoutInMillis =
-        submissionClientTimeoutInMillis == null
-            ? ValueProvider.of(DEFAULT_SUBMISSION_CLIENT_TIMEOUT_IN_MILLIS)
-            : ValueProvider.of(submissionClientTimeoutInMillis);
-    this.settingsClientTimeoutInMillis =
-        settingsClientTimeoutInMillis == null
-            ? ValueProvider.of(DEFAULT_SETTINGS_CLIENT_TIMEOUT_IN_MILLIS)
-            : ValueProvider.of(settingsClientTimeoutInMillis);
-    this.propertyChangeSupport = new PropertyChangeSupport(this);
     checkApiKeyIsValid();
     addPropertyChangeListeners();
     addLogCapturer(logCatpurer);
@@ -192,8 +192,7 @@ public class ConfigurationManager {
       return;
     }
 
-    throw new InvalidApiKeyException(
-        String.format("Apikey is not valid: [%s]", this.apiKey.get()));
+    throw new InvalidApiKeyException(String.format("Apikey is not valid: [%s]", this.apiKey.get()));
   }
 
   private void addLogCapturer(LogCapturerIF logCatpurer) {
@@ -210,35 +209,35 @@ public class ConfigurationManager {
   public void setApiKey(String apiKey) {
     String prevValue = this.apiKey.get();
     this.apiKey.update(apiKey);
-    propertyChangeSupport.firePropertyChange(Configuration.Property.API_KEY, prevValue, apiKey);
+    propertyChangeSupport.firePropertyChange(Property.API_KEY, prevValue, apiKey);
   }
 
   public void setServerUrl(String serverUrl) {
     String prevValue = this.serverUrl.get();
     this.serverUrl.update(serverUrl);
     propertyChangeSupport.firePropertyChange(
-        Configuration.Property.SERVER_URL, prevValue, serverUrl);
+        Property.SERVER_URL, prevValue, serverUrl);
   }
 
   public void setConfigServerUrl(String configServerUrl) {
     String prevValue = this.configServerUrl.get();
     this.configServerUrl.update(configServerUrl);
     propertyChangeSupport.firePropertyChange(
-        Configuration.Property.CONFIG_SERVER_URL, prevValue, configServerUrl);
+        Property.CONFIG_SERVER_URL, prevValue, configServerUrl);
   }
 
   public void setHeartbeatServerUrl(String heartbeatServerUrl) {
     String prevValue = this.heartbeatServerUrl.get();
     this.heartbeatServerUrl.update(heartbeatServerUrl);
     propertyChangeSupport.firePropertyChange(
-        Configuration.Property.HEART_BEAT_SERVER_URL, prevValue, heartbeatServerUrl);
+        Property.HEART_BEAT_SERVER_URL, prevValue, heartbeatServerUrl);
   }
 
   public void setUpdateSettingsWhenIdleInterval(Long updateSettingsWhenIdleInterval) {
     Long prevValue = this.updateSettingsWhenIdleInterval.get();
     this.updateSettingsWhenIdleInterval.update(updateSettingsWhenIdleInterval);
     propertyChangeSupport.firePropertyChange(
-        Configuration.Property.UPDATE_SETTINGS_WHEN_IDLE_INTERVAL,
+        Property.UPDATE_SETTINGS_WHEN_IDLE_INTERVAL,
         prevValue,
         updateSettingsWhenIdleInterval);
   }
@@ -247,14 +246,14 @@ public class ConfigurationManager {
     Integer prevValue = this.submissionBatchSize.get();
     this.submissionBatchSize.update(submissionBatchSize);
     propertyChangeSupport.firePropertyChange(
-        Configuration.Property.SUBMISSION_BATCH_SIZE, prevValue, submissionBatchSize);
+        Property.SUBMISSION_BATCH_SIZE, prevValue, submissionBatchSize);
   }
 
   public void setSubmissionClientTimeoutInMillis(Integer submissionClientTimeoutInMillis) {
     Integer prevValue = this.submissionClientTimeoutInMillis.get();
     this.submissionClientTimeoutInMillis.update(submissionClientTimeoutInMillis);
     propertyChangeSupport.firePropertyChange(
-        Configuration.Property.SUBMISSION_CLIENT_TIMEOUT_IN_MILLIS,
+        Property.SUBMISSION_CLIENT_TIMEOUT_IN_MILLIS,
         prevValue,
         submissionClientTimeoutInMillis);
   }
@@ -263,7 +262,7 @@ public class ConfigurationManager {
     Integer prevValue = this.settingsClientTimeoutInMillis.get();
     this.settingsClientTimeoutInMillis.update(settingsClientTimeoutInMillis);
     propertyChangeSupport.firePropertyChange(
-        Configuration.Property.SETTINGS_CLIENT_TIMEOUT_IN_MILLIS,
+        Property.SETTINGS_CLIENT_TIMEOUT_IN_MILLIS,
         prevValue,
         settingsClientTimeoutInMillis);
   }

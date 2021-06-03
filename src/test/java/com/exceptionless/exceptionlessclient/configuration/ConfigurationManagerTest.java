@@ -1,16 +1,17 @@
 package com.exceptionless.exceptionlessclient.configuration;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
+import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.exceptions.InvalidApiKeyException;
 import com.exceptionless.exceptionlessclient.logging.LogCapturerIF;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.UserInfo;
-import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
-import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
+import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorage;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorageProvider;
 import com.exceptionless.exceptionlessclient.submission.DefaultSubmissionClient;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.beans.PropertyChangeListener;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +42,9 @@ public class ConfigurationManagerTest {
   private ConfigurationManager configurationManager;
   private InMemoryStorage<ServerSettings> storage;
 
+  public ConfigurationManagerTest(PropertyChangeListener listener) {
+  }
+
   @BeforeEach
   public void setup() {
     storage = InMemoryStorage.<ServerSettings>builder().build();
@@ -52,11 +57,7 @@ public class ConfigurationManagerTest {
 
   @Test
   public void itThrowsInvalidApiKeyExceptionForInvalidApiKeys() {
-    assertThatThrownBy(
-            () ->
-                TestFixtures.aDefaultConfigurationManager()
-                    .apiKey("xxx")
-                    .build())
+    assertThatThrownBy(() -> TestFixtures.aDefaultConfigurationManager().apiKey("xxx").build())
         .isInstanceOf(InvalidApiKeyException.class)
         .hasMessage("Apikey is not valid: [xxx]");
   }
@@ -195,5 +196,29 @@ public class ConfigurationManagerTest {
     configurationManager.setApiKey("test-api-key");
 
     verify(handler, times(1)).accept(configurationManager);
+  }
+
+  @Test
+  public void itCanSetDefaultValueHeartBeatServerUrlToServerUrlIfAbsent() {
+    ConfigurationManager configurationManager =
+        ConfigurationManager.builder()
+            .serverUrl("test-server-url")
+            .apiKey("12345678abcdef")
+            .build();
+
+    Assertions.assertThat(configurationManager.getHeartbeatServerUrl().get())
+        .isEqualTo("test-server-url");
+  }
+
+  @Test
+  public void itCanSetDefaultValueConfigServerUrlToServerUrlIfAbsent() {
+    ConfigurationManager configurationManager =
+            ConfigurationManager.builder()
+                    .serverUrl("test-server-url")
+                    .apiKey("12345678abcdef")
+                    .build();
+
+    Assertions.assertThat(configurationManager.getConfigServerUrl().get())
+            .isEqualTo("test-server-url");
   }
 }
