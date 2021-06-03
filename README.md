@@ -1,6 +1,8 @@
 # Exceptionless.Java
 
-The definition of the word exceptionless is: to be without exception. [Exceptionless](https://exceptionless.io) provides real-time error reporting for your Java apps. It organizes the gathered information into simple actionable data that will help your app become exceptionless!
+The definition of the word exceptionless is: to be without exception. [Exceptionless](https://exceptionless.io) provides
+real-time error reporting for your Java apps. It organizes the gathered information into simple actionable data that
+will help your app become exceptionless!
 
 ## Using Exceptionless
 
@@ -11,7 +13,7 @@ Refer to the Exceptionless documentation here: [Exceptionless Docs](http://docs.
 ## Show me the code
 
 ```java
-class ExampleApp{
+class ExampleApp {
     public static void main(String[] args) {
         private static final ExceptionlessClient client =
                 ExceptionlessClient.from(
@@ -44,24 +46,26 @@ _Example: Customizing your Event Queue implementation_
 
 ```
 EventQueueIF queue = //get your implementation
-Configuration configuration =
-    Configuration.builder().serverUrl("http://your-server-url").apiKey("your-api-key").build();
-ConfigurationManager configuration =
-    ConfigurationManager.builder().queue(queue).configuration(configuration).build();
-ExceptionlessClient client =
-    ExceptionlessClient.builder().configuration(configuration).build();
+Configuration configuration = Configuration.builder()
+        .serverUrl("http://your-server-url")
+        .apiKey("your-api-key")
+        .queue(queue)
+        .build();
+ExceptionlessClient client = ExceptionlessClient.builder().configuration(configuration).build();
 ```
 
 In this library we have made sure that all the values which are not set by builders fallback to reasonable defaults. So
 don't feel the pressure to supply values for all the fields. **Note:** Whenever customizing the client
-using `ConfigurationManager` never forget to supply your `serverUrl` and `apiKey` using a `Configuration` object as
+using `Configuration` never forget to supply your `serverUrl` and `apiKey` using a `Configuration` object as
 shown above.
 
 ## Spring Boot Users
 
-You can observe `NoClassDefFoundError` in your Spring-boot apps because Spring-boot uses v3 of `OkHttpClient` while this client uses v4. In that case you have to explicitly declare v4 of the library in you `pom.xml/build.gradle`.
+You can observe `NoClassDefFoundError` in your Spring-boot apps because Spring-boot uses v3 of `OkHttpClient` while this
+client uses v4. In that case you have to explicitly declare v4 of the library in you `pom.xml/build.gradle`.
 
 ```xml
+
 <dependencies>
     <dependency>
         <groupId>com.exceptionless</groupId>
@@ -83,15 +87,18 @@ You can observe `NoClassDefFoundError` in your Spring-boot apps because Spring-b
 
 ## General Data Protection Regulation
 
-By default the Exceptionless Client will report all available metadata including potential PII data.
-You can fine tune the collection of information via Data Exclusions or turning off collection completely.
+By default the Exceptionless Client will report all available metadata including potential PII data. You can fine tune
+the collection of information via Data Exclusions or turning off collection completely.
 
-Please visit the [docs](https://exceptionless.com/docs/clients/javascript/client-configuration/#general-data-protection-regulation)
+Please visit
+the [docs](https://exceptionless.com/docs/clients/javascript/client-configuration/#general-data-protection-regulation)
 for detailed information on how to configure the client to meet your requirements.
 
 ## Support
 
-If you need help, please contact us via in-app support, [open an issue](https://github.com/exceptionless/Exceptionless.Java/issues/new) or [join our chat on Discord](https://discord.gg/6HxgFCx). We’re always here to help if you have any questions!
+If you need help, please contact us via in-app
+support, [open an issue](https://github.com/exceptionless/Exceptionless.Java/issues/new)
+or [join our chat on Discord](https://discord.gg/6HxgFCx). We’re always here to help if you have any questions!
 
 ## Thanks
 

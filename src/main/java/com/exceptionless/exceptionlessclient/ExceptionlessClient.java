@@ -35,19 +35,16 @@ public class ExceptionlessClient {
   @Builder
   public ExceptionlessClient(Configuration configuration, Integer nThreads) {
     this(
-            configuration,
+        configuration,
         UPDATE_SETTINGS_TIMER_INITIAL_DELAY,
         nThreads == null ? DEFAULT_NTHREADS : nThreads);
   }
 
   @VisibleForTesting
   ExceptionlessClient(
-      Configuration configuration,
-      long updateSettingsTimerInitialDelay,
-      Integer nThreads) {
+      Configuration configuration, long updateSettingsTimerInitialDelay, Integer nThreads) {
     this.configuration = configuration;
-    this.eventPluginRunner =
-        EventPluginRunner.builder().configuration(this.configuration).build();
+    this.eventPluginRunner = EventPluginRunner.builder().configuration(this.configuration).build();
     this.updateSettingsTimer = new Timer(UPDATE_SETTINGS_TIMER_NAME);
     this.executorService = Executors.newFixedThreadPool(nThreads);
     init(updateSettingsTimerInitialDelay);
@@ -68,8 +65,7 @@ public class ExceptionlessClient {
         delay,
         configuration.getUpdateSettingsWhenIdleInterval().get());
 
-    configuration.onChanged(
-        ignored -> configuration.getSettingsManager().updateSettings());
+    configuration.onChanged(ignored -> configuration.getSettingsManager().updateSettings());
     configuration
         .getQueue()
         .onEventsPosted(
@@ -78,8 +74,7 @@ public class ExceptionlessClient {
 
   public static ExceptionlessClient from(String apiKey, String serverUrl) {
     return ExceptionlessClient.builder()
-        .configuration(
-            Configuration.builder().apiKey(apiKey).serverUrl(serverUrl).build())
+        .configuration(Configuration.builder().apiKey(apiKey).serverUrl(serverUrl).build())
         .build();
   }
 
@@ -220,9 +215,7 @@ public class ExceptionlessClient {
   }
 
   public Event.EventBuilder createEvent() {
-    return Event.builder()
-        .dataExclusions(configuration.getDataExclusions())
-        .date(LocalDate.now());
+    return Event.builder().dataExclusions(configuration.getDataExclusions()).date(LocalDate.now());
   }
 
   public CompletableFuture<Void> submitEventAsync(Event event) {
