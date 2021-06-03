@@ -1,18 +1,18 @@
 package com.exceptionless.exceptionlessclient;
 
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
-import com.exceptionless.exceptionlessclient.models.Event;
-import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.enums.EventType;
-import com.exceptionless.exceptionlessclient.settings.SettingsResponse;
-import com.exceptionless.exceptionlessclient.submission.SubmissionResponse;
+import com.exceptionless.exceptionlessclient.models.Event;
+import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.queue.DefaultEventQueue;
 import com.exceptionless.exceptionlessclient.settings.DefaultSettingsClient;
 import com.exceptionless.exceptionlessclient.settings.ServerSettings;
+import com.exceptionless.exceptionlessclient.settings.SettingsResponse;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorage;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorageProvider;
 import com.exceptionless.exceptionlessclient.submission.DefaultSubmissionClient;
+import com.exceptionless.exceptionlessclient.submission.SubmissionResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

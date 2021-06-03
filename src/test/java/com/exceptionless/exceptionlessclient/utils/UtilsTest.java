@@ -1,5 +1,6 @@
 package com.exceptionless.exceptionlessclient.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -79,5 +80,12 @@ public class UtilsTest {
   public void itCanMatchAValueToAPattern() {
     assertThat(Utils.match("abc", "def")).isFalse();
     assertThat(Utils.match("ABC", "abc")).isTrue();
+  }
+
+  @Test
+  public void itCanSerializeEmptyBeans() throws JsonProcessingException {
+    class EmptyBean {}
+
+    assertThat(Utils.JSON_MAPPER.writeValueAsString(new EmptyBean())).isEqualTo("{}");
   }
 }
