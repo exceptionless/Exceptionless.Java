@@ -136,7 +136,7 @@ public class ConfigurationManager {
     this.queue =
         queue == null
             ? DefaultEventQueue.builder()
-                .configuration(this.configuration)
+                .submissionBatchSize(this.submissionBatchSize)
                 .processingIntervalInSecs(processingIntervalInSecs)
                 .storageProvider(this.storageProvider)
                 .submissionClient(this.submissionClient)

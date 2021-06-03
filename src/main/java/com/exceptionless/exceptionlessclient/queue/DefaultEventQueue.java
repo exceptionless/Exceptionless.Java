@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.queue;
 
-import com.exceptionless.exceptionlessclient.configuration.Configuration;
+import com.exceptionless.exceptionlessclient.configuration.ValueProvider;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
 import com.exceptionless.exceptionlessclient.storage.StorageProviderIF;
@@ -27,7 +27,7 @@ public class DefaultEventQueue implements EventQueueIF {
   private static final Integer DEFAULT_SUSPENSION_DURATION_IN_MINS = 5;
 
   private final StorageProviderIF storageProvider;
-  private final Configuration configuration;
+  private final ValueProvider<Integer> submissionBatchSize;
   private final SubmissionClientIF submissionClient;
   private LocalDateTime discardQueueItemsUntil;
   private LocalDateTime suspendProcessingUntil;
@@ -39,15 +39,15 @@ public class DefaultEventQueue implements EventQueueIF {
   @Builder
   public DefaultEventQueue(
       StorageProviderIF storageProvider,
-      Configuration configuration,
+      ValueProvider<Integer> submissionBatchSize,
       SubmissionClientIF submissionClient,
       Integer processingIntervalInSecs) {
     this.storageProvider = storageProvider;
-    this.configuration = configuration;
+    this.submissionBatchSize = submissionBatchSize;
     this.submissionClient = submissionClient;
     this.queueTimer = new Timer(QUEUE_TIMER_NAME);
     this.handlers = new ArrayList<>();
-    this.currentSubmissionBatchSize = configuration.getSubmissionBatchSize();
+    this.currentSubmissionBatchSize = submissionBatchSize.get();
     init(
         processingIntervalInSecs == null
             ? DEFAULT_PROCESSING_INTERVAL_IN_SECS
@@ -133,8 +133,7 @@ public class DefaultEventQueue implements EventQueueIF {
 
       List<Event> events =
           storedEvents.stream().map(StorageItem::getValue).collect(Collectors.toList());
-      log.info(
-          String.format("Sending %s events to %s", events.size(), configuration.getServerUrl()));
+      log.info(String.format("Sending %s events", events.size()));
       SubmissionResponse response = submissionClient.postEvents(events);
       if (response.hasException()) {
         log.error("Error submitting events from queue", response.getException());
@@ -216,7 +215,7 @@ public class DefaultEventQueue implements EventQueueIF {
   }
 
   private void setBatchSizeToConfigured() {
-    currentSubmissionBatchSize = configuration.getSubmissionBatchSize();
+    currentSubmissionBatchSize = submissionBatchSize.get();
   }
 
   private void removeEvents(List<StorageItem<Event>> storedEvents) {
