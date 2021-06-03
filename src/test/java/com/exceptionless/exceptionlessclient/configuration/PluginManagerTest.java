@@ -24,7 +24,7 @@ public class PluginManagerTest {
         List.of(
             "ConfigurationDefaultsPlugin",
             "ErrorPlugin",
-            "DuplicateErrorCheckerPlugin",
+            "DuplicateCheckerPlugin",
             "EventExclusionPlugin",
             "ModuleInfoPlugin",
             "RequestInfoPlugin",
