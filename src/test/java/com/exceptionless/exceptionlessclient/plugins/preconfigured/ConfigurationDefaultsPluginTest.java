@@ -1,6 +1,5 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
-import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
@@ -22,10 +21,7 @@ public class ConfigurationDefaultsPluginTest {
   public void setup() {
     plugin = ConfigurationDefaultsPlugin.builder().build();
     context = EventPluginContext.from(Event.builder().build());
-    configurationManager =
-        ConfigurationManager.builder()
-            .configuration(Configuration.builder().apiKey("12456790abcdef").build())
-            .build();
+    configurationManager = ConfigurationManager.builder().apiKey("12456790abcdef").build();
   }
 
   @Test

@@ -55,7 +55,7 @@ public class ConfigurationManagerTest {
     assertThatThrownBy(
             () ->
                 TestFixtures.aDefaultConfigurationManager()
-                    .configuration(Configuration.builder().apiKey("xxx").build())
+                    .apiKey("xxx")
                     .build())
         .isInstanceOf(InvalidApiKeyException.class)
         .hasMessage("Apikey is not valid: [xxx]");
@@ -192,7 +192,7 @@ public class ConfigurationManagerTest {
   @Test
   public void itCanDetectChanges() {
     configurationManager.onChanged(handler);
-    configurationManager.getConfiguration().setApiKey("test-api-key");
+    configurationManager.setApiKey("test-api-key");
 
     verify(handler, times(1)).accept(configurationManager);
   }

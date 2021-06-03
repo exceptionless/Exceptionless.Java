@@ -127,7 +127,10 @@ public class ConfigurationManager {
         submissionClient == null
             ? DefaultSubmissionClient.builder()
                 .settingsManager(this.settingsManager)
-                .configuration(this.configuration)
+                .submissionClientTimeoutInMillis(this.submissionClientTimeoutInMillis)
+                .serverUrl(this.serverUrl)
+                .apiKey(this.apiKey)
+                .heartbeatServerUrl(this.heartbeatServerUrl)
                 .build()
             : submissionClient;
     this.queue =
@@ -194,7 +197,7 @@ public class ConfigurationManager {
     }
 
     throw new InvalidApiKeyException(
-        String.format("Apikey is not valid: [%s]", this.configuration.getApiKey()));
+        String.format("Apikey is not valid: [%s]", this.apiKey.get()));
   }
 
   private void addLogCapturer(LogCapturerIF logCatpurer) {

@@ -15,6 +15,7 @@ public final class TestFixtures {
 
   public static ConfigurationManager.ConfigurationManagerBuilder aDefaultConfigurationManager() {
     return ConfigurationManager.builder()
+        .apiKey("12456790abcdef")
         .configuration(aDefaultConfiguration().build())
         .queue(Mockito.mock(DefaultEventQueue.class))
         .storageProvider(InMemoryStorageProvider.builder().build());

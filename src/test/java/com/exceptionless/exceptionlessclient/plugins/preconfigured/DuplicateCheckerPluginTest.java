@@ -1,6 +1,5 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
-import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
 import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.models.Event;
@@ -46,10 +45,7 @@ public class DuplicateCheckerPluginTest {
                 .count(EVENT_COUNT)
                 .build());
     configurationManager =
-        ConfigurationManager.builder()
-            .configuration(TestFixtures.aDefaultConfiguration().build())
-            .queue(eventQueue)
-            .build();
+        ConfigurationManager.builder().apiKey("12456790abcdef").queue(eventQueue).build();
   }
 
   @Test
