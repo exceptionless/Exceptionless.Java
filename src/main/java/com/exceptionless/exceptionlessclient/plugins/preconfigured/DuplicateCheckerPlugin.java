@@ -27,8 +27,7 @@ public class DuplicateCheckerPlugin implements EventPluginIF {
   private final Integer mergedEventsResubmissionInSecs;
 
   @Builder
-  public DuplicateCheckerPlugin(
-      Integer mergedEventsResubmissionInSecs, Integer maxHashesCount) {
+  public DuplicateCheckerPlugin(Integer mergedEventsResubmissionInSecs, Integer maxHashesCount) {
     this.maxHashesCount = maxHashesCount == null ? DEFAULT_MAX_HASHES_COUNT : maxHashesCount;
     this.mergedEvents = new ArrayDeque<>();
     this.mergedEventsResubmissionTimer = new Timer(MERGED_EVENTS_RESUBMISSION_TIMER_NAME);
@@ -118,7 +117,9 @@ public class DuplicateCheckerPlugin implements EventPluginIF {
         event.getDate(),
         event.getTags(),
         event.getMessage(),
-        event.getData());
+        event.getData(),
+        event.getGeo(),
+        event.getValue());
   }
 
   @Builder
