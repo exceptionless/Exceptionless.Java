@@ -1,18 +1,19 @@
 package com.exceptionless.exceptionlessclient.configuration;
 
 import ch.qos.logback.core.Context;
+import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.exceptions.InvalidApiKeyException;
 import com.exceptionless.exceptionlessclient.logging.LogCapturerAppender;
 import com.exceptionless.exceptionlessclient.logging.LogCapturerIF;
 import com.exceptionless.exceptionlessclient.logging.NullLogCapturer;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.UserInfo;
-import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import com.exceptionless.exceptionlessclient.plugins.preconfigured.HeartbeatPlugin;
 import com.exceptionless.exceptionlessclient.queue.DefaultEventQueue;
 import com.exceptionless.exceptionlessclient.queue.EventQueueIF;
-import com.exceptionless.exceptionlessclient.services.*;
+import com.exceptionless.exceptionlessclient.services.DefaultLastReferenceIdManager;
+import com.exceptionless.exceptionlessclient.services.LastReferenceIdManagerIF;
 import com.exceptionless.exceptionlessclient.settings.DefaultSettingsClient;
 import com.exceptionless.exceptionlessclient.settings.SettingsClientIF;
 import com.exceptionless.exceptionlessclient.settings.SettingsManager;
@@ -26,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.beans.PropertyChangeSupport;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -34,6 +36,26 @@ import java.util.function.Consumer;
 public class ConfigurationManager {
   private static final Integer API_KEY_MIN_LENGTH = 11;
   private static final Integer DEFAULT_HEART_BEAT_INTERVAL_IN_SECS = 30;
+  private static final String DEFAULT_SERVER_URL = "https://collector.exceptionless.io";
+  private static final String DEFAULT_HEARTBEAT_SERVER_URL = "https://heartbeat.exceptionless.io";
+  private static final String DEFAULT_CONFIG_SERVER_URL = "https://config.exceptionless.io";
+  private static final Long DEFAULT_UPDATE_SETTINGS_WHEN_IDLE_INTERVAL = 12000L;
+  private static final Integer DEFAULT_SUBMISSION_BATCH_SIZE = 50;
+  private static final Integer DEFAULT_SUBMISSION_CLIENT_TIMEOUT_IN_MILLIS = 500;
+  private static final Integer DEFAULT_SETTINGS_CLIENT_TIMEOUT_IN_MILLIS = 500;
+
+  public static class Property {
+    public static final String API_KEY = "apiKey";
+    public static final String SERVER_URL = "serverUrl";
+    public static final String CONFIG_SERVER_URL = "configServerUrl";
+    public static final String HEART_BEAT_SERVER_URL = "heartbeatServerUrl";
+    public static final String UPDATE_SETTINGS_WHEN_IDLE_INTERVAL =
+        "updateSettingsWhenIdleInterval";
+    public static final String SUBMISSION_BATCH_SIZE = "submissionBatchSize";
+    public static final String SUBMISSION_CLIENT_TIMEOUT_IN_MILLIS =
+        "submissionClientTimeoutInMillis";
+    public static final String SETTINGS_CLIENT_TIMEOUT_IN_MILLIS = "settingsClientTimeoutInMillis";
+  }
 
   @Getter private final LastReferenceIdManagerIF lastReferenceIdManager;
   @Getter private final SubmissionClientIF submissionClient;
@@ -48,6 +70,15 @@ public class ConfigurationManager {
   private final Set<String> dataExclusions;
   private final PluginManager pluginManager;
   @Getter private final StorageProviderIF storageProvider;
+  @Getter private ValueProvider<String> apiKey;
+  @Getter private ValueProvider<String> serverUrl;
+  @Getter private ValueProvider<String> heartbeatServerUrl;
+  @Getter private ValueProvider<String> configServerUrl;
+  @Getter private ValueProvider<Long> updateSettingsWhenIdleInterval;
+  @Getter private ValueProvider<Integer> submissionBatchSize;
+  @Getter private ValueProvider<Integer> submissionClientTimeoutInMillis;
+  @Getter private ValueProvider<Integer> settingsClientTimeoutInMillis;
+  private final PropertyChangeSupport propertyChangeSupport;
 
   @Builder
   public ConfigurationManager(
@@ -59,7 +90,15 @@ public class ConfigurationManager {
       EventQueueIF queue,
       Configuration configuration,
       Integer maxQueueItems,
-      Integer processingIntervalInSecs) {
+      Integer processingIntervalInSecs,
+      String apiKey,
+      String serverUrl,
+      String configServerUrl,
+      String heartbeatServerUrl,
+      Long updateSettingsWhenIdleInterval,
+      Integer submissionBatchSize,
+      Integer submissionClientTimeoutInMillis,
+      Integer settingsClientTimeoutInMillis) {
     this.lastReferenceIdManager =
         lastReferenceIdManager == null
             ? DefaultLastReferenceIdManager.builder().build()
@@ -101,6 +140,38 @@ public class ConfigurationManager {
     this.onChangedHandlers = new ArrayList<>();
     this.dataExclusions = new HashSet<>();
     this.privateInformationInclusions = PrivateInformationInclusions.builder().build();
+    this.apiKey = ValueProvider.of(apiKey);
+    this.serverUrl =
+        serverUrl == null ? ValueProvider.of(DEFAULT_SERVER_URL) : ValueProvider.of(serverUrl);
+    this.heartbeatServerUrl =
+        heartbeatServerUrl == null
+            ? (serverUrl == null
+                ? ValueProvider.of(DEFAULT_HEARTBEAT_SERVER_URL)
+                : ValueProvider.of(serverUrl))
+            : ValueProvider.of(heartbeatServerUrl);
+    this.configServerUrl =
+        configServerUrl == null
+            ? (serverUrl == null
+                ? ValueProvider.of(DEFAULT_CONFIG_SERVER_URL)
+                : ValueProvider.of(serverUrl))
+            : ValueProvider.of(configServerUrl);
+    this.updateSettingsWhenIdleInterval =
+        updateSettingsWhenIdleInterval == null
+            ? ValueProvider.of(DEFAULT_UPDATE_SETTINGS_WHEN_IDLE_INTERVAL)
+            : ValueProvider.of(updateSettingsWhenIdleInterval);
+    this.submissionBatchSize =
+        submissionBatchSize == null
+            ? ValueProvider.of(DEFAULT_SUBMISSION_BATCH_SIZE)
+            : ValueProvider.of(submissionBatchSize);
+    this.submissionClientTimeoutInMillis =
+        submissionClientTimeoutInMillis == null
+            ? ValueProvider.of(DEFAULT_SUBMISSION_CLIENT_TIMEOUT_IN_MILLIS)
+            : ValueProvider.of(submissionClientTimeoutInMillis);
+    this.settingsClientTimeoutInMillis =
+        settingsClientTimeoutInMillis == null
+            ? ValueProvider.of(DEFAULT_SETTINGS_CLIENT_TIMEOUT_IN_MILLIS)
+            : ValueProvider.of(settingsClientTimeoutInMillis);
+    this.propertyChangeSupport = new PropertyChangeSupport(this);
     checkApiKeyIsValid();
     addPropertyChangeListeners();
     addLogCapturer(logCatpurer);
@@ -108,7 +179,7 @@ public class ConfigurationManager {
 
   private void addPropertyChangeListeners() {
     this.privateInformationInclusions.addPropertyChangeListener(ignored -> changed());
-    this.configuration.addPropertyChangeListener(ignored -> changed());
+    this.propertyChangeSupport.addPropertyChangeListener(ignored -> changed());
     this.settingsManager.addPropertyChangeListener(ignored -> changed());
   }
 
@@ -131,6 +202,67 @@ public class ConfigurationManager {
     appender.setContext((Context) LoggerFactory.getILoggerFactory());
     appender.start();
     logBackRootLogger.addAppender(appender);
+  }
+
+  public void setApiKey(String apiKey) {
+    String prevValue = this.apiKey.get();
+    this.apiKey.update(apiKey);
+    propertyChangeSupport.firePropertyChange(Configuration.Property.API_KEY, prevValue, apiKey);
+  }
+
+  public void setServerUrl(String serverUrl) {
+    String prevValue = this.serverUrl.get();
+    this.serverUrl.update(serverUrl);
+    propertyChangeSupport.firePropertyChange(
+        Configuration.Property.SERVER_URL, prevValue, serverUrl);
+  }
+
+  public void setConfigServerUrl(String configServerUrl) {
+    String prevValue = this.configServerUrl.get();
+    this.configServerUrl.update(configServerUrl);
+    propertyChangeSupport.firePropertyChange(
+        Configuration.Property.CONFIG_SERVER_URL, prevValue, configServerUrl);
+  }
+
+  public void setHeartbeatServerUrl(String heartbeatServerUrl) {
+    String prevValue = this.heartbeatServerUrl.get();
+    this.heartbeatServerUrl.update(heartbeatServerUrl);
+    propertyChangeSupport.firePropertyChange(
+        Configuration.Property.HEART_BEAT_SERVER_URL, prevValue, heartbeatServerUrl);
+  }
+
+  public void setUpdateSettingsWhenIdleInterval(Long updateSettingsWhenIdleInterval) {
+    Long prevValue = this.updateSettingsWhenIdleInterval.get();
+    this.updateSettingsWhenIdleInterval.update(updateSettingsWhenIdleInterval);
+    propertyChangeSupport.firePropertyChange(
+        Configuration.Property.UPDATE_SETTINGS_WHEN_IDLE_INTERVAL,
+        prevValue,
+        updateSettingsWhenIdleInterval);
+  }
+
+  public void setSubmissionBatchSize(Integer submissionBatchSize) {
+    Integer prevValue = this.submissionBatchSize.get();
+    this.submissionBatchSize.update(submissionBatchSize);
+    propertyChangeSupport.firePropertyChange(
+        Configuration.Property.SUBMISSION_BATCH_SIZE, prevValue, submissionBatchSize);
+  }
+
+  public void setSubmissionClientTimeoutInMillis(Integer submissionClientTimeoutInMillis) {
+    Integer prevValue = this.submissionClientTimeoutInMillis.get();
+    this.submissionClientTimeoutInMillis.update(submissionClientTimeoutInMillis);
+    propertyChangeSupport.firePropertyChange(
+        Configuration.Property.SUBMISSION_CLIENT_TIMEOUT_IN_MILLIS,
+        prevValue,
+        submissionClientTimeoutInMillis);
+  }
+
+  public void setSettingsClientTimeoutInMillis(Integer settingsClientTimeoutInMillis) {
+    Integer prevValue = this.settingsClientTimeoutInMillis.get();
+    this.settingsClientTimeoutInMillis.update(settingsClientTimeoutInMillis);
+    propertyChangeSupport.firePropertyChange(
+        Configuration.Property.SETTINGS_CLIENT_TIMEOUT_IN_MILLIS,
+        prevValue,
+        settingsClientTimeoutInMillis);
   }
 
   public void addDefaultTags(String... tags) {
