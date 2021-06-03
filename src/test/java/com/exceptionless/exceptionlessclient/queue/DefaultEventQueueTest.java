@@ -2,7 +2,6 @@ package com.exceptionless.exceptionlessclient.queue;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorage;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorageProvider;
@@ -111,7 +110,7 @@ public class DefaultEventQueueTest {
   public void itShouldSuspendProcessingOnClientException() {
     storage.save(event);
 
-    doThrow(new SubmissionClientException("test"))
+    doReturn(SubmissionResponse.builder().exception(new RuntimeException("test")).build())
         .when(submissionClient)
         .postEvents(List.of(event));
 

@@ -1,7 +1,6 @@
 package com.exceptionless.exceptionlessclient.submission;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.settings.SettingsManager;
@@ -74,7 +73,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
 
       Response response = httpClient.newCall(request).execute();
 
-      if (response.code() / 100 == 2) {
+      if (response.isSuccessful()) {
         updateSettingsFromHeaders(response);
       }
 
@@ -85,7 +84,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
           .rateLimitingHeaderFound(isRateLimitingHeaderFound(response))
           .build();
     } catch (Exception e) {
-      throw new SubmissionClientException(e);
+      return SubmissionResponse.builder().exception(e).build();
     }
   }
 
@@ -119,14 +118,14 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
 
       Response response = httpClient.newCall(request).execute();
 
-      if (response.code() / 100 != 2) {
+      if (!response.isSuccessful()) {
         log.error(
             String.format(
                 "Error in submitting heartbeat to the server for sessionOrUserId: %s",
                 sessionIdOrUserId));
       }
     } catch (Exception e) {
-      throw new SubmissionClientException(e);
+      log.error("Error while submitting heartbeat", e);
     }
   }
 }

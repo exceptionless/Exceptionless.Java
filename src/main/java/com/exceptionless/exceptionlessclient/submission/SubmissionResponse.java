@@ -9,6 +9,7 @@ public class SubmissionResponse {
   int code;
   String body;
   boolean rateLimitingHeaderFound;
+  Exception exception;
 
   public boolean isSuccess() {
     return code >= 200 && code <= 299;
@@ -40,5 +41,9 @@ public class SubmissionResponse {
 
   public boolean isRateLimited() {
     return rateLimitingHeaderFound || code == 429;
+  }
+
+  public boolean hasException() {
+    return exception != null;
   }
 }

@@ -2,7 +2,6 @@ package com.exceptionless.exceptionlessclient.submission;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.settings.SettingsManager;
@@ -18,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
@@ -120,12 +118,14 @@ public class DefaultSubmissionClientTest {
   }
 
   @Test
-  public void itCanThrowAllExceptionsAsSubmissionExceptionWhilePostingEvents() {
-    doThrow(new RuntimeException("test")).when(httpClient).newCall(any());
+  public void itCanHandleAllExceptionsWhilePostingEvents() {
+    Exception exception = new RuntimeException("test");
+    doThrow(exception).when(httpClient).newCall(any());
 
-    assertThatThrownBy(() -> submissionClient.postEvents(List.of(Event.builder().build())))
-        .isInstanceOf(SubmissionClientException.class)
-        .hasMessage("java.lang.RuntimeException: test");
+    SubmissionResponse response = submissionClient.postEvents(List.of(Event.builder().build()));
+
+    assertThat(response.hasException()).isTrue();
+    assertThat(response.getException()).isSameAs(exception);
   }
 
   @Test
@@ -170,15 +170,14 @@ public class DefaultSubmissionClientTest {
   }
 
   @Test
-  public void itCanThrowAllExceptionsAsSubmissionExceptionWhilePostingUserDescription() {
-    doThrow(new RuntimeException("test")).when(httpClient).newCall(any());
+  public void itCanHandleAllExceptionsWhilePostingUserDescription() {
+    Exception exception = new RuntimeException("test");
+    doThrow(exception).when(httpClient).newCall(any());
 
-    assertThatThrownBy(
-            () ->
-                submissionClient.postUserDescription(
-                    "test-reference-id", UserDescription.builder().build()))
-        .isInstanceOf(SubmissionClientException.class)
-        .hasMessage("java.lang.RuntimeException: test");
+    SubmissionResponse response = submissionClient.postUserDescription("test-reference-id", UserDescription.builder().build());
+
+    assertThat(response.hasException()).isTrue();
+    assertThat(response.getException()).isSameAs(exception);
   }
 
   @Test
@@ -202,11 +201,9 @@ public class DefaultSubmissionClientTest {
   }
 
   @Test
-  public void itCanThrowAllExceptionsAsSubmissionExceptionWhileSendingHeartbeat() {
+  public void itCanHandleAllExceptionsWhileSendingHeartbeat() {
     doThrow(new RuntimeException("test")).when(httpClient).newCall(any());
 
-    assertThatThrownBy(() -> submissionClient.sendHeartBeat("test-user-id", true))
-        .isInstanceOf(SubmissionClientException.class)
-        .hasMessage("java.lang.RuntimeException: test");
+    submissionClient.sendHeartBeat("test-user-id", true);
   }
 }
