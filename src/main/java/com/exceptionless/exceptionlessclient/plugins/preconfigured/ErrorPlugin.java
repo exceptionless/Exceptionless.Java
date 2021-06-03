@@ -1,16 +1,17 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
-import com.exceptionless.exceptionlessclient.models.Event;
-import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.enums.EventType;
+import com.exceptionless.exceptionlessclient.models.Event;
+import com.exceptionless.exceptionlessclient.models.EventPluginContext;
+import com.exceptionless.exceptionlessclient.models.error.Error;
+import com.exceptionless.exceptionlessclient.models.error.StackFrame;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ErrorPlugin implements EventPluginIF {
   private static final Integer DEFAULT_PRIORITY = 30;
@@ -37,9 +38,30 @@ public class ErrorPlugin implements EventPluginIF {
       return;
     }
 
-    event.addError(configurationManager.getErrorParser().parse(exception));
+    event.addError(parse(exception));
 
     Set<String> dataExclusions = new HashSet<>(configurationManager.getDataExclusions());
     event.addData(Map.of(EventPropertyKey.EXTRA.value(), exception), dataExclusions);
+  }
+
+  private Error parse(Exception exception) {
+    return Error.builder()
+        .type(exception.getClass().getCanonicalName())
+        .message(exception.getMessage())
+        .stackTrace(getStackFrames(exception))
+        .build();
+  }
+
+  private List<StackFrame> getStackFrames(Exception exception) {
+    return Arrays.stream(exception.getStackTrace())
+        .map(
+            stackTraceElement ->
+                StackFrame.builder()
+                    .name(stackTraceElement.getMethodName())
+                    .filename(stackTraceElement.getFileName())
+                    .lineNumber(stackTraceElement.getLineNumber())
+                    .declaringType(stackTraceElement.getClassName())
+                    .build())
+        .collect(Collectors.toList());
   }
 }

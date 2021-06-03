@@ -22,19 +22,19 @@ public class PrivateInformationInclusionsTest {
         PrivateInformationInclusions.builder().build();
     privateInformationInclusions.addPropertyChangeListener(listener);
 
-    privateInformationInclusions.applyToAll(false);
-    privateInformationInclusions.setQueryString(true);
-    privateInformationInclusions.setPostData(true);
-    privateInformationInclusions.setCookies(true);
-    privateInformationInclusions.setIpAddress(true);
-    privateInformationInclusions.setMachineName(true);
-    privateInformationInclusions.setUserName(true);
+    privateInformationInclusions.applyToAll(true);
+    privateInformationInclusions.setQueryString(false);
+    privateInformationInclusions.setPostData(false);
+    privateInformationInclusions.setCookies(false);
+    privateInformationInclusions.setIpAddress(false);
+    privateInformationInclusions.setMachineName(false);
+    privateInformationInclusions.setUserName(false);
 
     List<String> properties =
         List.of(
             "all", "queryString", "postData", "cookies", "ipAddress", "machineName", "userName");
-    List<Boolean> oldValues = List.of(true, false, false, false, false, false, false);
-    List<Boolean> newValues = List.of(false, true, true, true, true, true, true);
+    List<Boolean> oldValues = List.of(false, true, true, true, true, true, true);
+    List<Boolean> newValues = List.of(true, false, false, false, false, false, false);
 
     properties.forEach(
         property ->

@@ -1,4 +1,4 @@
-package com.exceptionless.exceptionlessclient.models.services;
+package com.exceptionless.exceptionlessclient.models;
 
 import com.exceptionless.exceptionlessclient.models.base.Model;
 import lombok.Builder;

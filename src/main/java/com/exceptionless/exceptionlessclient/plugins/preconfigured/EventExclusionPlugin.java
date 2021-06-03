@@ -1,10 +1,10 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
-import com.exceptionless.exceptionlessclient.enums.EventType;
-import com.exceptionless.exceptionlessclient.models.services.error.Error;
+import com.exceptionless.exceptionlessclient.models.error.Error;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import com.exceptionless.exceptionlessclient.settings.ServerSettings;
 import lombok.Builder;
