@@ -61,7 +61,6 @@ public class ConfigurationManager {
   @Getter private final LastReferenceIdManagerIF lastReferenceIdManager;
   @Getter private final SubmissionClientIF submissionClient;
   @Getter private final EventQueueIF queue;
-  @Getter private final Configuration configuration;
   @Getter private final Set<String> defaultTags;
   @Getter private final Map<String, Object> defaultData;
   private final List<Consumer<ConfigurationManager>> onChangedHandlers;
@@ -89,7 +88,6 @@ public class ConfigurationManager {
       SettingsClientIF settingsClient,
       StorageProviderIF storageProvider,
       EventQueueIF queue,
-      Configuration configuration,
       Integer maxQueueItems,
       Integer processingIntervalInSecs,
       String apiKey,
@@ -108,8 +106,6 @@ public class ConfigurationManager {
         storageProvider == null
             ? InMemoryStorageProvider.builder().maxQueueItems(maxQueueItems).build()
             : storageProvider;
-    this.configuration =
-        configuration == null ? Configuration.defaultConfiguration() : configuration;
     this.settingsManager =
         SettingsManager.builder()
             .settingsClient(

@@ -1,6 +1,5 @@
 package com.exceptionless.exceptionlessclient;
 
-import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
 import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.enums.EventType;
@@ -67,7 +66,7 @@ public class ExceptionlessClient {
           }
         },
         delay,
-        configurationManager.getConfiguration().getUpdateSettingsWhenIdleInterval());
+        configurationManager.getUpdateSettingsWhenIdleInterval().get());
 
     configurationManager.onChanged(
         ignored -> configurationManager.getSettingsManager().updateSettings());
@@ -80,9 +79,7 @@ public class ExceptionlessClient {
   public static ExceptionlessClient from(String apiKey, String serverUrl) {
     return ExceptionlessClient.builder()
         .configurationManager(
-            ConfigurationManager.builder()
-                .configuration(Configuration.builder().apiKey(apiKey).serverUrl(serverUrl).build())
-                .build())
+            ConfigurationManager.builder().apiKey(apiKey).serverUrl(serverUrl).build())
         .build();
   }
 

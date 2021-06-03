@@ -1,18 +1,18 @@
 package com.exceptionless.exceptionlessclient;
 
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
-import com.exceptionless.exceptionlessclient.models.Event;
-import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.enums.EventType;
-import com.exceptionless.exceptionlessclient.settings.SettingsResponse;
-import com.exceptionless.exceptionlessclient.submission.SubmissionResponse;
+import com.exceptionless.exceptionlessclient.models.Event;
+import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.queue.DefaultEventQueue;
 import com.exceptionless.exceptionlessclient.settings.DefaultSettingsClient;
 import com.exceptionless.exceptionlessclient.settings.ServerSettings;
+import com.exceptionless.exceptionlessclient.settings.SettingsResponse;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorage;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorageProvider;
 import com.exceptionless.exceptionlessclient.submission.DefaultSubmissionClient;
+import com.exceptionless.exceptionlessclient.submission.SubmissionResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,10 +39,8 @@ public class ExceptionlessClientTest {
     settingsStorage = InMemoryStorage.<ServerSettings>builder().build();
     configurationManager =
         TestFixtures.aDefaultConfigurationManager()
-            .configuration(
-                TestFixtures.aDefaultConfiguration()
-                    .updateSettingsWhenIdleInterval(3600L)
-                    .build()) // We don't want the timer to run by default
+            // We don't want the timer to run by default
+            .updateSettingsWhenIdleInterval(3600L)
             .settingsClient(settingsClient)
             .storageProvider(storageProvider)
             .submissionClient(submissionClient)
