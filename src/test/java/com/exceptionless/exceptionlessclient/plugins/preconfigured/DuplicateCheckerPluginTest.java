@@ -2,11 +2,11 @@ package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
-import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
-import com.exceptionless.exceptionlessclient.models.services.error.Error;
-import com.exceptionless.exceptionlessclient.models.services.error.StackFrame;
+import com.exceptionless.exceptionlessclient.models.error.Error;
+import com.exceptionless.exceptionlessclient.models.error.StackFrame;
 import com.exceptionless.exceptionlessclient.queue.DefaultEventQueue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,10 +54,7 @@ public class DuplicateCheckerPluginTest {
 
   @Test
   public void itCanDetectAPotentialToBeMergedEvent() throws InterruptedException {
-    plugin =
-        DuplicateCheckerPlugin.builder()
-            .mergedEventsResubmissionInSecs(1)
-            .build();
+    plugin = DuplicateCheckerPlugin.builder().mergedEventsResubmissionInSecs(1).build();
     plugin.run(context, configurationManager);
     plugin.run(context, configurationManager);
     Thread.sleep(1500);
@@ -72,10 +69,7 @@ public class DuplicateCheckerPluginTest {
 
   @Test
   public void itCanMergeEventsWithSameHash() throws InterruptedException {
-    plugin =
-        DuplicateCheckerPlugin.builder()
-            .mergedEventsResubmissionInSecs(1)
-            .build();
+    plugin = DuplicateCheckerPlugin.builder().mergedEventsResubmissionInSecs(1).build();
     plugin.run(context, configurationManager);
     plugin.run(context, configurationManager);
     plugin.run(context, configurationManager);

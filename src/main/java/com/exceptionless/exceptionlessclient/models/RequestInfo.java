@@ -1,10 +1,9 @@
-package com.exceptionless.exceptionlessclient.models.services;
+package com.exceptionless.exceptionlessclient.models;
 
 import com.exceptionless.exceptionlessclient.models.base.Model;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import lombok.experimental.NonFinal;
 import lombok.experimental.SuperBuilder;
 
 import java.util.HashMap;
@@ -13,7 +12,6 @@ import java.util.Map;
 
 @SuperBuilder
 @Value
-@NonFinal
 @EqualsAndHashCode(callSuper = true)
 public class RequestInfo extends Model {
   String userAgent;

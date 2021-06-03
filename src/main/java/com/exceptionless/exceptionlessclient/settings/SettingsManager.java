@@ -1,19 +1,16 @@
 package com.exceptionless.exceptionlessclient.settings;
 
-import com.exceptionless.exceptionlessclient.exceptions.SettingsClientException;
 import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
-import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.storage.StorageProviderIF;
 import lombok.Builder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.Map;
 
+@Slf4j
 public class SettingsManager {
-  private static final Logger LOG = LoggerFactory.getLogger(SettingsManager.class);
   private static final long DEFAULT_VERSION = 0;
 
   public static class Property {
@@ -43,7 +40,7 @@ public class SettingsManager {
       return;
     }
 
-    LOG.info(String.format("Updating settings from v%s to v%s", currentVersion, version));
+    log.info(String.format("Updating settings from v%s to v%s", currentVersion, version));
     updateSettings();
   }
 
@@ -63,7 +60,7 @@ public class SettingsManager {
   public void updateSettings() {
     synchronized (this) {
       if (updatingSettings) {
-        LOG.trace("Already updating settings; Returning...");
+        log.trace("Already updating settings; Returning...");
         return;
       }
       updatingSettings = true;
@@ -71,7 +68,7 @@ public class SettingsManager {
 
     try {
       long currentVersion = getVersion();
-      LOG.debug(String.format("Checking for updated settings  from v%s", currentVersion));
+      log.debug(String.format("Checking for updated settings  from v%s", currentVersion));
 
       SettingsResponse response = settingsClient.getSettings(currentVersion);
       if (shouldNotUpdate(response)) {
@@ -82,8 +79,6 @@ public class SettingsManager {
       storageProvider.getSettings().save(response.getSettings());
       propertyChangeSupport.firePropertyChange(
           Property.SETTINGS, prevValue, response.getSettings());
-    } catch (SettingsClientException e) {
-      LOG.error(String.format("Error retrieving settings for v%s", getVersion()), e);
     } finally {
       synchronized (this) {
         updatingSettings = false;
@@ -92,16 +87,25 @@ public class SettingsManager {
   }
 
   private boolean shouldNotUpdate(SettingsResponse response) {
+    if (response.hasException()) {
+      log.error(
+          String.format("Error retrieving settings for v%s", getVersion()),
+          response.getException());
+      return true;
+    }
     if (response.isNotModified()) {
-      LOG.debug("No need to update, settings are not modified");
+      log.debug("No need to update, settings are not modified");
       return true;
     }
     if (!response.isSuccess()) {
-      LOG.warn(String.format("Unable to update settings: %s", response.getBody()));
+      log.warn(
+          String.format(
+              "Unable to update settings, body: %s, code: %s",
+              response.getBody(), response.getCode()));
       return true;
     }
     if (response.getSettings() == null) {
-      LOG.warn("Not settings returned by server!");
+      log.warn("Not settings returned by server!");
       return true;
     }
 

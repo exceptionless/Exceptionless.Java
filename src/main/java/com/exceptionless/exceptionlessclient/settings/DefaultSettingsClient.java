@@ -1,8 +1,6 @@
 package com.exceptionless.exceptionlessclient.settings;
 
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SettingsClientException;
-import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.utils.Utils;
 import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -42,7 +40,7 @@ public class DefaultSettingsClient implements SettingsClientIF {
               .url(
                   String.format(
                       "%s/api/v2/projects/config?v=%s&access_token=%s",
-                      configuration.getServerUrl(), version, configuration.getApiKey()))
+                      configuration.getConfigServerUrl(), version, configuration.getApiKey()))
               .get()
               .build();
 
@@ -53,7 +51,7 @@ public class DefaultSettingsClient implements SettingsClientIF {
       if (bodyStr == null) {
         return SettingsResponse.builder().code(response.code()).body("").build();
       }
-      if (response.code() / 100 != 2) {
+      if (!response.isSuccessful()) {
         return SettingsResponse.builder().code(response.code()).body(bodyStr).build();
       }
 
@@ -65,7 +63,7 @@ public class DefaultSettingsClient implements SettingsClientIF {
           .settings(serverSettings)
           .build();
     } catch (Exception e) {
-      throw new SettingsClientException(e);
+      return SettingsResponse.builder().exception(e).build();
     }
   }
 }

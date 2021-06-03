@@ -7,7 +7,7 @@ import com.exceptionless.exceptionlessclient.logging.LogCapturerIF;
 import com.exceptionless.exceptionlessclient.logging.NullLogCapturer;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.UserInfo;
-import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
+import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import com.exceptionless.exceptionlessclient.plugins.preconfigured.HeartbeatPlugin;
 import com.exceptionless.exceptionlessclient.queue.DefaultEventQueue;
@@ -22,6 +22,7 @@ import com.exceptionless.exceptionlessclient.submission.DefaultSubmissionClient;
 import com.exceptionless.exceptionlessclient.submission.SubmissionClientIF;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,16 +30,12 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+@Slf4j
 public class ConfigurationManager {
-  private static final Logger LOG = LoggerFactory.getLogger(ConfigurationManager.class);
   private static final Integer API_KEY_MIN_LENGTH = 11;
   private static final Integer DEFAULT_HEART_BEAT_INTERVAL_IN_SECS = 30;
 
-  @Getter private final EnvironmentInfoCollectorIF environmentInfoCollector;
-  @Getter private final ErrorParserIF errorParser;
   @Getter private final LastReferenceIdManagerIF lastReferenceIdManager;
-  @Getter private final ModuleCollectorIF moduleCollector;
-  @Getter private final RequestInfoCollectorIF requestInfoCollector;
   @Getter private final SubmissionClientIF submissionClient;
   @Getter private final EventQueueIF queue;
   @Getter private final Configuration configuration;
@@ -54,12 +51,8 @@ public class ConfigurationManager {
 
   @Builder
   public ConfigurationManager(
-      EnvironmentInfoCollectorIF environmentInfoCollector,
-      ErrorParserIF errorParser,
       LastReferenceIdManagerIF lastReferenceIdManager,
       LogCapturerIF logCatpurer,
-      ModuleCollectorIF moduleCollector,
-      RequestInfoCollectorIF requestInfoCollector,
       SubmissionClientIF submissionClient,
       SettingsClientIF settingsClient,
       StorageProviderIF storageProvider,
@@ -67,21 +60,10 @@ public class ConfigurationManager {
       Configuration configuration,
       Integer maxQueueItems,
       Integer processingIntervalInSecs) {
-    this.environmentInfoCollector =
-        environmentInfoCollector == null
-            ? DefaultEnvironmentInfoCollector.builder().build()
-            : environmentInfoCollector;
-    this.errorParser = errorParser == null ? DefaultErrorParser.builder().build() : errorParser;
     this.lastReferenceIdManager =
         lastReferenceIdManager == null
             ? DefaultLastReferenceIdManager.builder().build()
             : lastReferenceIdManager;
-    this.moduleCollector =
-        moduleCollector == null ? DefaultModuleCollector.builder().build() : moduleCollector;
-    this.requestInfoCollector =
-        requestInfoCollector == null
-            ? DefaultRequestInfoCollector.builder().build()
-            : requestInfoCollector;
     this.storageProvider =
         storageProvider == null
             ? InMemoryStorageProvider.builder().maxQueueItems(maxQueueItems).build()
@@ -177,7 +159,7 @@ public class ConfigurationManager {
   }
 
   public void submitSessionHeartbeat(String sessionOrUserId) {
-    LOG.info(String.format("Submitting session heartbeat: %s", sessionOrUserId));
+    log.info(String.format("Submitting session heartbeat: %s", sessionOrUserId));
     submissionClient.sendHeartBeat(sessionOrUserId, false);
   }
 
@@ -237,7 +219,7 @@ public class ConfigurationManager {
       try {
         onChangedHandler.accept(this);
       } catch (Exception e) {
-        LOG.error(String.format("Error calling on changed handler: %s", e.getMessage()), e);
+        log.error(String.format("Error calling on changed handler: %s", e.getMessage()), e);
       }
     }
   }

@@ -1,4 +1,4 @@
-package com.exceptionless.exceptionlessclient.models.services.error;
+package com.exceptionless.exceptionlessclient.models.error;
 
 import com.exceptionless.exceptionlessclient.models.base.Model;
 import lombok.EqualsAndHashCode;
@@ -12,11 +12,12 @@ import java.util.List;
 @Value
 @NonFinal
 @EqualsAndHashCode(callSuper = true)
-public class InnerError extends Model {
-  String message;
-  String type;
-  String code;
-  InnerError inner;
-  List<StackFrame> stackTrace;
-  Method targetMethod;
+public class Method extends Model {
+    List<String> genericArguments;
+    List<Parameter> parameters;
+    boolean isSignatureTarget;
+    String declaringNamespace;
+    String declaringType;
+    String name;
+    long moduleId;
 }

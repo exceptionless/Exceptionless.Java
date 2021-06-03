@@ -3,12 +3,10 @@ package com.exceptionless.exceptionlessclient.plugins;
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import lombok.Builder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class EventPluginRunner {
-  private static final Logger LOG = LoggerFactory.getLogger(EventPluginRunner.class);
-
   private final ConfigurationManager configurationManager;
 
   @Builder
@@ -29,7 +27,7 @@ public class EventPluginRunner {
                 plugin.run(eventPluginContext, configurationManager);
 
               } catch (Exception e) {
-                    LOG.error(
+                    log.error(
                         String.format(
                             "Error running plugin: %s: %s. Discarding event",
                             plugin.getName(), e.getMessage()),
@@ -39,7 +37,7 @@ public class EventPluginRunner {
             });
 
     if (eventPluginContext.getContext().isEventCancelled()) {
-          LOG.info(
+          log.info(
               String.format(
                   "Event cancelled during plugin runs; Not submitting: %s",
                   eventPluginContext.getEvent().getReferenceId()));

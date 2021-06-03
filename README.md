@@ -32,6 +32,31 @@ class ExampleApp{
 }
 ```
 
+**Builder Pattern**
+
+We love our builders!!! This project heavily utilized the use of builders instead of traditional object creation
+using `new`. We do this with the help of Project Lombok's `@Builder` annotation. Read more about the
+project [here](https://projectlombok.org/features/all). Read more about the
+annotation [here](https://projectlombok.org/features/Builder). Read more about the builder
+pattern [here](https://refactoring.guru/design-patterns/builder).
+
+_Example: Customizing your Event Queue implementation_
+
+```
+EventQueueIF queue = //get your implementation
+Configuration configuration =
+    Configuration.builder().serverUrl("http://your-server-url").apiKey("your-api-key").build();
+ConfigurationManager configurationManager =
+    ConfigurationManager.builder().queue(queue).configuration(configuration).build();
+ExceptionlessClient client =
+    ExceptionlessClient.builder().configurationManager(configurationManager).build();
+```
+
+In this library we have made sure that all the values which are not set by builders fallback to reasonable defaults. So
+don't feel the pressure to supply values for all the fields. **Note:** Whenever customizing the client
+using `ConfigurationManager` never forget to supply your `serverUrl` and `apiKey` using a `Configuration` object as
+shown above.
+
 ## Spring Boot Users
 
 You can observe `NoClassDefFoundError` in your Spring-boot apps because Spring-boot uses v3 of `OkHttpClient` while this client uses v4. In that case you have to explicitly declare v4 of the library in you `pom.xml/build.gradle`.

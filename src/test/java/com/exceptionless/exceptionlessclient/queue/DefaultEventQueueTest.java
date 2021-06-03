@@ -2,12 +2,11 @@ package com.exceptionless.exceptionlessclient.queue;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.Configuration;
-import com.exceptionless.exceptionlessclient.exceptions.SubmissionClientException;
 import com.exceptionless.exceptionlessclient.models.Event;
-import com.exceptionless.exceptionlessclient.models.submission.SubmissionResponse;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorage;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorageProvider;
 import com.exceptionless.exceptionlessclient.submission.DefaultSubmissionClient;
+import com.exceptionless.exceptionlessclient.submission.SubmissionResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -111,7 +110,9 @@ public class DefaultEventQueueTest {
   public void itShouldSuspendProcessingOnClientException() {
     storage.save(event);
 
-    doThrow(new SubmissionClientException("test")).when(submissionClient).postEvents(List.of(event));
+    doReturn(SubmissionResponse.builder().exception(new RuntimeException("test")).build())
+        .when(submissionClient)
+        .postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
     queue.process();
@@ -127,6 +128,42 @@ public class DefaultEventQueueTest {
 
     SubmissionResponse response =
         SubmissionResponse.builder().body("test-message").code(503).build();
+    doReturn(response).when(submissionClient).postEvents(List.of(event));
+
+    queue.onEventsPosted(testHandler);
+    queue.process();
+
+    assertThat(queue.isProcessingCurrentlySuspended()).isTrue();
+    assertThat(storage.peek().getValue()).isEqualTo(event);
+    verify(testHandler, times(1)).accept(List.of(event), response);
+  }
+
+  @Test
+  public void itShouldSuspendProcessingIfServiceIsRateLimitedByHeader() {
+    storage.save(event);
+
+    SubmissionResponse response =
+        SubmissionResponse.builder()
+            .body("test-message")
+            .code(999)
+            .rateLimitingHeaderFound(true)
+            .build();
+    doReturn(response).when(submissionClient).postEvents(List.of(event));
+
+    queue.onEventsPosted(testHandler);
+    queue.process();
+
+    assertThat(queue.isProcessingCurrentlySuspended()).isTrue();
+    assertThat(storage.peek().getValue()).isEqualTo(event);
+    verify(testHandler, times(1)).accept(List.of(event), response);
+  }
+
+  @Test
+  public void itShouldSuspendProcessingIfServiceIsRateLimitedByCode() {
+    storage.save(event);
+
+    SubmissionResponse response =
+        SubmissionResponse.builder().body("test-message").code(429).build();
     doReturn(response).when(submissionClient).postEvents(List.of(event));
 
     queue.onEventsPosted(testHandler);
@@ -250,11 +287,9 @@ public class DefaultEventQueueTest {
     queue.process();
 
     // One invocation with full batch
-    verify(submissionClient, times(1))
-        .postEvents(argThat(argument -> argument.size() == 3));
+    verify(submissionClient, times(1)).postEvents(argThat(argument -> argument.size() == 3));
     // One invocation with reduced batch
-    verify(submissionClient, times(1))
-        .postEvents(argThat(argument -> argument.size() == 2));
+    verify(submissionClient, times(1)).postEvents(argThat(argument -> argument.size() == 2));
   }
 
   @Test
@@ -303,11 +338,9 @@ public class DefaultEventQueueTest {
 
     // Two invocations with full batch; First with the default size and next after a successful
     // response
-    verify(submissionClient, times(2))
-        .postEvents(argThat(argument -> argument.size() == 3));
+    verify(submissionClient, times(2)).postEvents(argThat(argument -> argument.size() == 3));
     // One invocation with reduced batch
-    verify(submissionClient, times(1))
-        .postEvents(argThat(argument -> argument.size() == 2));
+    verify(submissionClient, times(1)).postEvents(argThat(argument -> argument.size() == 2));
   }
 
   @Test

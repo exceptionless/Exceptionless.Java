@@ -2,13 +2,12 @@ package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
+import com.exceptionless.exceptionlessclient.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.PluginContext;
-import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
-import com.exceptionless.exceptionlessclient.models.enums.EventType;
-import com.exceptionless.exceptionlessclient.models.services.error.StackFrame;
-import com.exceptionless.exceptionlessclient.plugins.preconfigured.ErrorPlugin;
+import com.exceptionless.exceptionlessclient.models.error.StackFrame;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,10 +27,11 @@ public class ErrorPluginTest {
 
   @Test
   public void itCanAddExceptionToEventCorrectly() {
+    Exception exc = new RuntimeException("test");
     EventPluginContext context =
         EventPluginContext.builder()
             .event(Event.builder().build())
-            .context(PluginContext.builder().exception(new RuntimeException("test")).build())
+            .context(PluginContext.builder().exception(exc).build())
             .build();
 
     plugin.run(context, configurationManager);
@@ -51,12 +51,6 @@ public class ErrorPluginTest {
     assertThat(data).isNotNull();
     assertThat(data).containsKey(EventPropertyKey.EXTRA.value());
 
-    Map<String, Object> extra = (Map<String, Object>) data.get(EventPropertyKey.EXTRA.value());
-    assertThat(extra).isNotNull();
-    assertThat(extra).doesNotContainKey("message");
-    assertThat(extra).doesNotContainKey("cause");
-    assertThat(extra).doesNotContainKey("stackTrace");
-    assertThat(extra).containsKey("suppressed");
-    assertThat(extra).containsKey("localizedMessage");
+    assertThat(data.get(EventPropertyKey.EXTRA.value())).isSameAs(exc);
   }
 }

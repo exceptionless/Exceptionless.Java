@@ -1,4 +1,4 @@
-package com.exceptionless.exceptionlessclient.models.services.error;
+package com.exceptionless.exceptionlessclient.models.error;
 
 import com.exceptionless.exceptionlessclient.models.base.Model;
 import lombok.EqualsAndHashCode;
@@ -12,9 +12,11 @@ import java.util.List;
 @Value
 @NonFinal
 @EqualsAndHashCode(callSuper = true)
-public class Parameter extends Model {
-    List<String> genericArguments;
-    String name;
-    String type;
-    String typeNamespace;
+public class InnerError extends Model {
+  String message;
+  String type;
+  String code;
+  InnerError inner;
+  List<StackFrame> stackTrace;
+  Method targetMethod;
 }

@@ -1,15 +1,13 @@
-package com.exceptionless.exceptionlessclient.services;
+package com.exceptionless.exceptionlessclient.plugins.preconfigured.args;
 
 import lombok.Builder;
 import lombok.Value;
-import lombok.experimental.NonFinal;
 
 import java.util.HashSet;
 import java.util.Set;
 
 @Builder
 @Value
-@NonFinal
 public class RequestInfoGetArgs {
   @Builder.Default Boolean includeIpAddress = false;
   @Builder.Default Boolean includeCookies = false;
