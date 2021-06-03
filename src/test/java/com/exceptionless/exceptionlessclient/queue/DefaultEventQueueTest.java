@@ -139,6 +139,42 @@ public class DefaultEventQueueTest {
   }
 
   @Test
+  public void itShouldSuspendProcessingIfServiceIsRateLimitedByHeader() {
+    storage.save(event);
+
+    SubmissionResponse response =
+        SubmissionResponse.builder()
+            .body("test-message")
+            .code(999)
+            .rateLimitingHeaderFound(true)
+            .build();
+    doReturn(response).when(submissionClient).postEvents(List.of(event));
+
+    queue.onEventsPosted(testHandler);
+    queue.process();
+
+    assertThat(queue.isProcessingCurrentlySuspended()).isTrue();
+    assertThat(storage.peek().getValue()).isEqualTo(event);
+    verify(testHandler, times(1)).accept(List.of(event), response);
+  }
+
+  @Test
+  public void itShouldSuspendProcessingIfServiceIsRateLimitedByCode() {
+    storage.save(event);
+
+    SubmissionResponse response =
+        SubmissionResponse.builder().body("test-message").code(429).build();
+    doReturn(response).when(submissionClient).postEvents(List.of(event));
+
+    queue.onEventsPosted(testHandler);
+    queue.process();
+
+    assertThat(queue.isProcessingCurrentlySuspended()).isTrue();
+    assertThat(storage.peek().getValue()).isEqualTo(event);
+    verify(testHandler, times(1)).accept(List.of(event), response);
+  }
+
+  @Test
   public void itShouldSuspendAndDiscardProcessingAndClearQueueIfNoPayment() {
     storage.save(event);
 

@@ -8,6 +8,7 @@ import lombok.Value;
 public class SubmissionResponse {
   int code;
   String body;
+  boolean rateLimitingHeaderFound;
   Exception exception;
 
   public boolean isSuccess() {
@@ -36,6 +37,10 @@ public class SubmissionResponse {
 
   public boolean isRequestEntityTooLarge() {
     return code == 413;
+  }
+
+  public boolean isRateLimited() {
+    return rateLimitingHeaderFound || code == 429;
   }
 
   public boolean hasException() {

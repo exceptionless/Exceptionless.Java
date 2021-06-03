@@ -18,6 +18,7 @@ public class Configuration {
   public static class Property {
     public static final String API_KEY = "apiKey";
     public static final String SERVER_URL = "serverUrl";
+    public static final String CONFIG_SERVER_URL = "configServerUrl";
     public static final String HEART_BEAT_SERVER_URL = "heartbeatServerUrl";
     public static final String UPDATE_SETTINGS_WHEN_IDLE_INTERVAL =
         "updateSettingsWhenIdleInterval";
@@ -92,6 +93,13 @@ public class Configuration {
     String prevValue = this.serverUrl;
     this.serverUrl = serverUrl;
     propertyChangeSupport.firePropertyChange(Property.SERVER_URL, prevValue, serverUrl);
+  }
+
+  public void setConfigServerUrl(String configServerUrl) {
+    String prevValue = this.configServerUrl;
+    this.configServerUrl = configServerUrl;
+    propertyChangeSupport.firePropertyChange(
+        Property.CONFIG_SERVER_URL, prevValue, configServerUrl);
   }
 
   public void setHeartbeatServerUrl(String heartbeatServerUrl) {

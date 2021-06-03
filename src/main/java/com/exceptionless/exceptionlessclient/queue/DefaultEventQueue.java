@@ -159,6 +159,13 @@ public class DefaultEventQueue implements EventQueueIF {
       return;
     }
 
+    if (response.isRateLimited()) {
+      log.error(
+          "Service is rate limited because of either you have exceeded your rate limit or server is under stress.");
+      suspendProcessing();
+      return;
+    }
+
     if (response.isServiceUnavailable()) {
       log.error("Service returns service unavailable");
       suspendProcessing();
