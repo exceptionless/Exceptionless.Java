@@ -1,4 +1,4 @@
-package com.exceptionless.exceptionlessclient.models.submission;
+package com.exceptionless.exceptionlessclient.submission;
 
 import lombok.Builder;
 import lombok.Value;
@@ -8,6 +8,8 @@ import lombok.Value;
 public class SubmissionResponse {
   int code;
   String body;
+  boolean rateLimitingHeaderFound;
+  Exception exception;
 
   public boolean isSuccess() {
     return code >= 200 && code <= 299;
@@ -35,5 +37,13 @@ public class SubmissionResponse {
 
   public boolean isRequestEntityTooLarge() {
     return code == 413;
+  }
+
+  public boolean isRateLimited() {
+    return rateLimitingHeaderFound || code == 429;
+  }
+
+  public boolean hasException() {
+    return exception != null;
   }
 }

@@ -1,8 +1,6 @@
 package com.exceptionless.exceptionlessclient.settings;
 
-import com.exceptionless.exceptionlessclient.exceptions.SettingsClientException;
 import com.exceptionless.exceptionlessclient.models.storage.StorageItem;
-import com.exceptionless.exceptionlessclient.models.submission.SettingsResponse;
 import com.exceptionless.exceptionlessclient.storage.StorageProviderIF;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -81,8 +79,6 @@ public class SettingsManager {
       storageProvider.getSettings().save(response.getSettings());
       propertyChangeSupport.firePropertyChange(
           Property.SETTINGS, prevValue, response.getSettings());
-    } catch (SettingsClientException e) {
-      log.error(String.format("Error retrieving settings for v%s", getVersion()), e);
     } finally {
       synchronized (this) {
         updatingSettings = false;
@@ -91,6 +87,12 @@ public class SettingsManager {
   }
 
   private boolean shouldNotUpdate(SettingsResponse response) {
+    if (response.hasException()) {
+      log.error(
+          String.format("Error retrieving settings for v%s", getVersion()),
+          response.getException());
+      return true;
+    }
     if (response.isNotModified()) {
       log.debug("No need to update, settings are not modified");
       return true;

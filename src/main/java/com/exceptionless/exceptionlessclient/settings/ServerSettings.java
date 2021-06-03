@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.settings;
 
-import com.exceptionless.exceptionlessclient.models.enums.ServerSettingKey;
+import com.exceptionless.exceptionlessclient.enums.ServerSettingKey;
 import com.exceptionless.exceptionlessclient.utils.Utils;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;

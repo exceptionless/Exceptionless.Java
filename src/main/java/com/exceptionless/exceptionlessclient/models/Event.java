@@ -1,8 +1,8 @@
 package com.exceptionless.exceptionlessclient.models;
 
+import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
+import com.exceptionless.exceptionlessclient.enums.EventTag;
 import com.exceptionless.exceptionlessclient.models.base.Model;
-import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
-import com.exceptionless.exceptionlessclient.models.enums.EventTag;
 import com.exceptionless.exceptionlessclient.models.error.Error;
 import com.exceptionless.exceptionlessclient.queue.EventDataFilter;
 import com.exceptionless.exceptionlessclient.queue.EventValidator;

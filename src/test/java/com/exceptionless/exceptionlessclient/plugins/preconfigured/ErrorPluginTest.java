@@ -2,11 +2,11 @@ package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
 import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
+import com.exceptionless.exceptionlessclient.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.PluginContext;
-import com.exceptionless.exceptionlessclient.models.enums.EventPropertyKey;
-import com.exceptionless.exceptionlessclient.models.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.error.StackFrame;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

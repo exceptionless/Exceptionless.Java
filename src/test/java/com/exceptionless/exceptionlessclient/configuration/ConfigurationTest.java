@@ -31,6 +31,7 @@ public class ConfigurationTest {
         Configuration.builder()
             .apiKey("old-api-key")
             .serverUrl("old-server-url")
+            .configServerUrl("old-config-server-url")
             .heartbeatServerUrl("old-heartbeat-server-url")
             .updateSettingsWhenIdleInterval(1L)
             .submissionBatchSize(50)
@@ -41,6 +42,7 @@ public class ConfigurationTest {
 
     configuration.setApiKey("new-api-key");
     configuration.setServerUrl("new-server-url");
+    configuration.setConfigServerUrl("new-config-server-url");
     configuration.setHeartbeatServerUrl("new-heartbeat-server-url");
     configuration.setUpdateSettingsWhenIdleInterval(2L);
     configuration.setSubmissionBatchSize(100);
@@ -51,15 +53,32 @@ public class ConfigurationTest {
         List.of(
             "apiKey",
             "serverUrl",
+            "configServerUrl",
             "heartbeatServerUrl",
             "updateSettingsWhenIdleInterval",
             "submissionBatchSize",
             "submissionClientTimeoutInMillis",
             "settingsClientTimeoutInMillis");
     List<Object> oldValues =
-        List.of("old-api-key", "old-server-url", "old-heartbeat-server-url", 1L, 50, 10, 10);
+        List.of(
+            "old-api-key",
+            "old-server-url",
+            "old-config-server-url",
+            "old-heartbeat-server-url",
+            1L,
+            50,
+            10,
+            10);
     List<Object> newValues =
-        List.of("new-api-key", "new-server-url", "new-heartbeat-server-url", 2L, 100, 20, 20);
+        List.of(
+            "new-api-key",
+            "new-server-url",
+            "new-config-server-url",
+            "new-heartbeat-server-url",
+            2L,
+            100,
+            20,
+            20);
 
     properties.forEach(
         property ->
