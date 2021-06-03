@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.enums.EnvironmentInfoPropertyKey;
 import com.exceptionless.exceptionlessclient.models.EnvironmentInfo;
 import com.exceptionless.exceptionlessclient.models.Event;
@@ -53,16 +53,16 @@ public class EnvironmentInfoPlugin implements EventPluginIF {
 
   @Override
   public void run(
-      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, Configuration configuration) {
     Event event = eventPluginContext.getEvent();
     if (event.getEnvironmentInfo().isEmpty()) {
       event.addEnvironmentInfo(
           getEnvironmentInfo(
               EnvironmentInfoGetArgs.builder()
                   .includeIpAddress(
-                      configurationManager.getPrivateInformationInclusions().getIpAddress())
+                      configuration.getPrivateInformationInclusions().getIpAddress())
                   .includeMachineName(
-                      configurationManager.getPrivateInformationInclusions().getMachineName())
+                      configuration.getPrivateInformationInclusions().getMachineName())
                   .build()));
     }
   }

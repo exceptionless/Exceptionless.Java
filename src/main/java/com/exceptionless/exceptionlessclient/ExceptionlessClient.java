@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient;
 
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.Event;
@@ -27,27 +27,27 @@ public class ExceptionlessClient {
   private static final int UPDATE_SETTINGS_TIMER_INITIAL_DELAY = 5000;
   private static final Integer DEFAULT_NTHREADS = 10;
 
-  @Getter private final ConfigurationManager configurationManager;
+  @Getter private final Configuration configuration;
   private final EventPluginRunner eventPluginRunner;
   private final Timer updateSettingsTimer;
   private final ExecutorService executorService;
 
   @Builder
-  public ExceptionlessClient(ConfigurationManager configurationManager, Integer nThreads) {
+  public ExceptionlessClient(Configuration configuration, Integer nThreads) {
     this(
-        configurationManager,
+            configuration,
         UPDATE_SETTINGS_TIMER_INITIAL_DELAY,
         nThreads == null ? DEFAULT_NTHREADS : nThreads);
   }
 
   @VisibleForTesting
   ExceptionlessClient(
-      ConfigurationManager configurationManager,
+      Configuration configuration,
       long updateSettingsTimerInitialDelay,
       Integer nThreads) {
-    this.configurationManager = configurationManager;
+    this.configuration = configuration;
     this.eventPluginRunner =
-        EventPluginRunner.builder().configurationManager(this.configurationManager).build();
+        EventPluginRunner.builder().configuration(this.configuration).build();
     this.updateSettingsTimer = new Timer(UPDATE_SETTINGS_TIMER_NAME);
     this.executorService = Executors.newFixedThreadPool(nThreads);
     init(updateSettingsTimerInitialDelay);
@@ -59,27 +59,27 @@ public class ExceptionlessClient {
           @Override
           public void run() {
             try {
-              configurationManager.getSettingsManager().updateSettings();
+              configuration.getSettingsManager().updateSettings();
             } catch (Exception e) {
               log.error("Error in updating settings", e);
             }
           }
         },
         delay,
-        configurationManager.getUpdateSettingsWhenIdleInterval().get());
+        configuration.getUpdateSettingsWhenIdleInterval().get());
 
-    configurationManager.onChanged(
-        ignored -> configurationManager.getSettingsManager().updateSettings());
-    configurationManager
+    configuration.onChanged(
+        ignored -> configuration.getSettingsManager().updateSettings());
+    configuration
         .getQueue()
         .onEventsPosted(
-            (ignored1, ignored2) -> configurationManager.getSettingsManager().updateSettings());
+            (ignored1, ignored2) -> configuration.getSettingsManager().updateSettings());
   }
 
   public static ExceptionlessClient from(String apiKey, String serverUrl) {
     return ExceptionlessClient.builder()
-        .configurationManager(
-            ConfigurationManager.builder().apiKey(apiKey).serverUrl(serverUrl).build())
+        .configuration(
+            Configuration.builder().apiKey(apiKey).serverUrl(serverUrl).build())
         .build();
   }
 
@@ -221,7 +221,7 @@ public class ExceptionlessClient {
 
   public Event.EventBuilder createEvent() {
     return Event.builder()
-        .dataExclusions(configurationManager.getDataExclusions())
+        .dataExclusions(configuration.getDataExclusions())
         .date(LocalDate.now());
   }
 
@@ -249,7 +249,7 @@ public class ExceptionlessClient {
 
   public void submitSessionEnd(String sessionOrUserId) {
     log.info(String.format("Submitting session end: %s", sessionOrUserId));
-    configurationManager.getSubmissionClient().sendHeartBeat(sessionOrUserId, true);
+    configuration.getSubmissionClient().sendHeartBeat(sessionOrUserId, true);
   }
 
   public CompletableFuture<SubmissionResponse> updateEmailAndDescriptionAsync(
@@ -261,7 +261,7 @@ public class ExceptionlessClient {
   public SubmissionResponse updateEmailAndDescription(
       String referenceId, String email, String description) {
     SubmissionResponse response =
-        configurationManager
+        configuration
             .getSubmissionClient()
             .postUserDescription(
                 referenceId,
@@ -282,6 +282,6 @@ public class ExceptionlessClient {
   }
 
   public String getLastReferenceId() {
-    return configurationManager.getLastReferenceIdManager().getLast();
+    return configuration.getLastReferenceIdManager().getLast();
   }
 }

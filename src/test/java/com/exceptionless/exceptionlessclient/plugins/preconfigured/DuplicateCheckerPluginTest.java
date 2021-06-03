@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
@@ -27,7 +27,7 @@ public class DuplicateCheckerPluginTest {
   @Mock private DefaultEventQueue eventQueue;
 
   private EventPluginContext context;
-  private ConfigurationManager configurationManager;
+  private Configuration configuration;
   private DuplicateCheckerPlugin plugin;
 
   @BeforeEach
@@ -44,15 +44,15 @@ public class DuplicateCheckerPluginTest {
                 .property(EventPropertyKey.ERROR.value(), error)
                 .count(EVENT_COUNT)
                 .build());
-    configurationManager =
-        ConfigurationManager.builder().apiKey("12456790abcdef").queue(eventQueue).build();
+    configuration =
+        Configuration.builder().apiKey("12456790abcdef").queue(eventQueue).build();
   }
 
   @Test
   public void itCanDetectAPotentialToBeMergedEvent() throws InterruptedException {
     plugin = DuplicateCheckerPlugin.builder().mergedEventsResubmissionInSecs(1).build();
-    plugin.run(context, configurationManager);
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
+    plugin.run(context, configuration);
     Thread.sleep(1500);
     assertThat(context.getContext().isEventCancelled()).isTrue();
     verify(eventQueue)
@@ -66,9 +66,9 @@ public class DuplicateCheckerPluginTest {
   @Test
   public void itCanMergeEventsWithSameHash() throws InterruptedException {
     plugin = DuplicateCheckerPlugin.builder().mergedEventsResubmissionInSecs(1).build();
-    plugin.run(context, configurationManager);
-    plugin.run(context, configurationManager);
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
+    plugin.run(context, configuration);
+    plugin.run(context, configuration);
     Thread.sleep(1500);
     assertThat(context.getContext().isEventCancelled()).isTrue();
     verify(eventQueue)

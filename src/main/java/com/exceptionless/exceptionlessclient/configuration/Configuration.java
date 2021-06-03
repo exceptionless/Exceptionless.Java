@@ -34,7 +34,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @Slf4j
-public class ConfigurationManager {
+public class Configuration {
   private static final Integer API_KEY_MIN_LENGTH = 11;
   private static final Integer DEFAULT_HEART_BEAT_INTERVAL_IN_SECS = 30;
   private static final String DEFAULT_SERVER_URL = "https://collector.exceptionless.io";
@@ -63,7 +63,7 @@ public class ConfigurationManager {
   @Getter private final EventQueueIF queue;
   @Getter private final Set<String> defaultTags;
   @Getter private final Map<String, Object> defaultData;
-  private final List<Consumer<ConfigurationManager>> onChangedHandlers;
+  private final List<Consumer<Configuration>> onChangedHandlers;
   @Getter private final SettingsManager settingsManager;
   private final Set<String> userAgentBotPatterns;
   @Getter private final PrivateInformationInclusions privateInformationInclusions;
@@ -81,7 +81,7 @@ public class ConfigurationManager {
   private final PropertyChangeSupport propertyChangeSupport;
 
   @Builder
-  public ConfigurationManager(
+  public Configuration(
       LastReferenceIdManagerIF lastReferenceIdManager,
       LogCapturerIF logCatpurer,
       SubmissionClientIF submissionClient,
@@ -301,14 +301,14 @@ public class ConfigurationManager {
     pluginManager.addPlugin(eventPlugin);
   }
 
-  public void addPlugin(BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
+  public void addPlugin(BiConsumer<EventPluginContext, Configuration> pluginAction) {
     pluginManager.addPlugin(pluginAction);
   }
 
   public void addPlugin(
       String name,
       int priority,
-      BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
+      BiConsumer<EventPluginContext, Configuration> pluginAction) {
     pluginManager.addPlugin(name, priority, pluginAction);
   }
 
@@ -344,12 +344,12 @@ public class ConfigurationManager {
     addPlugin(HeartbeatPlugin.builder().heartbeatIntervalInSecs(heartbeatIntervalInSecs).build());
   }
 
-  public void onChanged(Consumer<ConfigurationManager> onChangedHandler) {
+  public void onChanged(Consumer<Configuration> onChangedHandler) {
     onChangedHandlers.add(onChangedHandler);
   }
 
   private void changed() {
-    for (Consumer<ConfigurationManager> onChangedHandler : onChangedHandlers) {
+    for (Consumer<Configuration> onChangedHandler : onChangedHandlers) {
       try {
         onChangedHandler.accept(this);
       } catch (Exception e) {

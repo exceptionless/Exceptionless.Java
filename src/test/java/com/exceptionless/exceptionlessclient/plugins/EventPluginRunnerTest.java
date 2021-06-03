@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.plugins;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.services.DefaultLastReferenceIdManager;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
@@ -27,7 +27,7 @@ public class EventPluginRunnerTest {
   public void setup() {
     context =
         EventPluginContext.from(Event.builder().type("test-type").referenceId("123456789").build());
-    ConfigurationManager configurationManager =
+    Configuration configuration =
         TestFixtures.aDefaultConfigurationManager()
             .queue(eventQueue)
             .lastReferenceIdManager(lastReferenceIdManager)
@@ -35,8 +35,8 @@ public class EventPluginRunnerTest {
     // should run first
     doReturn(Integer.MAX_VALUE).when(testPlugin).getPriority();
     doReturn("test-plugin").when(testPlugin).getName();
-    configurationManager.addPlugin(testPlugin);
-    pluginRunner = EventPluginRunner.builder().configurationManager(configurationManager).build();
+    configuration.addPlugin(testPlugin);
+    pluginRunner = EventPluginRunner.builder().configuration(configuration).build();
   }
 
   @Test

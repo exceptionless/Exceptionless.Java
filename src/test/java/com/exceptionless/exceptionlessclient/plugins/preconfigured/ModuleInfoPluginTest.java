@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
@@ -18,20 +18,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 public class ModuleInfoPluginTest {
-  private ConfigurationManager configurationManager;
+  private Configuration configuration;
   private ModuleInfoPlugin plugin;
   private EventPluginContext context;
 
   @BeforeEach
   public void setup() {
-    configurationManager = TestFixtures.aDefaultConfigurationManager().build();
+    configuration = TestFixtures.aDefaultConfigurationManager().build();
     plugin = ModuleInfoPlugin.builder().build();
   }
 
   @Test
   public void itShouldNotAddModulesIfErrorIsNotFound() {
     context = EventPluginContext.from(Event.builder().build());
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getEvent().getError()).isEmpty();
   }
@@ -44,7 +44,7 @@ public class ModuleInfoPluginTest {
             Event.builder()
                 .property(EventPropertyKey.ERROR.value(), Error.builder().modules(modules).build())
                 .build());
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getEvent().getError()).isPresent();
     assertThat(context.getEvent().getError().get().getModules()).isEqualTo(modules);
@@ -57,7 +57,7 @@ public class ModuleInfoPluginTest {
             Event.builder()
                 .property(EventPropertyKey.ERROR.value(), Error.builder().build())
                 .build());
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getEvent().getError()).isPresent();
   }

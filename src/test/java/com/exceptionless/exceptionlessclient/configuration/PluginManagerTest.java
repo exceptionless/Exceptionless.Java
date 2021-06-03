@@ -65,7 +65,7 @@ public class PluginManagerTest {
 
           @Override
           public void run(
-              EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {}
+              EventPluginContext eventPluginContext, Configuration configuration) {}
         });
 
     assertThat(pluginManager.getPlugins().get(0).getName()).isEqualTo("test-plugin");
@@ -87,7 +87,7 @@ public class PluginManagerTest {
 
           @Override
           public void run(
-              EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {}
+              EventPluginContext eventPluginContext, Configuration configuration) {}
         });
     assertThat(
             pluginManager.getPlugins().stream()

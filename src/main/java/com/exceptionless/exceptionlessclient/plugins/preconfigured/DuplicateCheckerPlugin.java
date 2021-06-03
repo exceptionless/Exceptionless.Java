@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
@@ -65,7 +65,7 @@ public class DuplicateCheckerPlugin implements EventPluginIF {
 
   @Override
   public void run(
-      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, Configuration configuration) {
     Event event = eventPluginContext.getEvent();
     long hash = getHash(event);
     Optional<MergedEvent> maybeMergedEvent =
@@ -92,7 +92,7 @@ public class DuplicateCheckerPlugin implements EventPluginIF {
       mergedEvents.add(
           MergedEvent.builder()
               .event(event)
-              .eventQueue(configurationManager.getQueue())
+              .eventQueue(configuration.getQueue())
               .hash(hash)
               .build());
       eventPluginContext.getContext().setEventCancelled(true);

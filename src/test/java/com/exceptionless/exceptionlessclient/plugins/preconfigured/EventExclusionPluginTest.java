@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.Event;
@@ -25,13 +25,13 @@ import static org.mockito.Mockito.doReturn;
 public class EventExclusionPluginTest {
   @Mock private InMemoryStorageProvider storageProvider;
 
-  private ConfigurationManager configurationManager;
+  private Configuration configuration;
   private EventPluginContext context;
   private EventExclusionPlugin plugin;
 
   @BeforeEach
   public void setup() {
-    configurationManager =
+    configuration =
         TestFixtures.aDefaultConfigurationManager().storageProvider(storageProvider).build();
     plugin = EventExclusionPlugin.builder().build();
   }
@@ -41,7 +41,7 @@ public class EventExclusionPluginTest {
     context = EventPluginContext.from(Event.builder().type(EventType.LOG.value()).build());
     doReturn(InMemoryStorage.builder().build()).when(storageProvider).getSettings();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isFalse();
   }
@@ -55,7 +55,7 @@ public class EventExclusionPluginTest {
     storage.save(ServerSettings.builder().settings(Map.of("@@log:test", "trace")).build());
     doReturn(storage).when(storageProvider).getSettings();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isFalse();
   }
@@ -74,7 +74,7 @@ public class EventExclusionPluginTest {
     storage.save(ServerSettings.builder().settings(Map.of("@@log:test", "xxx")).build());
     doReturn(storage).when(storageProvider).getSettings();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isFalse();
   }
@@ -93,7 +93,7 @@ public class EventExclusionPluginTest {
     storage.save(ServerSettings.builder().settings(Map.of("@@log:test", "trace")).build());
     doReturn(storage).when(storageProvider).getSettings();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isFalse();
   }
@@ -112,7 +112,7 @@ public class EventExclusionPluginTest {
     storage.save(ServerSettings.builder().settings(Map.of("@@log:test", "trace")).build());
     doReturn(storage).when(storageProvider).getSettings();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isFalse();
   }
@@ -131,7 +131,7 @@ public class EventExclusionPluginTest {
     storage.save(ServerSettings.builder().settings(Map.of("@@log:test", "info")).build());
     doReturn(storage).when(storageProvider).getSettings();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isFalse();
   }
@@ -150,7 +150,7 @@ public class EventExclusionPluginTest {
     storage.save(ServerSettings.builder().settings(Map.of("@@log:test", "info")).build());
     doReturn(storage).when(storageProvider).getSettings();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isTrue();
   }
@@ -162,7 +162,7 @@ public class EventExclusionPluginTest {
     InMemoryStorage<ServerSettings> storage = InMemoryStorage.<ServerSettings>builder().build();
     doReturn(storage).when(storageProvider).getSettings();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isFalse();
   }
@@ -179,7 +179,7 @@ public class EventExclusionPluginTest {
     InMemoryStorage<ServerSettings> storage = InMemoryStorage.<ServerSettings>builder().build();
     doReturn(storage).when(storageProvider).getSettings();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isFalse();
   }
@@ -197,7 +197,7 @@ public class EventExclusionPluginTest {
     InMemoryStorage<ServerSettings> storage = InMemoryStorage.<ServerSettings>builder().build();
     doReturn(storage).when(storageProvider).getSettings();
     storage.save(ServerSettings.builder().settings(Map.of("@@error:test-error", "true")).build());
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isFalse();
   }
@@ -215,7 +215,7 @@ public class EventExclusionPluginTest {
     InMemoryStorage<ServerSettings> storage = InMemoryStorage.<ServerSettings>builder().build();
     doReturn(storage).when(storageProvider).getSettings();
     storage.save(ServerSettings.builder().settings(Map.of("@@error:test-error", "false")).build());
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isTrue();
   }
@@ -238,7 +238,7 @@ public class EventExclusionPluginTest {
     doReturn(storage).when(storageProvider).getSettings();
     storage.save(
         ServerSettings.builder().settings(Map.of("@@error:test-inner-error", "false")).build());
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isTrue();
   }
@@ -252,7 +252,7 @@ public class EventExclusionPluginTest {
     InMemoryStorage<ServerSettings> storage = InMemoryStorage.<ServerSettings>builder().build();
     doReturn(storage).when(storageProvider).getSettings();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isFalse();
   }
@@ -267,7 +267,7 @@ public class EventExclusionPluginTest {
     storage.save(ServerSettings.builder().settings(Map.of("@@usage:test", "true")).build());
     doReturn(storage).when(storageProvider).getSettings();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isFalse();
   }
@@ -282,7 +282,7 @@ public class EventExclusionPluginTest {
     storage.save(ServerSettings.builder().settings(Map.of("@@usage:test", "false")).build());
     doReturn(storage).when(storageProvider).getSettings();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getContext().isEventCancelled()).isTrue();
   }

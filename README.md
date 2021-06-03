@@ -46,10 +46,10 @@ _Example: Customizing your Event Queue implementation_
 EventQueueIF queue = //get your implementation
 Configuration configuration =
     Configuration.builder().serverUrl("http://your-server-url").apiKey("your-api-key").build();
-ConfigurationManager configurationManager =
+ConfigurationManager configuration =
     ConfigurationManager.builder().queue(queue).configuration(configuration).build();
 ExceptionlessClient client =
-    ExceptionlessClient.builder().configurationManager(configurationManager).build();
+    ExceptionlessClient.builder().configuration(configuration).build();
 ```
 
 In this library we have made sure that all the values which are not set by builders fallback to reasonable defaults. So

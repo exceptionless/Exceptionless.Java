@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
@@ -28,10 +28,10 @@ public class EventExclusionPlugin implements EventPluginIF {
 
   @Override
   public void run(
-      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, Configuration configuration) {
     Event event = eventPluginContext.getEvent();
     ServerSettings serverSettings =
-        configurationManager.getSettingsManager().getSavedServerSettings();
+        configuration.getSettingsManager().getSavedServerSettings();
 
     if (event.getType().equals(EventType.LOG.value())) {
       handleLogEvent(eventPluginContext, serverSettings);

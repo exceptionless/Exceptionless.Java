@@ -20,7 +20,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.beans.PropertyChangeListener;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,23 +31,20 @@ import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class ConfigurationManagerTest {
-  private static final Logger LOG = LoggerFactory.getLogger(ConfigurationManagerTest.class);
+public class ConfigurationTest {
+  private static final Logger LOG = LoggerFactory.getLogger(ConfigurationTest.class);
 
   @Mock private InMemoryStorageProvider storageProvider;
   @Mock private DefaultSubmissionClient submissionClient;
-  @Mock private Consumer<ConfigurationManager> handler;
+  @Mock private Consumer<Configuration> handler;
   @Mock private LogCapturerIF logCapturer;
-  private ConfigurationManager configurationManager;
+  private Configuration configuration;
   private InMemoryStorage<ServerSettings> storage;
-
-  public ConfigurationManagerTest(PropertyChangeListener listener) {
-  }
 
   @BeforeEach
   public void setup() {
     storage = InMemoryStorage.<ServerSettings>builder().build();
-    configurationManager =
+    configuration =
         TestFixtures.aDefaultConfigurationManager()
             .storageProvider(storageProvider)
             .submissionClient(submissionClient)
@@ -64,7 +60,7 @@ public class ConfigurationManagerTest {
 
   @Test
   public void itCanAddALogCapturer() {
-    configurationManager =
+    configuration =
         TestFixtures.aDefaultConfigurationManager().logCatpurer(logCapturer).build();
     // trace is disabled by default
     LOG.debug("debug message");
@@ -83,9 +79,9 @@ public class ConfigurationManagerTest {
 
   @Test
   public void itCanAddDefaultTags() {
-    configurationManager.addDefaultTags("tag1", "tag2");
+    configuration.addDefaultTags("tag1", "tag2");
 
-    assertThat(configurationManager.getDefaultTags()).isEqualTo(Set.of("tag1", "tag2"));
+    assertThat(configuration.getDefaultTags()).isEqualTo(Set.of("tag1", "tag2"));
   }
 
   @Test
@@ -97,9 +93,9 @@ public class ConfigurationManagerTest {
             .settings(Map.of("@@DataExclusions", "exclusion1,exclusion2"))
             .build());
 
-    configurationManager.addDataExclusions("exclusion3", "exclusion4");
+    configuration.addDataExclusions("exclusion3", "exclusion4");
 
-    assertThat(configurationManager.getDataExclusions())
+    assertThat(configuration.getDataExclusions())
         .isEqualTo(Set.of("exclusion1", "exclusion2", "exclusion3", "exclusion4"));
   }
 
@@ -112,22 +108,22 @@ public class ConfigurationManagerTest {
             .settings(Map.of("@@UserAgentBotPatterns", "pattern1,pattern2"))
             .build());
 
-    configurationManager.addUserAgentBotPatterns("pattern3", "pattern4");
+    configuration.addUserAgentBotPatterns("pattern3", "pattern4");
 
-    assertThat(configurationManager.getUserAgentBotPatterns())
+    assertThat(configuration.getUserAgentBotPatterns())
         .isEqualTo(Set.of("pattern1", "pattern2", "pattern3", "pattern4"));
   }
 
   @Test
   public void itCanSubmitSessionHeartBeat() {
-    configurationManager.submitSessionHeartbeat("test-user-id");
+    configuration.submitSessionHeartbeat("test-user-id");
 
     verify(submissionClient, times(1)).sendHeartBeat("test-user-id", false);
   }
 
   @Test
   public void itCanAddAndRemovePlugins() {
-    configurationManager.addPlugin(
+    configuration.addPlugin(
         new EventPluginIF() {
           @Override
           public int getPriority() {
@@ -141,27 +137,27 @@ public class ConfigurationManagerTest {
 
           @Override
           public void run(
-              EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {}
+              EventPluginContext eventPluginContext, Configuration configuration) {}
         });
 
     assertThat(
-            configurationManager.getPlugins().stream()
+            configuration.getPlugins().stream()
                 .anyMatch(plugin -> plugin.getName().equals("testPlugin")))
         .isTrue();
 
-    configurationManager.removePlugin("testPlugin");
+    configuration.removePlugin("testPlugin");
 
     assertThat(
-            configurationManager.getPlugins().stream()
+            configuration.getPlugins().stream()
                 .anyMatch(plugin -> plugin.getName().equals("testPlugin")))
         .isFalse();
   }
 
   @Test
   public void itCanAddVersionInDefaultData() {
-    configurationManager.setVersion("123");
+    configuration.setVersion("123");
 
-    assertThat(configurationManager.getDefaultData())
+    assertThat(configuration.getDefaultData())
         .isEqualTo(Map.of(EventPropertyKey.VERSION.value(), "123"));
   }
 
@@ -169,21 +165,21 @@ public class ConfigurationManagerTest {
   public void itCanAddAndRemoveUserIdentityInDefaultData() {
     UserInfo userInfo = UserInfo.builder().identity("test-identity").name("test-name").build();
 
-    configurationManager.setUserIdentity(userInfo);
+    configuration.setUserIdentity(userInfo);
 
-    assertThat(configurationManager.getDefaultData())
+    assertThat(configuration.getDefaultData())
         .isEqualTo(Map.of(EventPropertyKey.USER.value(), userInfo));
 
-    configurationManager.removeUserIdentity();
+    configuration.removeUserIdentity();
 
-    assertThat(configurationManager.getDefaultData()).isEqualTo(Map.of());
+    assertThat(configuration.getDefaultData()).isEqualTo(Map.of());
   }
 
   @Test
   public void itCanUseSessions() {
-    configurationManager.useSessions();
+    configuration.useSessions();
     List<EventPluginIF> plugins =
-        configurationManager.getPlugins().stream()
+        configuration.getPlugins().stream()
             .filter(plugin -> plugin.getName().contains("HeartbeatPlugin"))
             .collect(Collectors.toList());
 
@@ -192,33 +188,33 @@ public class ConfigurationManagerTest {
 
   @Test
   public void itCanDetectChanges() {
-    configurationManager.onChanged(handler);
-    configurationManager.setApiKey("test-api-key");
+    configuration.onChanged(handler);
+    configuration.setApiKey("test-api-key");
 
-    verify(handler, times(1)).accept(configurationManager);
+    verify(handler, times(1)).accept(configuration);
   }
 
   @Test
   public void itCanSetDefaultValueHeartBeatServerUrlToServerUrlIfAbsent() {
-    ConfigurationManager configurationManager =
-        ConfigurationManager.builder()
+    Configuration configuration =
+        Configuration.builder()
             .serverUrl("test-server-url")
             .apiKey("12345678abcdef")
             .build();
 
-    Assertions.assertThat(configurationManager.getHeartbeatServerUrl().get())
+    Assertions.assertThat(configuration.getHeartbeatServerUrl().get())
         .isEqualTo("test-server-url");
   }
 
   @Test
   public void itCanSetDefaultValueConfigServerUrlToServerUrlIfAbsent() {
-    ConfigurationManager configurationManager =
-            ConfigurationManager.builder()
+    Configuration configuration =
+            Configuration.builder()
                     .serverUrl("test-server-url")
                     .apiKey("12345678abcdef")
                     .build();
 
-    Assertions.assertThat(configurationManager.getConfigServerUrl().get())
+    Assertions.assertThat(configuration.getConfigServerUrl().get())
             .isEqualTo("test-server-url");
   }
 }
