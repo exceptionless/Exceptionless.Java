@@ -9,6 +9,7 @@ import com.exceptionless.exceptionlessclient.logging.NullLogCapturer;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.UserInfo;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
+import com.exceptionless.exceptionlessclient.plugins.PluginManager;
 import com.exceptionless.exceptionlessclient.plugins.preconfigured.HeartbeatPlugin;
 import com.exceptionless.exceptionlessclient.queue.DefaultEventQueue;
 import com.exceptionless.exceptionlessclient.queue.EventQueueIF;
