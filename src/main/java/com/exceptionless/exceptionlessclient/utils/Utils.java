@@ -17,6 +17,7 @@ public final class Utils {
     JSON_MAPPER = new ObjectMapper();
     JSON_MAPPER.registerModule(new JavaTimeModule());
     JSON_MAPPER.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    JSON_MAPPER.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
