@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.Event;
@@ -26,7 +26,7 @@ public class ErrorPlugin implements EventPluginIF {
 
   @Override
   public void run(
-      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, Configuration configuration) {
     Exception exception = eventPluginContext.getContext().getException();
     if (exception == null) {
       return;
@@ -40,7 +40,7 @@ public class ErrorPlugin implements EventPluginIF {
 
     event.addError(parse(exception));
 
-    Set<String> dataExclusions = new HashSet<>(configurationManager.getDataExclusions());
+    Set<String> dataExclusions = new HashSet<>(configuration.getDataExclusions());
     event.addData(Map.of(EventPropertyKey.EXTRA.value(), exception), dataExclusions);
   }
 

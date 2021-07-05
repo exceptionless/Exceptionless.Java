@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.submission;
 
-import com.exceptionless.exceptionlessclient.configuration.Configuration;
+import com.exceptionless.exceptionlessclient.configuration.ValueProvider;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.settings.SettingsManager;
@@ -21,35 +21,49 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
   private static final String CONFIGURATION_VERSION_HEADER = "x-exceptionless-configversion";
   private static final String RATE_LIMITING_HEADER = "x-ratelimit-remaining";
 
-  private final Configuration configuration;
   private final SettingsManager settingsManager;
-  private final OkHttpClient httpClient;
+  private final OkHttpClient defaultHttpClient;
+  private final ValueProvider<Integer> submissionClientTimeoutInMillis;
+  private final ValueProvider<String> serverUrl;
+  private final ValueProvider<String> apiKey;
+  private final ValueProvider<String> heartbeatServerUrl;
 
   @Builder
-  public DefaultSubmissionClient(Configuration configuration, SettingsManager settingsManager) {
-    this.configuration = configuration;
-    this.settingsManager = settingsManager;
-    this.httpClient =
-        new OkHttpClient()
-            .newBuilder()
-            .connectTimeout(Duration.ofMillis(configuration.getSubmissionClientTimeoutInMillis()))
-            .build();
+  public DefaultSubmissionClient(
+      SettingsManager settingsManager,
+      ValueProvider<Integer> submissionClientTimeoutInMillis,
+      ValueProvider<String> serverUrl,
+      ValueProvider<String> apiKey,
+      ValueProvider<String> heartbeatServerUrl) {
+    this(
+        new OkHttpClient().newBuilder().build(),
+        settingsManager,
+        submissionClientTimeoutInMillis,
+        serverUrl,
+        apiKey,
+        heartbeatServerUrl);
   }
 
   @VisibleForTesting
   DefaultSubmissionClient(
-      Configuration configuration, SettingsManager settingsManager, OkHttpClient httpClient) {
-    this.configuration = configuration;
+      OkHttpClient defaultHttpClient,
+      SettingsManager settingsManager,
+      ValueProvider<Integer> submissionClientTimeoutInMillis,
+      ValueProvider<String> serverUrl,
+      ValueProvider<String> apiKey,
+      ValueProvider<String> heartbeatServerUrl) {
     this.settingsManager = settingsManager;
-    this.httpClient = httpClient;
+    this.defaultHttpClient = defaultHttpClient;
+    this.submissionClientTimeoutInMillis = submissionClientTimeoutInMillis;
+    this.serverUrl = serverUrl;
+    this.apiKey = apiKey;
+    this.heartbeatServerUrl = heartbeatServerUrl;
   }
 
   @Override
   public SubmissionResponse postEvents(List<Event> events) {
     return postSubmission(
-        String.format(
-            "%s/api/v2/events?access_token=%s",
-            configuration.getServerUrl(), configuration.getApiKey()),
+        String.format("%s/api/v2/events?access_token=%s", serverUrl.get(), apiKey.get()),
         events.stream().map(SubmissionMapper::toRequest).collect(Collectors.toList()));
   }
 
@@ -58,7 +72,7 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
     return postSubmission(
         String.format(
             "%s/api/v2/events/by-ref/%s/user-description?access_token=%s",
-            configuration.getServerUrl(), referenceId, configuration.getApiKey()),
+            serverUrl.get(), referenceId, apiKey.get()),
         SubmissionMapper.toRequest(description));
   }
 
@@ -71,7 +85,13 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
               .post(RequestBody.create(requestJSON, MediaType.parse("application/json")))
               .build();
 
-      Response response = httpClient.newCall(request).execute();
+      Response response =
+          defaultHttpClient
+              .newBuilder()
+              .connectTimeout(Duration.ofMillis(submissionClientTimeoutInMillis.get()))
+              .build()
+              .newCall(request)
+              .execute();
 
       if (response.isSuccessful()) {
         updateSettingsFromHeaders(response);
@@ -109,14 +129,20 @@ public class DefaultSubmissionClient implements SubmissionClientIF {
               .url(
                   String.format(
                       "%s/api/v2/events/session/heartbeat?id=%s&close=%s&access_token=%s",
-                      configuration.getHeartbeatServerUrl(),
+                      heartbeatServerUrl.get(),
                       URLEncoder.encode(sessionIdOrUserId, StandardCharsets.UTF_8),
                       closeSession,
-                      configuration.getApiKey()))
+                      apiKey.get()))
               .get()
               .build();
 
-      Response response = httpClient.newCall(request).execute();
+      Response response =
+          defaultHttpClient
+              .newBuilder()
+              .connectTimeout(Duration.ofMillis(submissionClientTimeoutInMillis.get()))
+              .build()
+              .newCall(request)
+              .execute();
 
       if (!response.isSuccessful()) {
         log.error(

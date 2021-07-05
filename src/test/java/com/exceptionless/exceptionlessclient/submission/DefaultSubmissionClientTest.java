@@ -1,7 +1,6 @@
 package com.exceptionless.exceptionlessclient.submission;
 
-import com.exceptionless.exceptionlessclient.TestFixtures;
-import com.exceptionless.exceptionlessclient.configuration.Configuration;
+import com.exceptionless.exceptionlessclient.configuration.ValueProvider;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.UserDescription;
 import com.exceptionless.exceptionlessclient.settings.SettingsManager;
@@ -10,9 +9,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -31,15 +32,14 @@ public class DefaultSubmissionClientTest {
 
   @BeforeEach
   public void setup() {
-    Configuration configuration =
-        TestFixtures.aDefaultConfiguration()
-            .serverUrl("http://test-server-url")
-            .heartbeatServerUrl("http://test-heartbeat-server-url")
-            .apiKey("test-api-key")
-            .submissionClientTimeoutInMillis(10)
-            .build();
-
-    submissionClient = new DefaultSubmissionClient(configuration, settingsManager, httpClient);
+    submissionClient =
+        new DefaultSubmissionClient(
+            httpClient,
+            settingsManager,
+            ValueProvider.of(10),
+            ValueProvider.of("http://test-server-url"),
+            ValueProvider.of("test-api-key"),
+            ValueProvider.of("http://test-heartbeat-server-url"));
     responseBuilder =
         new Response.Builder()
             .request(new Request.Builder().url("http://test-url").build())
@@ -47,6 +47,10 @@ public class DefaultSubmissionClientTest {
             .body(ResponseBody.create("test-body", MediaType.get("text/plain")))
             .message("test-message")
             .code(200);
+    OkHttpClient.Builder mockBuilder = Mockito.mock(OkHttpClient.Builder.class);
+    doReturn(mockBuilder).when(httpClient).newBuilder();
+    doReturn(mockBuilder).when(mockBuilder).connectTimeout(Duration.ofMillis(10));
+    doReturn(httpClient).when(mockBuilder).build();
   }
 
   @Test
@@ -174,7 +178,9 @@ public class DefaultSubmissionClientTest {
     Exception exception = new RuntimeException("test");
     doThrow(exception).when(httpClient).newCall(any());
 
-    SubmissionResponse response = submissionClient.postUserDescription("test-reference-id", UserDescription.builder().build());
+    SubmissionResponse response =
+        submissionClient.postUserDescription(
+            "test-reference-id", UserDescription.builder().build());
 
     assertThat(response.hasException()).isTrue();
     assertThat(response.getException()).isSameAs(exception);

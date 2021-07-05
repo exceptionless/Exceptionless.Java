@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.configuration.PrivateInformationInclusions;
 import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.enums.ServerSettingKey;
@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(MockitoExtension.class)
 public class RequestInfoPluginTest {
   private InMemoryStorageProvider storageProvider;
-  private ConfigurationManager configurationManager;
+  private Configuration configuration;
   private RequestInfoPlugin plugin;
   private EventPluginContext context;
 
@@ -34,7 +34,7 @@ public class RequestInfoPluginTest {
   public void setup() {
     plugin = RequestInfoPlugin.builder().build();
     storageProvider = InMemoryStorageProvider.builder().build();
-    configurationManager =
+    configuration =
         TestFixtures.aDefaultConfigurationManager().storageProvider(storageProvider).build();
   }
 
@@ -45,7 +45,7 @@ public class RequestInfoPluginTest {
         EventPluginContext.from(
             Event.builder().property(EventPropertyKey.REQUEST_INFO.value(), requestInfo).build());
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getEvent().getRequestInfo()).isPresent();
     assertThat(context.getEvent().getRequestInfo().get()).isSameAs(requestInfo);
@@ -55,7 +55,7 @@ public class RequestInfoPluginTest {
   public void itShouldNotDoAnythingIfRequestInfoIsNotPresentInEventButAbsentFromContext() {
     context = EventPluginContext.from(Event.builder().build());
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getEvent().getRequestInfo()).isNotPresent();
   }
@@ -82,7 +82,7 @@ public class RequestInfoPluginTest {
                     Map.of(ServerSettingKey.USER_AGENT_BOT_PATTERNS.value(), "test-user-agent"))
                 .build());
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getEvent().getRequestInfo()).isNotPresent();
     assertThat(context.getContext().isEventCancelled()).isTrue();
@@ -98,7 +98,7 @@ public class RequestInfoPluginTest {
             .context(PluginContext.builder().request(httpRequest).build())
             .build();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getEvent().getRequestInfo()).isPresent();
     RequestInfo requestInfo = context.getEvent().getRequestInfo().get();
@@ -121,7 +121,7 @@ public class RequestInfoPluginTest {
             .context(PluginContext.builder().request(httpRequest).build())
             .build();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getEvent().getRequestInfo()).isPresent();
     RequestInfo requestInfo = context.getEvent().getRequestInfo().get();
@@ -139,7 +139,7 @@ public class RequestInfoPluginTest {
             .context(PluginContext.builder().request(httpRequest).build())
             .build();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getEvent().getRequestInfo()).isPresent();
     RequestInfo requestInfo = context.getEvent().getRequestInfo().get();
@@ -164,12 +164,12 @@ public class RequestInfoPluginTest {
             .build();
 
     PrivateInformationInclusions inclusions =
-        configurationManager.getPrivateInformationInclusions();
+        configuration.getPrivateInformationInclusions();
     inclusions.setIpAddress(true);
     inclusions.setCookies(true);
     inclusions.setQueryString(true);
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getEvent().getRequestInfo()).isPresent();
     RequestInfo requestInfo = context.getEvent().getRequestInfo().get();
@@ -196,14 +196,14 @@ public class RequestInfoPluginTest {
             .event(Event.builder().build())
             .context(PluginContext.builder().request(httpRequest).build())
             .build();
-    configurationManager.addDataExclusions("exclude-query-param", "exclude-cookie");
+    configuration.addDataExclusions("exclude-query-param", "exclude-cookie");
     PrivateInformationInclusions inclusions =
-        configurationManager.getPrivateInformationInclusions();
+        configuration.getPrivateInformationInclusions();
     inclusions.setIpAddress(true);
     inclusions.setCookies(true);
     inclusions.setQueryString(true);
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     assertThat(context.getEvent().getRequestInfo()).isPresent();
     RequestInfo requestInfo = context.getEvent().getRequestInfo().get();

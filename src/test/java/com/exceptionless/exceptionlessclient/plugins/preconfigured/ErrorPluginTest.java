@@ -1,7 +1,7 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
 import com.exceptionless.exceptionlessclient.TestFixtures;
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.Event;
@@ -16,12 +16,12 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ErrorPluginTest {
-  private ConfigurationManager configurationManager;
+  private Configuration configuration;
   private ErrorPlugin plugin;
 
   @BeforeEach
   public void setup() {
-    configurationManager = TestFixtures.aDefaultConfigurationManager().build();
+    configuration = TestFixtures.aDefaultConfigurationManager().build();
     plugin = ErrorPlugin.builder().build();
   }
 
@@ -34,7 +34,7 @@ public class ErrorPluginTest {
             .context(PluginContext.builder().exception(exc).build())
             .build();
 
-    plugin.run(context, configurationManager);
+    plugin.run(context, configuration);
 
     Event event = context.getEvent();
     assertThat(event.getType()).isEqualTo(EventType.ERROR.value());

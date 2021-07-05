@@ -19,7 +19,7 @@ public class ExampleApp {
   }
 
   public static void sampleUseOfSessions() {
-    client.getConfigurationManager().useSessions();
+    client.getConfiguration().useSessions();
     client.submitEvent(client.createSessionStart().userIdentity("test-user").build());
     client.submitSessionEnd("test-user");
   }

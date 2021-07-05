@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient;
 
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.enums.EventPropertyKey;
 import com.exceptionless.exceptionlessclient.enums.EventType;
 import com.exceptionless.exceptionlessclient.models.Event;
@@ -30,25 +30,23 @@ public class ExceptionlessClientTest {
   @Mock private DefaultSubmissionClient submissionClient;
   @Mock private InMemoryStorageProvider storageProvider;
   @Mock private DefaultEventQueue eventQueue;
-  private ConfigurationManager configurationManager;
+  private Configuration configuration;
   private ExceptionlessClient client;
   private InMemoryStorage<ServerSettings> settingsStorage;
 
   @BeforeEach
   public void setup() {
     settingsStorage = InMemoryStorage.<ServerSettings>builder().build();
-    configurationManager =
+    configuration =
         TestFixtures.aDefaultConfigurationManager()
-            .configuration(
-                TestFixtures.aDefaultConfiguration()
-                    .updateSettingsWhenIdleInterval(3600L)
-                    .build()) // We don't want the timer to run by default
+            // We don't want the timer to run by default
+            .updateSettingsWhenIdleInterval(3600L)
             .settingsClient(settingsClient)
             .storageProvider(storageProvider)
             .submissionClient(submissionClient)
             .queue(eventQueue)
             .build();
-    client = new ExceptionlessClient(configurationManager, 1000, 10);
+    client = new ExceptionlessClient(configuration, 1000, 10);
   }
 
   @Test
@@ -79,7 +77,7 @@ public class ExceptionlessClientTest {
                         && event.getError().isPresent()
                         && event.getEnvironmentInfo().isPresent()
                         && event.getData().containsKey(EventPropertyKey.EXTRA.value())));
-    assertThat(configurationManager.getLastReferenceIdManager().getLast()).isNotNull();
+    assertThat(configuration.getLastReferenceIdManager().getLast()).isNotNull();
   }
 
   @Test
@@ -110,7 +108,7 @@ public class ExceptionlessClientTest {
                         && event.getData().containsKey(EventPropertyKey.EXTRA.value())
                         && event.getSubmissionMethod().isPresent()
                         && event.getSubmissionMethod().get().equals("test-submission-method")));
-    assertThat(configurationManager.getLastReferenceIdManager().getLast()).isNotNull();
+    assertThat(configuration.getLastReferenceIdManager().getLast()).isNotNull();
   }
 
   @Test
@@ -128,7 +126,7 @@ public class ExceptionlessClientTest {
                         && event.getDate().equals(LocalDate.now())
                         && event.getReferenceId() != null
                         && event.getEnvironmentInfo().isPresent()));
-    assertThat(configurationManager.getLastReferenceIdManager().getLast()).isNotNull();
+    assertThat(configuration.getLastReferenceIdManager().getLast()).isNotNull();
   }
 
   @Test
@@ -159,7 +157,7 @@ public class ExceptionlessClientTest {
                         && event.getReferenceId() != null
                         && event.getEnvironmentInfo().isPresent()
                         && event.getData().containsKey(EventPropertyKey.LOG_LEVEL.value())));
-    assertThat(configurationManager.getLastReferenceIdManager().getLast()).isNotNull();
+    assertThat(configuration.getLastReferenceIdManager().getLast()).isNotNull();
   }
 
   @Test
@@ -231,7 +229,7 @@ public class ExceptionlessClientTest {
                         && event.getDate().equals(LocalDate.now())
                         && event.getReferenceId() != null
                         && event.getEnvironmentInfo().isPresent()));
-    assertThat(configurationManager.getLastReferenceIdManager().getLast()).isNotNull();
+    assertThat(configuration.getLastReferenceIdManager().getLast()).isNotNull();
   }
 
   @Test
@@ -259,7 +257,7 @@ public class ExceptionlessClientTest {
                         && event.getDate().equals(LocalDate.now())
                         && event.getReferenceId() != null
                         && event.getEnvironmentInfo().isPresent()));
-    assertThat(configurationManager.getLastReferenceIdManager().getLast()).isNotNull();
+    assertThat(configuration.getLastReferenceIdManager().getLast()).isNotNull();
   }
 
   @Test
@@ -299,7 +297,7 @@ public class ExceptionlessClientTest {
 
   @Test
   public void itCanGetLastReferenceId() {
-    configurationManager.getLastReferenceIdManager().setLast("123");
+    configuration.getLastReferenceIdManager().setLast("123");
 
     assertThat(client.getLastReferenceId()).isEqualTo("123");
   }

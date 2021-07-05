@@ -1,15 +1,16 @@
 package com.exceptionless.exceptionlessclient.settings;
 
-import com.exceptionless.exceptionlessclient.TestFixtures;
-import com.exceptionless.exceptionlessclient.configuration.Configuration;
+import com.exceptionless.exceptionlessclient.configuration.ValueProvider;
 import okhttp3.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,13 +28,12 @@ public class DefaultSettingsClientTest {
 
   @BeforeEach
   public void setup() {
-    Configuration configuration =
-        TestFixtures.aDefaultConfiguration()
-            .serverUrl("http://test-server-url")
-            .apiKey("test-api-key")
-            .settingsClientTimeoutInMillis(10)
-            .build();
-    settingsClient = new DefaultSettingsClient(configuration, httpClient);
+    settingsClient =
+        new DefaultSettingsClient(
+            httpClient,
+            ValueProvider.of(10),
+            ValueProvider.of("http://test-server-url"),
+            ValueProvider.of("test-api-key"));
     responseBuilder =
         new Response.Builder()
             .request(new Request.Builder().url("http://test-url").build())
@@ -41,6 +41,11 @@ public class DefaultSettingsClientTest {
             .message("test-message")
             .body(ResponseBody.create("test-body", MediaType.get("text/plain")))
             .code(200);
+
+    OkHttpClient.Builder mockBuilder = Mockito.mock(OkHttpClient.Builder.class);
+    doReturn(mockBuilder).when(httpClient).newBuilder();
+    doReturn(mockBuilder).when(mockBuilder).connectTimeout(Duration.ofMillis(10));
+    doReturn(httpClient).when(mockBuilder).build();
   }
 
   @Test

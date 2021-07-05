@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins;
 
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 
 public interface EventPluginIF {
@@ -10,5 +10,5 @@ public interface EventPluginIF {
     return getClass().getName();
   }
 
-  void run(EventPluginContext eventPluginContext, ConfigurationManager configurationManager);
+  void run(EventPluginContext eventPluginContext, Configuration configuration);
 }

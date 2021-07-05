@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
@@ -19,12 +19,12 @@ public class ConfigurationDefaultsPlugin implements EventPluginIF {
 
   @Override
   public void run(
-      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, Configuration configuration) {
     Event event = eventPluginContext.getEvent();
-    for (String tag : configurationManager.getDefaultTags()) {
+    for (String tag : configuration.getDefaultTags()) {
       event.addTags(tag);
     }
 
-    event.addData(configurationManager.getDefaultData(), configurationManager.getDataExclusions());
+    event.addData(configuration.getDefaultData(), configuration.getDataExclusions());
   }
 }

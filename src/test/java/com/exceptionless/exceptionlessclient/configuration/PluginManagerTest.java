@@ -2,6 +2,7 @@ package com.exceptionless.exceptionlessclient.configuration;
 
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
+import com.exceptionless.exceptionlessclient.plugins.PluginManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -64,7 +65,7 @@ public class PluginManagerTest {
 
           @Override
           public void run(
-              EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {}
+              EventPluginContext eventPluginContext, Configuration configuration) {}
         });
 
     assertThat(pluginManager.getPlugins().get(0).getName()).isEqualTo("test-plugin");
@@ -86,7 +87,7 @@ public class PluginManagerTest {
 
           @Override
           public void run(
-              EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {}
+              EventPluginContext eventPluginContext, Configuration configuration) {}
         });
     assertThat(
             pluginManager.getPlugins().stream()

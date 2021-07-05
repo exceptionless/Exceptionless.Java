@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.settings;
 
-import com.exceptionless.exceptionlessclient.configuration.Configuration;
+import com.exceptionless.exceptionlessclient.configuration.ValueProvider;
 import com.exceptionless.exceptionlessclient.utils.Utils;
 import com.exceptionless.exceptionlessclient.utils.VisibleForTesting;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -13,23 +13,33 @@ import okhttp3.ResponseBody;
 import java.time.Duration;
 
 public class DefaultSettingsClient implements SettingsClientIF {
-  private final Configuration configuration;
-  private final OkHttpClient httpClient;
+  private final OkHttpClient defaultHttpClient;
+  private final ValueProvider<Integer> settingsClientTimeoutInMillis;
+  private final ValueProvider<String> configServerUrl;
+  private final ValueProvider<String> apiKey;
 
   @Builder
-  public DefaultSettingsClient(Configuration configuration) {
-    this.configuration = configuration;
-    this.httpClient =
-        new OkHttpClient()
-            .newBuilder()
-            .connectTimeout(Duration.ofMillis(configuration.getSettingsClientTimeoutInMillis()))
-            .build();
+  public DefaultSettingsClient(
+      ValueProvider<Integer> settingsClientTimeoutInMillis,
+      ValueProvider<String> configServerUrl,
+      ValueProvider<String> apiKey) {
+    this(
+        new OkHttpClient().newBuilder().build(),
+        settingsClientTimeoutInMillis,
+        configServerUrl,
+        apiKey);
   }
 
   @VisibleForTesting
-  DefaultSettingsClient(Configuration configuration, OkHttpClient httpClient) {
-    this.configuration = configuration;
-    this.httpClient = httpClient;
+  DefaultSettingsClient(
+      OkHttpClient defaultHttpClient,
+      ValueProvider<Integer> settingsClientTimeoutInMillis,
+      ValueProvider<String> configServerUrl,
+      ValueProvider<String> apiKey) {
+    this.defaultHttpClient = defaultHttpClient;
+    this.settingsClientTimeoutInMillis = settingsClientTimeoutInMillis;
+    this.configServerUrl = configServerUrl;
+    this.apiKey = apiKey;
   }
 
   @Override
@@ -40,11 +50,17 @@ public class DefaultSettingsClient implements SettingsClientIF {
               .url(
                   String.format(
                       "%s/api/v2/projects/config?v=%s&access_token=%s",
-                      configuration.getConfigServerUrl(), version, configuration.getApiKey()))
+                      configServerUrl.get(), version, apiKey.get()))
               .get()
               .build();
 
-      Response response = httpClient.newCall(request).execute();
+      Response response =
+          defaultHttpClient
+              .newBuilder()
+              .connectTimeout(Duration.ofMillis(settingsClientTimeoutInMillis.get()))
+              .build()
+              .newCall(request)
+              .execute();
 
       ResponseBody body = response.body();
       String bodyStr = body == null ? null : body.string();

@@ -1,7 +1,7 @@
-package com.exceptionless.exceptionlessclient.configuration;
+package com.exceptionless.exceptionlessclient.plugins;
 
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
-import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import com.exceptionless.exceptionlessclient.plugins.preconfigured.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -53,14 +53,14 @@ public class PluginManager {
     plugins.sort((o1, o2) -> o2.getPriority() - o1.getPriority());
   }
 
-  public void addPlugin(BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
+  public void addPlugin(BiConsumer<EventPluginContext, Configuration> pluginAction) {
     addPlugin(UUID.randomUUID().toString(), DEFAULT_PLUGIN_PRIORITY, pluginAction);
   }
 
   public void addPlugin(
       String name,
       int priority,
-      BiConsumer<EventPluginContext, ConfigurationManager> pluginAction) {
+      BiConsumer<EventPluginContext, Configuration> pluginAction) {
     addPlugin(
         new EventPluginIF() {
           @Override
@@ -75,8 +75,8 @@ public class PluginManager {
 
           @Override
           public void run(
-              EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
-            pluginAction.accept(eventPluginContext, configurationManager);
+              EventPluginContext eventPluginContext, Configuration configuration) {
+            pluginAction.accept(eventPluginContext, configuration);
           }
         });
   }

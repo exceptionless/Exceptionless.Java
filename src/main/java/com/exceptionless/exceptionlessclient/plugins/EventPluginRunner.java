@@ -1,21 +1,21 @@
 package com.exceptionless.exceptionlessclient.plugins;
 
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class EventPluginRunner {
-  private final ConfigurationManager configurationManager;
+  private final Configuration configuration;
 
   @Builder
-  public EventPluginRunner(ConfigurationManager configurationManager) {
-    this.configurationManager = configurationManager;
+  public EventPluginRunner(Configuration configuration) {
+    this.configuration = configuration;
   }
 
   public void run(EventPluginContext eventPluginContext) {
-    configurationManager
+    configuration
         .getPlugins()
         .forEach(
             plugin -> {
@@ -24,7 +24,7 @@ public class EventPluginRunner {
               }
 
               try {
-                plugin.run(eventPluginContext, configurationManager);
+                plugin.run(eventPluginContext, configuration);
 
               } catch (Exception e) {
                     log.error(
@@ -44,8 +44,8 @@ public class EventPluginRunner {
       return;
     }
 
-    configurationManager.getQueue().enqueue(eventPluginContext.getEvent());
-    configurationManager
+    configuration.getQueue().enqueue(eventPluginContext.getEvent());
+    configuration
         .getLastReferenceIdManager()
         .setLast(eventPluginContext.getEvent().getReferenceId());
   }

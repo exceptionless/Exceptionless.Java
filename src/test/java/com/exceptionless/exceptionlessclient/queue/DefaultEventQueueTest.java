@@ -1,7 +1,6 @@
 package com.exceptionless.exceptionlessclient.queue;
 
-import com.exceptionless.exceptionlessclient.TestFixtures;
-import com.exceptionless.exceptionlessclient.configuration.Configuration;
+import com.exceptionless.exceptionlessclient.configuration.ValueProvider;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorage;
 import com.exceptionless.exceptionlessclient.storage.InMemoryStorageProvider;
@@ -33,9 +32,6 @@ public class DefaultEventQueueTest {
 
   @BeforeEach
   public void setup() {
-    Configuration configuration =
-        TestFixtures.aDefaultConfiguration().submissionBatchSize(1).build();
-
     storage = InMemoryStorage.<Event>builder().build();
     doReturn(storage).when(storageProvider).getQueue();
 
@@ -44,7 +40,7 @@ public class DefaultEventQueueTest {
         DefaultEventQueue.builder()
             .storageProvider(storageProvider)
             .submissionClient(submissionClient)
-            .configuration(configuration)
+            .submissionBatchSize(ValueProvider.of(1))
             .processingIntervalInSecs(
                 3600) // We don't want the automatic timer to run in between tests by default
             .build();
@@ -260,13 +256,11 @@ public class DefaultEventQueueTest {
 
   @Test
   public void itShouldReduceSubmissionBatchSizeIfRequestEntitiesAreTooLarge() {
-    Configuration configuration =
-        TestFixtures.aDefaultConfiguration().submissionBatchSize(3).build();
     queue =
         DefaultEventQueue.builder()
             .storageProvider(storageProvider)
             .submissionClient(submissionClient)
-            .configuration(configuration)
+            .submissionBatchSize(ValueProvider.of(3))
             .processingIntervalInSecs(
                 3600) // We don't want the automatic timer to run in between tests by default
             .build();
@@ -311,13 +305,11 @@ public class DefaultEventQueueTest {
 
   @Test
   public void itShouldResetSubmissionBatchSizeOnNextSuccessfulResponse() {
-    Configuration configuration =
-        TestFixtures.aDefaultConfiguration().submissionBatchSize(3).build();
     queue =
         DefaultEventQueue.builder()
             .storageProvider(storageProvider)
             .submissionClient(submissionClient)
-            .configuration(configuration)
+            .submissionBatchSize(ValueProvider.of(3))
             .processingIntervalInSecs(
                 3600) // We don't want the automatic timer to run in between tests by default
             .build();
@@ -350,13 +342,11 @@ public class DefaultEventQueueTest {
         SubmissionResponse.builder().body("test-message").code(200).build();
     doReturn(response).when(submissionClient).postEvents(List.of(event));
 
-    Configuration configuration =
-        TestFixtures.aDefaultConfiguration().submissionBatchSize(1).build();
     queue =
         DefaultEventQueue.builder()
             .storageProvider(storageProvider)
             .submissionClient(submissionClient)
-            .configuration(configuration)
+            .submissionBatchSize(ValueProvider.of(1))
             .processingIntervalInSecs(1)
             .build();
     queue.onEventsPosted(testHandler);

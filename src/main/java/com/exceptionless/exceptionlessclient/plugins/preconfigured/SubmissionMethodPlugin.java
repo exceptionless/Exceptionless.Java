@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
 import lombok.Builder;
@@ -18,7 +18,7 @@ public class SubmissionMethodPlugin implements EventPluginIF {
 
   @Override
   public void run(
-      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, Configuration configuration) {
     String submissionMethod = eventPluginContext.getContext().getSubmissionMethod();
     if (submissionMethod == null) {
       return;

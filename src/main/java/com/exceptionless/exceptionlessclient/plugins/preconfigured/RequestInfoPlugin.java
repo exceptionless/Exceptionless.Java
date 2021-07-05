@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.models.Event;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.RequestInfo;
@@ -32,7 +32,7 @@ public class RequestInfoPlugin implements EventPluginIF {
 
   @Override
   public void run(
-      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, Configuration configuration) {
     Event event = eventPluginContext.getEvent();
     if (event.getRequestInfo().isPresent()) {
       return;
@@ -45,17 +45,17 @@ public class RequestInfoPlugin implements EventPluginIF {
         getRequestInfo(
             request,
             RequestInfoGetArgs.builder()
-                .exclusions(configurationManager.getDataExclusions())
-                .includeCookies(configurationManager.getPrivateInformationInclusions().getCookies())
+                .exclusions(configuration.getDataExclusions())
+                .includeCookies(configuration.getPrivateInformationInclusions().getCookies())
                 .includeIpAddress(
-                    configurationManager.getPrivateInformationInclusions().getIpAddress())
+                    configuration.getPrivateInformationInclusions().getIpAddress())
                 .includePostData(
-                    configurationManager.getPrivateInformationInclusions().getPostData())
+                    configuration.getPrivateInformationInclusions().getPostData())
                 .includeQueryString(
-                    configurationManager.getPrivateInformationInclusions().getQueryString())
+                    configuration.getPrivateInformationInclusions().getQueryString())
                 .build());
 
-    if (configurationManager.getUserAgentBotPatterns().stream()
+    if (configuration.getUserAgentBotPatterns().stream()
         .anyMatch(pattern -> Utils.match(requestInfo.getUserAgent(), pattern))) {
       log.info("Cancelling event as the request user agent matches a known bot pattern");
       eventPluginContext.getContext().setEventCancelled(true);

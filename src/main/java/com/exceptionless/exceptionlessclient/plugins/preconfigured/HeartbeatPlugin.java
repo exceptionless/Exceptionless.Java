@@ -1,6 +1,6 @@
 package com.exceptionless.exceptionlessclient.plugins.preconfigured;
 
-import com.exceptionless.exceptionlessclient.configuration.ConfigurationManager;
+import com.exceptionless.exceptionlessclient.configuration.Configuration;
 import com.exceptionless.exceptionlessclient.models.EventPluginContext;
 import com.exceptionless.exceptionlessclient.models.UserInfo;
 import com.exceptionless.exceptionlessclient.plugins.EventPluginIF;
@@ -37,7 +37,7 @@ public class HeartbeatPlugin implements EventPluginIF {
 
   @Override
   public void run(
-      EventPluginContext eventPluginContext, ConfigurationManager configurationManager) {
+      EventPluginContext eventPluginContext, Configuration configuration) {
     Optional<UserInfo> maybeUserInfo = eventPluginContext.getEvent().getUserInfo();
     if (maybeUserInfo.isEmpty()) {
       return;
@@ -54,7 +54,7 @@ public class HeartbeatPlugin implements EventPluginIF {
           @Override
           public void run() {
             try {
-              configurationManager.submitSessionHeartbeat(prevIdentity);
+              configuration.submitSessionHeartbeat(prevIdentity);
             } catch (Exception e) {
               log.error(
                   String.format("Error in submitting hearbeat for identity: %s", prevIdentity), e);
