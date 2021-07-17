@@ -17,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDate;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -78,16 +77,8 @@ public class ExceptionlessClient {
         .build();
   }
 
-  public CompletableFuture<Void> submitExceptionAsync(Exception exception) {
-    return CompletableFuture.runAsync(() -> submitException(exception), executorService);
-  }
-
   public void submitException(Exception exception) {
     submitException(null, exception);
-  }
-
-  public CompletableFuture<Void> submitExceptionAsync(String message, Exception exception) {
-    return CompletableFuture.runAsync(() -> submitException(message, exception), executorService);
   }
 
   public void submitException(String message, Exception exception) {
@@ -106,12 +97,6 @@ public class ExceptionlessClient {
     return createEvent().type(EventType.ERROR.value());
   }
 
-  public CompletableFuture<Void> submitUnhandledExceptionAsync(
-      Exception exception, String submissionMethod) {
-    return CompletableFuture.runAsync(
-        () -> submitUnhandledException(exception, submissionMethod), executorService);
-  }
-
   public void submitUnhandledException(Exception exception, String submissionMethod) {
     Event event = createError().build();
     PluginContext pluginContext =
@@ -124,10 +109,6 @@ public class ExceptionlessClient {
         EventPluginContext.builder().event(event).context(pluginContext).build());
   }
 
-  public CompletableFuture<Void> submitFeatureUsageAsync(String feature) {
-    return CompletableFuture.runAsync(() -> submitFeatureUsage(feature), executorService);
-  }
-
   public void submitFeatureUsage(String feature) {
     submitEvent(createFeatureUsage(feature).build());
   }
@@ -136,24 +117,12 @@ public class ExceptionlessClient {
     return createEvent().type(EventType.USAGE.value()).source(feature);
   }
 
-  public CompletableFuture<Void> submitLogAsync(String message) {
-    return CompletableFuture.runAsync(() -> submitLog(message), executorService);
-  }
-
   public void submitLog(String message) {
     submitLog(message, null, null);
   }
 
-  public CompletableFuture<Void> submitLogAsync(String message, String source) {
-    return CompletableFuture.runAsync(() -> submitLog(message, source), executorService);
-  }
-
   public void submitLog(String message, String source) {
     submitLog(message, source, null);
-  }
-
-  public CompletableFuture<Void> submitLogAsync(String message, String source, String level) {
-    return CompletableFuture.runAsync(() -> submitLog(message, source, level), executorService);
   }
 
   public void submitLog(String message, String source, String level) {
@@ -190,20 +159,12 @@ public class ExceptionlessClient {
     return cameFromOverridenMethod ? traceElements[4].getMethodName() : source;
   }
 
-  public CompletableFuture<Void> submitNotFoundAsync(String resource) {
-    return CompletableFuture.runAsync(() -> submitNotFound(resource), executorService);
-  }
-
   public void submitNotFound(String resource) {
     submitEvent(createNotFound(resource).build());
   }
 
   public Event.EventBuilder createNotFound(String resource) {
     return createEvent().type(EventType.NOT_FOUND.value()).source(resource);
-  }
-
-  public CompletableFuture<Void> submitSessionStartAsync() {
-    return CompletableFuture.runAsync(this::submitSessionStart, executorService);
   }
 
   public void submitSessionStart() {
@@ -218,37 +179,17 @@ public class ExceptionlessClient {
     return Event.builder().dataExclusions(configuration.getDataExclusions()).date(LocalDate.now());
   }
 
-  public CompletableFuture<Void> submitEventAsync(Event event) {
-    return CompletableFuture.runAsync(() -> submitEvent(event), executorService);
-  }
-
   public void submitEvent(Event event) {
     eventPluginRunner.run(EventPluginContext.from(event));
-  }
-
-  public CompletableFuture<Void> submitEventWithContextAsync(
-      EventPluginContext eventPluginContext) {
-    return CompletableFuture.runAsync(
-        () -> submitEventWithContext(eventPluginContext), executorService);
   }
 
   public void submitEventWithContext(EventPluginContext eventPluginContext) {
     eventPluginRunner.run(eventPluginContext);
   }
 
-  public CompletableFuture<Void> submitSessionEndAsync(String sessionOrUserId) {
-    return CompletableFuture.runAsync(() -> submitSessionEnd(sessionOrUserId), executorService);
-  }
-
   public void submitSessionEnd(String sessionOrUserId) {
     log.info(String.format("Submitting session end: %s", sessionOrUserId));
     configuration.getSubmissionClient().sendHeartBeat(sessionOrUserId, true);
-  }
-
-  public CompletableFuture<SubmissionResponse> updateEmailAndDescriptionAsync(
-      String referenceId, String email, String description) {
-    return CompletableFuture.supplyAsync(
-        () -> updateEmailAndDescription(referenceId, email, description), executorService);
   }
 
   public SubmissionResponse updateEmailAndDescription(
