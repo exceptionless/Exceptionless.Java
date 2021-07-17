@@ -177,7 +177,7 @@
 
     <scm>
         <connection>scm:git:git://github.com/exceptionless/Exceptionless.Java.git</connection>
-        <developerConnection>scm:git:git@github.com:exceptionless/exceptionless.git</developerConnection>
+        <developerConnection>scm:git:git@github.com:exceptionless/Exceptionless.Java.git</developerConnection>
         <url>https://github.com/exceptionless/Exceptionless.Java</url>
         <tag>HEAD</tag>
     </scm>
