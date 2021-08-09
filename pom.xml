@@ -6,6 +6,27 @@
     <artifactId>exceptionless-client</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 
+    <name>Exceptionless Java Client</name>
+    <description>Java client library to send events to an Exceptionless server</description>
+    <url>https://github.com/exceptionless/Exceptionless.Java</url>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Prashant Chaubey</name>
+            <email>prashantchaubey9795@gmail.com</email>
+            <organization>Exceptionless</organization>
+            <organizationUrl>https://github.com/exceptionless</organizationUrl>
+            <timezone>UTC+05:30</timezone>
+        </developer>
+    </developers>
+
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>
