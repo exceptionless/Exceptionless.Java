@@ -4,7 +4,7 @@
 
     <groupId>com.exceptionless</groupId>
     <artifactId>exceptionless-client</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1-SNAPSHOT</version>
 
     <name>Exceptionless Java Client</name>
     <description>Java client library to send events to an Exceptionless server</description>
@@ -236,7 +236,7 @@
         <connection>scm:git:git://github.com/exceptionless/Exceptionless.Java.git</connection>
         <developerConnection>scm:git:git@github.com:exceptionless/Exceptionless.Java.git</developerConnection>
         <url>https://github.com/exceptionless/Exceptionless.Java</url>
-        <tag>exceptionless-client-0.1.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <profiles>
