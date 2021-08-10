@@ -8,7 +8,16 @@ will help your app become exceptionless!
 
 Refer to the Exceptionless documentation here: [Exceptionless Docs](http://docs.exceptionless.io).
 
-### Warning! This package is still in Beta and not yet published to Maven Central. If you need it right now feel free to contact us on [Discord]((https://discord.gg/6HxgFCx)) or create an [Issue](https://github.com/exceptionless/Exceptionless.Java/issues/new)
+This project is available to install through Maven.
+```
+<!-- https://mvnrepository.com/artifact/com.exceptionless/exceptionless-client -->
+<dependency>
+    <groupId>com.exceptionless</groupId>
+    <artifactId>exceptionless-client</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
+Check the latest version of the library [here](https://mvnrepository.com/artifact/com.exceptionless/exceptionless-client)
 
 ## Show me the code
 
