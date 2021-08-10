@@ -136,4 +136,4 @@ or [join our chat on Discord](https://discord.gg/6HxgFCx). We’re always here t
 
 Thanks to all the people who have contributed!
 
-[![contributors](https://contributors-img.web.app/image?repo=exceptionless/Exceptionless.Java)](https://github.com/exceptionless/Exceptionless.JavaScript/graphs/contributors)
+[![contributors](https://contributors-img.web.app/image?repo=exceptionless/Exceptionless.Java)](https://github.com/exceptionless/Exceptionless.Java/graphs/contributors)
