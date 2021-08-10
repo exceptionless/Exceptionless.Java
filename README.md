@@ -85,6 +85,10 @@ client uses v4. In that case you have to explicitly declare v4 of the library in
 </dependencies>
 ```
 
+## VSCode Users
+
+We are using [Project Lombok](https://projectlombok.org/) to automatically generate a lot of code. Intellij can give you IntelliSense by default but for VSCode you may have to install [this extension](https://marketplace.visualstudio.com/items?itemName=GabrielBB.vscode-lombok).
+
 ## General Data Protection Regulation
 
 By default the Exceptionless Client will report all available metadata including potential PII data. You can fine tune
