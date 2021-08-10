@@ -59,6 +59,25 @@ don't feel the pressure to supply values for all the fields. **Note:** Whenever 
 using `Configuration` never forget to supply your `serverUrl` and `apiKey` using a `Configuration` object as
 shown above.
 
+## Getting Started (Development)
+
+### Intellij
+1. You will need to install:
+    * [Intellij](https://www.jetbrains.com/idea/download/)
+    * **Note:** In Intellij you can directly [download JDK 11 from the IDE](https://www.jetbrains.com/help/idea/sdk.html#jdk-from-ide). Intellij also comes with a bundled Maven installation and built-in Lombok support.
+2. Clone the repo
+3. Verify your setup using `mvn clean verify`
+
+### VSCode
+1. You will need to install:
+    * [VSCode](https://code.visualstudio.com/download)
+    * [JDK 11](https://www.oracle.com/ie/java/technologies/javase-downloads.html). Make sure that your `java --version` and `$JAVA_HOME` environment variable point to the correct jdk.
+    * [VSCode Java extension pack](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack)
+    * [VSCode Lombok extension](https://marketplace.visualstudio.com/items?itemName=GabrielBB.vscode-lombok)
+2. Clone the repo
+3. Verify your setup using `mvn clean verify`
+
+
 ## Spring Boot Users
 
 You can observe `NoClassDefFoundError` in your Spring-boot apps because Spring-boot uses v3 of `OkHttpClient` while this
