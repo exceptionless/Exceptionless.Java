@@ -12,6 +12,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,7 +25,7 @@ public class Event extends Model {
 
   private String type;
   private String source;
-  private LocalDate date;
+  private OffsetDateTime date;
   private Set<String> tags;
   private String message;
   private String geo;
@@ -36,7 +37,7 @@ public class Event extends Model {
   public Event(
       String type,
       String source,
-      LocalDate date,
+      OffsetDateTime date,
       Set<String> tags,
       String message,
       String geo,
@@ -47,7 +48,7 @@ public class Event extends Model {
       Set<String> dataExclusions) {
     this.type = type;
     this.source = source;
-    this.date = date == null ? LocalDate.now() : date;
+    this.date = date == null ? OffsetDateTime.now() : date;
     this.tags = tags == null ? new HashSet<>() : tags;
     this.message = message;
     this.geo = geo;
@@ -167,7 +168,7 @@ public class Event extends Model {
     }
 
     @Override
-    public EventBuilder date(LocalDate date) {
+    public EventBuilder date(OffsetDateTime date) {
       super.date(date);
       return this;
     }
