@@ -36,9 +36,6 @@ class ExampleApp {
         client.submitEvent(
                 EventPluginContext.from(
                         client.createLog("test-log").referenceId("test-reference-id").build()));
-
-        // Submit async events using submitXXXAsync methods
-        client.submitLogAsync("Test log");
     }
 }
 ```
@@ -98,7 +95,7 @@ client uses v4. In that case you have to explicitly declare v4 of the library in
     <dependency>
         <groupId>com.exceptionless</groupId>
         <artifactId>exceptionless-client</artifactId>
-        <version>1.0-beta1</version>
+        <version>0.1.0</version>
     </dependency>
     <dependency>
         <groupId>org.springframework.boot</groupId>
