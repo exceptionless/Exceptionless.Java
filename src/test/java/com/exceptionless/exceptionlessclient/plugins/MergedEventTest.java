@@ -48,10 +48,11 @@ public class MergedEventTest {
 
   @Test
   public void itShouldNotUpdateDateIfSameAsTheEvent() {
-    mergedEvent.updateDate(OffsetDateTime.now());
+    OffsetDateTime now = OffsetDateTime.now();
+    mergedEvent.updateDate(now);
     mergedEvent.resubmit();
 
-    verify(eventQueue, times(1)).enqueue(argThat(event -> event.getDate().equals(LocalDate.now())));
+    verify(eventQueue, times(1)).enqueue(argThat(event -> event.getDate().equals(now)));
   }
 
   @Test
@@ -60,6 +61,6 @@ public class MergedEventTest {
     mergedEvent.updateDate(yesterday);
     mergedEvent.resubmit();
 
-    verify(eventQueue, times(1)).enqueue(argThat(event -> event.getDate().equals(LocalDate.now())));
+    verify(eventQueue, times(1)).enqueue(argThat(event -> event.getDate().toLocalDate().equals(OffsetDateTime.now().toLocalDate())));
   }
 }
