@@ -14,7 +14,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
@@ -176,7 +176,7 @@ public class ExceptionlessClient {
   }
 
   public Event.EventBuilder createEvent() {
-    return Event.builder().dataExclusions(configuration.getDataExclusions()).date(LocalDate.now());
+    return Event.builder().dataExclusions(configuration.getDataExclusions()).date(OffsetDateTime.now());
   }
 
   public void submitEvent(Event event) {
