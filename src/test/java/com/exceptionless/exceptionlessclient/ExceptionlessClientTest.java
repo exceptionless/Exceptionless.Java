@@ -19,7 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -73,7 +73,7 @@ public class ExceptionlessClientTest {
                 event ->
                     event.getType().equals(EventType.ERROR.value())
                         && event.getReferenceId() != null
-                        && event.getDate() != null
+                        && event.getDate().toLocalDate().equals(LocalDate.now())
                         && event.getError().isPresent()
                         && event.getEnvironmentInfo().isPresent()
                         && event.getData().containsKey(EventPropertyKey.EXTRA.value())));
@@ -101,7 +101,7 @@ public class ExceptionlessClientTest {
             argThat(
                 event ->
                     event.getType().equals(EventType.ERROR.value())
-                        && event.getDate().equals(OffsetDateTime.now())
+                        && event.getDate().toLocalDate().equals(LocalDate.now())
                         && event.getReferenceId() != null
                         && event.getError().isPresent()
                         && event.getEnvironmentInfo().isPresent()
@@ -124,7 +124,7 @@ public class ExceptionlessClientTest {
                     event.getType().equals(EventType.USAGE.value())
                         && event.getSource().equals("test-feature")
                         && event.getReferenceId() != null
-                        && event.getDate() != null
+                        && event.getDate().toLocalDate().equals(LocalDate.now())
                         && event.getEnvironmentInfo().isPresent()));
     assertThat(configuration.getLastReferenceIdManager().getLast()).isNotNull();
   }
@@ -153,7 +153,7 @@ public class ExceptionlessClientTest {
                     event.getType().equals(EventType.LOG.value())
                         && event.getSource().equals("test-log-source")
                         && event.getMessage().equals("test-log-message")
-                        && event.getDate().equals(OffsetDateTime.now())
+                        && event.getDate().toLocalDate().equals(LocalDate.now())
                         && event.getReferenceId() != null
                         && event.getEnvironmentInfo().isPresent()
                         && event.getData().containsKey(EventPropertyKey.LOG_LEVEL.value())));
@@ -226,7 +226,7 @@ public class ExceptionlessClientTest {
                 event ->
                     event.getType().equals(EventType.NOT_FOUND.value())
                         && event.getSource().equals("test-resource")
-                        && event.getDate().equals(OffsetDateTime.now())
+                        && event.getDate().toLocalDate().equals(LocalDate.now())
                         && event.getReferenceId() != null
                         && event.getEnvironmentInfo().isPresent()));
     assertThat(configuration.getLastReferenceIdManager().getLast()).isNotNull();
@@ -254,7 +254,7 @@ public class ExceptionlessClientTest {
             argThat(
                 event ->
                     event.getType().equals(EventType.SESSION.value())
-                        && event.getDate().equals(OffsetDateTime.now())
+                        && event.getDate().toLocalDate().equals(LocalDate.now())
                         && event.getReferenceId() != null
                         && event.getEnvironmentInfo().isPresent()));
     assertThat(configuration.getLastReferenceIdManager().getLast()).isNotNull();
