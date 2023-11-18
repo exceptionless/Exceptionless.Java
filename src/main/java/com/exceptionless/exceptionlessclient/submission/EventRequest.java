@@ -3,7 +3,7 @@ package com.exceptionless.exceptionlessclient.submission;
 import lombok.Builder;
 import lombok.Value;
 
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Set;
 
@@ -12,7 +12,7 @@ import java.util.Set;
 public class EventRequest {
   String type;
   String source;
-  LocalDate date;
+  OffsetDateTime date;
   Set<String> tags;
   String message;
   String geo;

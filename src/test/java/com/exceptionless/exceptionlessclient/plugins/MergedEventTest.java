@@ -8,7 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
 
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.times;
@@ -23,7 +23,7 @@ public class MergedEventTest {
   public void setup() {
     mergedEvent =
         MergedEvent.builder()
-            .event(Event.builder().date(LocalDate.now()).build())
+            .event(Event.builder().date(OffsetDateTime.now()).build())
             .eventQueue(eventQueue)
             .build();
   }
@@ -38,7 +38,7 @@ public class MergedEventTest {
 
   @Test
   public void itCanUpdateDate() {
-    LocalDate tomorrow = LocalDate.now().plusDays(1);
+    OffsetDateTime tomorrow = OffsetDateTime.now().plusDays(1);
     mergedEvent.updateDate(tomorrow);
     mergedEvent.resubmit();
 
@@ -47,18 +47,22 @@ public class MergedEventTest {
 
   @Test
   public void itShouldNotUpdateDateIfSameAsTheEvent() {
-    mergedEvent.updateDate(LocalDate.now());
+    OffsetDateTime now = OffsetDateTime.now();
+    mergedEvent.setEvent(Event.builder().date(now).build());
+    mergedEvent.updateDate(now);
     mergedEvent.resubmit();
 
-    verify(eventQueue, times(1)).enqueue(argThat(event -> event.getDate().equals(LocalDate.now())));
+    verify(eventQueue, times(1)).enqueue(argThat(event -> event.getDate().equals(now)));
   }
 
   @Test
   public void itShouldNotUpdateDateIfBeforeAsTheEvent() {
-    LocalDate yesterday = LocalDate.now().minusDays(1);
+    OffsetDateTime now = OffsetDateTime.now();
+    OffsetDateTime yesterday = now.minusDays(1);
+    mergedEvent.setEvent(Event.builder().date(now).build());
     mergedEvent.updateDate(yesterday);
     mergedEvent.resubmit();
 
-    verify(eventQueue, times(1)).enqueue(argThat(event -> event.getDate().equals(LocalDate.now())));
+    verify(eventQueue, times(1)).enqueue(argThat(event -> event.getDate().equals(now)));
   }
 }

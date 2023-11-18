@@ -5,7 +5,7 @@ import com.exceptionless.exceptionlessclient.queue.EventQueueIF;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
 
 @Data
 public class MergedEvent {
@@ -24,7 +24,7 @@ public class MergedEvent {
     event.setCount(event.getCount() + count);
   }
 
-  public void updateDate(LocalDate date) {
+  public void updateDate(OffsetDateTime date) {
     if (date.isAfter(event.getDate())) {
       event.setDate(date);
     }
