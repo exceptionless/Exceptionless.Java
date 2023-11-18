@@ -36,9 +36,6 @@ class ExampleApp {
         client.submitEvent(
                 EventPluginContext.from(
                         client.createLog("test-log").referenceId("test-reference-id").build()));
-
-        // Submit async events using submitXXXAsync methods
-        client.submitLogAsync("Test log");
     }
 }
 ```
