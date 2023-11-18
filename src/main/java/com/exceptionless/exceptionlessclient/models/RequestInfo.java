@@ -25,6 +25,7 @@ public class RequestInfo extends Model {
   @Builder.Default Map<String, String> cookies = new HashMap<>();
   Object postData;
   @Builder.Default Map<String, List<String>> queryString = new HashMap<>();
+  @Builder.Default Map<String, List<String>> headers = new HashMap<>();
 
   public Boolean isSecure() {
     return secure;

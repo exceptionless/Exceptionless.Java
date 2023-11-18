@@ -31,8 +31,7 @@ public class RequestInfoPlugin implements EventPluginIF {
   }
 
   @Override
-  public void run(
-      EventPluginContext eventPluginContext, Configuration configuration) {
+  public void run(EventPluginContext eventPluginContext, Configuration configuration) {
     Event event = eventPluginContext.getEvent();
     if (event.getRequestInfo().isPresent()) {
       return;
@@ -47,10 +46,8 @@ public class RequestInfoPlugin implements EventPluginIF {
             RequestInfoGetArgs.builder()
                 .exclusions(configuration.getDataExclusions())
                 .includeCookies(configuration.getPrivateInformationInclusions().getCookies())
-                .includeIpAddress(
-                    configuration.getPrivateInformationInclusions().getIpAddress())
-                .includePostData(
-                    configuration.getPrivateInformationInclusions().getPostData())
+                .includeIpAddress(configuration.getPrivateInformationInclusions().getIpAddress())
+                .includePostData(configuration.getPrivateInformationInclusions().getPostData())
                 .includeQueryString(
                     configuration.getPrivateInformationInclusions().getQueryString())
                 .build());
@@ -73,7 +70,8 @@ public class RequestInfoPlugin implements EventPluginIF {
             .httpMethod(request.method())
             .host(request.uri().getHost())
             .path(request.uri().getPath())
-            .port(request.uri().getPort());
+            .port(request.uri().getPort())
+            .headers(request.headers().map());
 
     if (args.isIncludeIpAddress()) {
       try {
@@ -93,8 +91,6 @@ public class RequestInfoPlugin implements EventPluginIF {
       builder.queryString(
           filterExclusions(Utils.getQueryParams(request.uri()), args.getExclusions()));
     }
-
-    // todo get post data from request.
 
     return builder.build();
   }
