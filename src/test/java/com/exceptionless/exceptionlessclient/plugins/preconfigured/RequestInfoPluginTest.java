@@ -91,7 +91,12 @@ public class RequestInfoPluginTest {
   @Test
   public void itShouldAddRequestInfoToEvent() {
     HttpRequest httpRequest =
-        HttpRequest.newBuilder().uri(URI.create("http://localhost:5000/test-path")).GET().build();
+        HttpRequest.newBuilder()
+            .uri(URI.create("http://localhost:5000/test-path"))
+            .header("test-header", "test-header-value")
+            .header("test-header", "test-header-value-2")
+            .GET()
+            .build();
     context =
         EventPluginContext.builder()
             .event(Event.builder().build())
@@ -108,6 +113,8 @@ public class RequestInfoPluginTest {
     assertThat(requestInfo.getHost()).isEqualTo("localhost");
     assertThat(requestInfo.getPath()).isEqualTo("/test-path");
     assertThat(requestInfo.getPort()).isEqualTo(5000);
+    assertThat(requestInfo.getHeaders())
+        .isEqualTo(Map.of("test-header", List.of("test-header-value", "test-header-value-2")));
   }
 
   @Test
@@ -163,8 +170,7 @@ public class RequestInfoPluginTest {
             .context(PluginContext.builder().request(httpRequest).build())
             .build();
 
-    PrivateInformationInclusions inclusions =
-        configuration.getPrivateInformationInclusions();
+    PrivateInformationInclusions inclusions = configuration.getPrivateInformationInclusions();
     inclusions.setIpAddress(true);
     inclusions.setCookies(true);
     inclusions.setQueryString(true);
@@ -187,7 +193,15 @@ public class RequestInfoPluginTest {
             .uri(
                 URI.create(
                     "https://localhost:5000/test-path?query-param-key=query-param-value&exclude-query-param=exclude-value"))
-            .header("Cookie", "cookie1=value1;cookie2=value2;exclude-cookie=exclude-value")
+            .headers(
+                "Cookie",
+                "cookie1=value1;cookie2=value2;exclude-cookie=exclude-value",
+                "test-header",
+                "test-value",
+                "Authorization",
+                "test-auth",
+                "exclude-header",
+                "exclude-value")
             .GET()
             .build();
 
@@ -196,9 +210,8 @@ public class RequestInfoPluginTest {
             .event(Event.builder().build())
             .context(PluginContext.builder().request(httpRequest).build())
             .build();
-    configuration.addDataExclusions("exclude-query-param", "exclude-cookie");
-    PrivateInformationInclusions inclusions =
-        configuration.getPrivateInformationInclusions();
+    configuration.addDataExclusions("exclude-query-param", "exclude-cookie", "exclude-header");
+    PrivateInformationInclusions inclusions = configuration.getPrivateInformationInclusions();
     inclusions.setIpAddress(true);
     inclusions.setCookies(true);
     inclusions.setQueryString(true);
@@ -212,5 +225,6 @@ public class RequestInfoPluginTest {
         .isEqualTo(Map.of("cookie1", "value1", "cookie2", "value2"));
     assertThat(requestInfo.getQueryString())
         .isEqualTo(Map.of("query-param-key", List.of("query-param-value")));
+    assertThat(requestInfo.getHeaders()).isEqualTo(Map.of("test-header", List.of("test-value")));
   }
 }

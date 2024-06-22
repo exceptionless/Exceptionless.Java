@@ -14,6 +14,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.net.http.HttpRequest;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -21,6 +22,16 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RequestInfoPlugin implements EventPluginIF {
   private static final Integer DEFAULT_PRIORITY = 70;
+  private static final Set<String> IGNORED_HEADERS =
+      Set.of(
+          "Authorization",
+          "Cookie",
+          "Host",
+          "Method",
+          "Path",
+          "Proxy-Authorization",
+          "Referer",
+          "User-Agent");
 
   @Builder
   public RequestInfoPlugin() {}
@@ -31,8 +42,7 @@ public class RequestInfoPlugin implements EventPluginIF {
   }
 
   @Override
-  public void run(
-      EventPluginContext eventPluginContext, Configuration configuration) {
+  public void run(EventPluginContext eventPluginContext, Configuration configuration) {
     Event event = eventPluginContext.getEvent();
     if (event.getRequestInfo().isPresent()) {
       return;
@@ -47,10 +57,8 @@ public class RequestInfoPlugin implements EventPluginIF {
             RequestInfoGetArgs.builder()
                 .exclusions(configuration.getDataExclusions())
                 .includeCookies(configuration.getPrivateInformationInclusions().getCookies())
-                .includeIpAddress(
-                    configuration.getPrivateInformationInclusions().getIpAddress())
-                .includePostData(
-                    configuration.getPrivateInformationInclusions().getPostData())
+                .includeIpAddress(configuration.getPrivateInformationInclusions().getIpAddress())
+                .includePostData(configuration.getPrivateInformationInclusions().getPostData())
                 .includeQueryString(
                     configuration.getPrivateInformationInclusions().getQueryString())
                 .build());
@@ -73,7 +81,8 @@ public class RequestInfoPlugin implements EventPluginIF {
             .httpMethod(request.method())
             .host(request.uri().getHost())
             .path(request.uri().getPath())
-            .port(request.uri().getPort());
+            .port(request.uri().getPort())
+            .headers(getHeaders(request, args));
 
     if (args.isIncludeIpAddress()) {
       try {
@@ -94,9 +103,15 @@ public class RequestInfoPlugin implements EventPluginIF {
           filterExclusions(Utils.getQueryParams(request.uri()), args.getExclusions()));
     }
 
-    // todo get post data from request.
-
     return builder.build();
+  }
+
+  private Map<String, List<String>> getHeaders(HttpRequest request, RequestInfoGetArgs args) {
+    Map<String, List<String>> headers =
+        filterExclusions(request.headers().map(), args.getExclusions());
+    return headers.entrySet().stream()
+        .filter(entry -> !IGNORED_HEADERS.contains(entry.getKey()))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   private <X> Map<String, X> filterExclusions(Map<String, X> map, Set<String> exclusions) {
