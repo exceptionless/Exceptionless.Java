@@ -16,8 +16,10 @@ import java.util.logging.Logger;
  * <p>Run it with your API key (and server URL when self hosting):
  *
  * <pre>
- * EXCEPTIONLESS_API_KEY=your-key ./mvnw -pl samples/console -am -q exec:java
+ * ./mvnw -q install -DskipTests
+ * EXCEPTIONLESS_API_KEY=your-key ./mvnw -q -pl samples/console exec:exec
  * EXCEPTIONLESS_API_KEY=your-key EXCEPTIONLESS_SERVER_URL=http://localhost:5200 ./mvnw ...
+ * EXCEPTIONLESS_API_KEY=your-key ./mvnw -q -pl samples/console exec:exec -Dsample.args=crash
  * </pre>
  */
 public final class ConsoleApp {
@@ -71,7 +73,8 @@ public final class ConsoleApp {
       String referenceId = Exceptionless.getLastReferenceId();
       System.out.println("Reported the error; tell support it was " + referenceId);
       Exceptionless.getDefault()
-          .updateUserEmailAndDescription(referenceId, "user@example.com", "I clicked Order twice");
+          .updateUserEmailAndDescription(referenceId, "user@example.com", "I clicked Order twice")
+          .join();
     }
 
     // JUL records reach Exceptionless through ExceptionlessHandler (see logging.properties).
@@ -99,6 +102,6 @@ public final class ConsoleApp {
   }
 
   private static void chargeCard(Map<String, Object> order) {
-    throw new UnsupportedOperationException("Card declined");
+    throw new UnsupportedOperationException("Card declined for order " + order.get("id"));
   }
 }

@@ -5,6 +5,8 @@ import com.exceptionless.Exceptionless;
 import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.ExceptionlessConfiguration;
 import com.exceptionless.LogLevel;
+import com.exceptionless.internal.DaemonThreadFactory;
+import com.exceptionless.internal.Strings;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -68,7 +70,7 @@ public final class LogEventSupport implements AutoCloseable {
    * The client's background threads are named with this prefix ({@code exceptionless-1}, ...);
    * anything logged on them is never sent.
    */
-  public static final String CLIENT_THREAD_PREFIX = "exceptionless-";
+  public static final String CLIENT_THREAD_PREFIX = DaemonThreadFactory.CLIENT_THREAD_NAME + "-";
 
   /** Set while the current thread submits an event, to drop events logged meanwhile. */
   private static final ThreadLocal<Boolean> SUBMITTING = new ThreadLocal<>();
@@ -121,7 +123,7 @@ public final class LogEventSupport implements AutoCloseable {
    * owned for it. Blank values count as unset. Changing it closes a client created for the old key.
    */
   public void setApiKey(@Nullable String apiKey) {
-    String value = trimToNull(apiKey);
+    String value = Strings.stripToNull(apiKey);
     if (!Objects.equals(value, this.apiKey)) {
       this.apiKey = value;
       resetOwnedClient();
@@ -137,7 +139,7 @@ public final class LogEventSupport implements AutoCloseable {
    * unset. Changing it closes a client created for the old URL.
    */
   public void setServerUrl(@Nullable String serverUrl) {
-    String value = trimToNull(serverUrl);
+    String value = Strings.stripToNull(serverUrl);
     if (!Objects.equals(value, this.serverUrl)) {
       this.serverUrl = value;
       resetOwnedClient();
@@ -377,13 +379,5 @@ public final class LogEventSupport implements AutoCloseable {
     } catch (RuntimeException e) {
       errorReporter.report("Unable to close the Exceptionless client", e);
     }
-  }
-
-  private static @Nullable String trimToNull(@Nullable String value) {
-    if (value == null) {
-      return null;
-    }
-    String trimmed = value.trim();
-    return trimmed.isEmpty() ? null : trimmed;
   }
 }

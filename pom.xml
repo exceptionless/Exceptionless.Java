@@ -78,6 +78,8 @@
         <junit.version>5.13.4</junit.version>
         <assertj.version>3.27.7</assertj.version>
         <awaitility.version>4.3.0</awaitility.version>
+        <errorprone.version>2.50.0</errorprone.version>
+        <nullaway.version>0.14.2</nullaway.version>
 
         <!-- Plugins (all pinned; the enforcer's requirePluginVersions rule checks it) -->
         <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
@@ -448,6 +450,47 @@
                                 <excludeArtifact>exceptionless-sample-spring-boot</excludeArtifact>
                             </excludeArtifacts>
                         </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>errorprone</id>
+            <activation>
+                <jdk>[21,)</jdk>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>default-compile</id>
+                                <configuration>
+                                    <fork>false</fork>
+                                    <compilerArgs combine.children="append">
+                                        <arg>-XDcompilePolicy=simple</arg>
+                                        <arg>-XDaddTypeAnnotationsToSymbol=true</arg>
+                                        <arg>--should-stop=ifError=FLOW</arg>
+                                        <arg>-Werror</arg>
+                                        <arg>-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:JSpecifyMode=true</arg>
+                                    </compilerArgs>
+                                    <annotationProcessorPaths combine.children="append">
+                                        <path>
+                                            <groupId>com.google.errorprone</groupId>
+                                            <artifactId>error_prone_core</artifactId>
+                                            <version>${errorprone.version}</version>
+                                        </path>
+                                        <path>
+                                            <groupId>com.uber.nullaway</groupId>
+                                            <artifactId>nullaway</artifactId>
+                                            <version>${nullaway.version}</version>
+                                        </path>
+                                    </annotationProcessorPaths>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>

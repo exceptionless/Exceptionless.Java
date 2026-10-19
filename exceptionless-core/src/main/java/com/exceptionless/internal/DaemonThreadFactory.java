@@ -5,6 +5,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /** Creates daemon threads so the client never keeps the JVM alive. */
 public final class DaemonThreadFactory implements ThreadFactory {
+  /** The name prefix of the client's background threads ({@code exceptionless-1}, ...). */
+  public static final String CLIENT_THREAD_NAME = "exceptionless";
+
   private final String prefix;
   private final AtomicInteger counter = new AtomicInteger();
 

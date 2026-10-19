@@ -18,7 +18,7 @@
         <maven.deploy.skip>true</maven.deploy.skip>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <maven.source.skip>true</maven.source.skip>
-        <exec.mainClass>com.example.console.ConsoleApp</exec.mainClass>
+        <sample.args></sample.args>
     </properties>
 
     <dependencies>
@@ -31,4 +31,24 @@
             <artifactId>exceptionless-jul</artifactId>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <!-- exec:exec runs the sample in its own JVM, like a real app: java.util.logging can load the
+                 handler from the class path, and shutdown hooks and uncaught exceptions behave normally. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <executable>java</executable>
+                    <arguments>
+                        <argument>-classpath</argument>
+                        <classpath/>
+                        <argument>com.example.console.ConsoleApp</argument>
+                        <argument>${sample.args}</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -33,6 +33,12 @@ Test the Spring Boot starter against Spring Boot 4 with `-Pspring-boot-4`.
   end-to-end tests guard this.
 - Public API gets javadoc. Packages are `@NullMarked` (JSpecify); mark nullable types with `@Nullable`.
 - Formatting is google-java-format, enforced by Spotless.
+- On JDK 21 and newer the build also runs [Error Prone](https://errorprone.info) and
+  [NullAway](https://github.com/uber/NullAway) on the main sources, with warnings as errors. Fix
+  findings rather than suppressing them; when a suppression is right, say why next to it.
+- Write idiomatic Java 17: records for values, sealed types for closed results, `java.time` types
+  (`Duration`, `InstantSource`) instead of numbers, immutable collections from getters, and plain
+  JavaBeans (`void` setters) for the mutable models.
 
 ## Releasing
 

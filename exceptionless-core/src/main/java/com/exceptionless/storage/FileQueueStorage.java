@@ -222,7 +222,10 @@ public final class FileQueueStorage implements QueueStorage {
   public synchronized void incrementAttempts(Collection<QueueEntry> entries) {
     for (QueueEntry entry : entries) {
       Parsed parsed = Parsed.of(entry.id());
-      Stored stored = parsed != null ? index.get(parsed.key()) : null;
+      if (parsed == null) {
+        continue;
+      }
+      Stored stored = index.get(parsed.key());
       if (stored == null) {
         continue;
       }

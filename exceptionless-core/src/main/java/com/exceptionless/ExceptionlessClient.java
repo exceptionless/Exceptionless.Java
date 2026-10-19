@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -101,7 +102,8 @@ public final class ExceptionlessClient implements AutoCloseable {
 
   /** Creates a client. It starts automatically when first used. */
   public ExceptionlessClient(ExceptionlessConfiguration configuration) {
-    this(configuration, Clock.systemDefaultZone());
+    // Event dates carry the local UTC offset, like the other Exceptionless clients.
+    this(configuration, Clock.system(ZoneId.systemDefault()));
   }
 
   /** For tests: {@code clock} dates new events, in its time zone. */
@@ -204,7 +206,8 @@ public final class ExceptionlessClient implements AutoCloseable {
     queue = eventQueue;
 
     ScheduledThreadPoolExecutor executor =
-        new ScheduledThreadPoolExecutor(1, new DaemonThreadFactory("exceptionless"));
+        new ScheduledThreadPoolExecutor(
+            1, new DaemonThreadFactory(DaemonThreadFactory.CLIENT_THREAD_NAME));
     executor.setRemoveOnCancelPolicy(true);
     executor.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
     executor.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
@@ -237,7 +240,7 @@ public final class ExceptionlessClient implements AutoCloseable {
                 shuttingDownFromHook = true;
                 close();
               },
-              "exceptionless-shutdown");
+              DaemonThreadFactory.CLIENT_THREAD_NAME + "-shutdown");
       try {
         Runtime.getRuntime().addShutdownHook(hook);
         shutdownHook = hook;

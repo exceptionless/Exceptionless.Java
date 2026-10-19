@@ -83,6 +83,7 @@ final class LogbackAppenderRegistration
 
   /** Logback removed and stopped every appender: add a new one. */
   @Override
+  @SuppressWarnings("ReferenceEquality") // Only events from the context we attached to.
   public void onReset(LoggerContext loggerContext) {
     synchronized (lock) {
       if (loggerContext == context && loggerContext.isStarted()) {
@@ -94,6 +95,7 @@ final class LogbackAppenderRegistration
 
   /** The Logback context stopped (the JVM is shutting down): nothing more to send. */
   @Override
+  @SuppressWarnings("ReferenceEquality") // Only events from the context we attached to.
   public void onStop(LoggerContext loggerContext) {
     synchronized (lock) {
       if (loggerContext == context) {
