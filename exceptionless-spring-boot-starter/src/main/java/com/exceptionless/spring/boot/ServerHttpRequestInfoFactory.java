@@ -3,12 +3,9 @@ package com.exceptionless.spring.boot;
 import com.exceptionless.models.RequestInfo;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -79,34 +76,16 @@ public final class ServerHttpRequestInfoFactory {
       info.setCookies(cookies);
     }
 
-    Map<String, String> query = parseQueryString(uri.getRawQuery());
+    // Decoded by WebFlux; the first value wins when a name repeats, and a name without a value
+    // (?flag) maps to an empty string.
+    Map<String, String> query = new LinkedHashMap<>();
+    request
+        .getQueryParams()
+        .toSingleValueMap()
+        .forEach((name, value) -> query.put(name, value != null ? value : ""));
     if (!query.isEmpty()) {
       info.setQueryString(query);
     }
     return info;
-  }
-
-  /** URL-decoded query string names and values; the first value wins when a name repeats. */
-  static Map<String, String> parseQueryString(@Nullable String rawQuery) {
-    Map<String, String> values = new LinkedHashMap<>();
-    if (rawQuery == null || rawQuery.isEmpty()) {
-      return values;
-    }
-    for (String pair : rawQuery.split("&")) {
-      int equals = pair.indexOf('=');
-      String name = decode(equals < 0 ? pair : pair.substring(0, equals));
-      if (!name.isEmpty()) {
-        values.putIfAbsent(name, equals < 0 ? "" : decode(pair.substring(equals + 1)));
-      }
-    }
-    return values;
-  }
-
-  private static String decode(String value) {
-    try {
-      return URLDecoder.decode(value, StandardCharsets.UTF_8);
-    } catch (IllegalArgumentException e) {
-      return value;
-    }
   }
 }

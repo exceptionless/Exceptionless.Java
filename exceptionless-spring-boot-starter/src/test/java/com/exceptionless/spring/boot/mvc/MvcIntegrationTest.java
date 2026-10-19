@@ -1,9 +1,14 @@
 package com.exceptionless.spring.boot.mvc;
 
+import static com.exceptionless.TestClients.data;
+import static com.exceptionless.TestClients.error;
+import static com.exceptionless.TestClients.request;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.exceptionless.ExceptionlessClient;
-import com.exceptionless.spring.boot.FakeServer;
+import com.exceptionless.FakeServer;
+import com.exceptionless.TestClients;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
@@ -13,6 +18,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -36,7 +42,7 @@ class MvcIntegrationTest {
 
   @DynamicPropertySource
   static void exceptionlessProperties(DynamicPropertyRegistry registry) {
-    registry.add("exceptionless.api-key", () -> "LhhP1C9gijpSKCslHHCvwdSIz298twx271nTest");
+    registry.add("exceptionless.api-key", () -> TestClients.API_KEY);
     registry.add("exceptionless.server-url", SERVER::url);
     registry.add("exceptionless.capture-uncaught-exceptions", () -> "false");
     registry.add("exceptionless.default-tags", () -> "mvc-test");
@@ -114,19 +120,18 @@ class MvcIntegrationTest {
     return http.send(builder.build(), HttpResponse.BodyHandlers.ofString());
   }
 
-  private Map<String, Object> awaitEvent(Predicate<Map<String, Object>> match)
-      throws InterruptedException {
-    long deadline = System.nanoTime() + Duration.ofSeconds(15).toNanos();
-    while (System.nanoTime() < deadline) {
-      client.flush(Duration.ofSeconds(2));
-      for (Map<String, Object> event : events()) {
-        if (match.test(event)) {
-          return event;
-        }
-      }
-      Thread.sleep(50);
-    }
-    throw new AssertionError("No matching event; got " + events());
+  /** Sends the client's queue until an event matching {@code match} reaches the server. */
+  private Map<String, Object> awaitEvent(Predicate<Map<String, Object>> match) {
+    return await()
+        .atMost(Duration.ofSeconds(15))
+        .pollInterval(Duration.ofMillis(50))
+        .until(
+            () -> {
+              client.flush(Duration.ofSeconds(2));
+              return events().stream().filter(match).findFirst();
+            },
+            Optional::isPresent)
+        .orElseThrow();
   }
 
   private static List<Map<String, Object>> events() {
@@ -134,24 +139,6 @@ class MvcIntegrationTest {
         .filter(r -> r.path().equals("/api/v2/events"))
         .flatMap(r -> r.events().stream())
         .toList();
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Map<String, Object> data(Map<String, Object> event) {
-    Object data = event.get("data");
-    return data instanceof Map<?, ?> map ? (Map<String, Object>) map : Map.of();
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Map<String, Object> error(Map<String, Object> event) {
-    Object error = data(event).get("@error");
-    return error instanceof Map<?, ?> map ? (Map<String, Object>) map : Map.of();
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Map<String, Object> request(Map<String, Object> event) {
-    Object request = data(event).get("@request");
-    return request instanceof Map<?, ?> map ? (Map<String, Object>) map : Map.of();
   }
 
   private static FakeServer startServer() {

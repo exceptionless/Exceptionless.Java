@@ -1,10 +1,13 @@
 package com.exceptionless.jul;
 
-import com.exceptionless.EventBuilder;
 import com.exceptionless.Exceptionless;
 import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.ExceptionlessConfiguration;
 import com.exceptionless.LogLevel;
+import com.exceptionless.logging.LogEventSupport;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
 import java.util.logging.Formatter;
@@ -51,29 +54,25 @@ import org.jspecify.annotations.Nullable;
  * exception handler) on first use and closes it, sending queued events, in {@link #close()}.
  * Otherwise it uses {@link Exceptionless#getDefault() the default client} once the application has
  * started it, so logging never starts or locks the default client's configuration; records
- * published before then are not sent. {@link #setClient} uses a specific client instead.
+ * published before then are not sent. {@link #setClient} uses a specific client instead. See {@link
+ * LogEventSupport}, which the Logback and Log4j 2 integrations share.
  *
  * <p>The client's own diagnostics (loggers under {@code com.exceptionless} and anything logged on
  * its background threads) and records logged while an event is being submitted are never sent.
- * Publishing never blocks on the network and never throws.
+ * Publishing never blocks on the network and never throws; the first failure is reported to the
+ * handler's {@link ErrorManager}.
  */
 public final class ExceptionlessHandler extends Handler {
   /** The submission method recorded on events sent by this handler. */
   public static final String SUBMISSION_METHOD = "jul";
 
-  private static final String INTERNAL_LOGGER_PREFIX = "com.exceptionless";
-  private static final String INTERNAL_THREAD_PREFIX = "exceptionless-";
-  private static final ThreadLocal<Boolean> PUBLISHING = new ThreadLocal<>();
   private static final Formatter DEFAULT_FORMATTER = new SimpleFormatter();
 
-  private final Object clientLock = new Object();
-  private volatile @Nullable String apiKey;
-  private volatile @Nullable String serverUrl;
-  private volatile LogLevel minimumLevel = LogLevel.WARN;
-  private volatile @Nullable ExceptionlessClient client;
-  private volatile @Nullable ExceptionlessClient ownedClient;
-  private volatile boolean clientFailed;
-  private volatile boolean closed;
+  private final LogEventSupport support =
+      new LogEventSupport(
+          SUBMISSION_METHOD,
+          (message, error) ->
+              reportError(message, asException(error), ErrorManager.GENERIC_FAILURE));
 
   /**
    * Creates a handler configured from the {@link LogManager} properties named after this class:
@@ -82,18 +81,19 @@ public final class ExceptionlessHandler extends Handler {
    */
   public ExceptionlessHandler() {
     configure(ExceptionlessHandler.class.getName());
+    support.start();
   }
 
   /** Creates a handler that sends to the given client, which it doesn't close. */
   public ExceptionlessHandler(ExceptionlessClient client) {
     this();
-    this.client = client;
+    support.setClient(client);
   }
 
   private void configure(String prefix) {
     LogManager manager = LogManager.getLogManager();
-    apiKey = trimToNull(manager.getProperty(prefix + ".apiKey"));
-    serverUrl = trimToNull(manager.getProperty(prefix + ".serverUrl"));
+    support.setApiKey(manager.getProperty(prefix + ".apiKey"));
+    support.setServerUrl(manager.getProperty(prefix + ".serverUrl"));
     String minimum = trimToNull(manager.getProperty(prefix + ".minimumLevel"));
     if (minimum != null) {
       setMinimumLevel(minimum);
@@ -123,21 +123,47 @@ public final class ExceptionlessHandler extends Handler {
     }
   }
 
+  /**
+   * Creates a filter or formatter by class name, looking for the class with the thread context
+   * class loader (as application servers expect), this handler's class loader, then the system
+   * class loader (as {@link LogManager} does).
+   */
   private <T> @Nullable T newInstance(String className, Class<T> type) {
-    try {
-      Class<?> loaded = Class.forName(className, true, ClassLoader.getSystemClassLoader());
-      return type.cast(loaded.getDeclaredConstructor().newInstance());
-    } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
-      reportError(
-          "Unable to create " + type.getSimpleName() + " " + className,
-          asException(e),
-          ErrorManager.GENERIC_FAILURE);
-      return null;
+    Exception failure = null;
+    for (ClassLoader loader : classLoaders()) {
+      try {
+        Class<?> loaded = Class.forName(className, true, loader);
+        return type.cast(loaded.getDeclaredConstructor().newInstance());
+      } catch (ClassNotFoundException e) {
+        failure = e;
+      } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+        failure = asException(e);
+        break;
+      }
     }
+    reportError(
+        "Unable to create " + type.getSimpleName() + " " + className,
+        failure,
+        ErrorManager.GENERIC_FAILURE);
+    return null;
+  }
+
+  private static Set<ClassLoader> classLoaders() {
+    Set<ClassLoader> loaders = new LinkedHashSet<>();
+    ClassLoader context = Thread.currentThread().getContextClassLoader();
+    if (context != null) {
+      loaders.add(context);
+    }
+    ClassLoader own = ExceptionlessHandler.class.getClassLoader();
+    if (own != null) {
+      loaders.add(own);
+    }
+    loaders.add(ClassLoader.getSystemClassLoader());
+    return loaders;
   }
 
   public @Nullable String getApiKey() {
-    return apiKey;
+    return support.getApiKey();
   }
 
   /**
@@ -145,22 +171,20 @@ public final class ExceptionlessHandler extends Handler {
    * a client the handler already created.
    */
   public void setApiKey(@Nullable String apiKey) {
-    this.apiKey = trimToNull(apiKey);
-    resetOwnedClient();
+    support.setApiKey(apiKey);
   }
 
   public @Nullable String getServerUrl() {
-    return serverUrl;
+    return support.getServerUrl();
   }
 
   /** The server URL for self hosted installs. Only used together with {@link #setApiKey}. */
   public void setServerUrl(@Nullable String serverUrl) {
-    this.serverUrl = trimToNull(serverUrl);
-    resetOwnedClient();
+    support.setServerUrl(serverUrl);
   }
 
   public LogLevel getMinimumLevel() {
-    return minimumLevel;
+    return support.getMinimumLevel();
   }
 
   /**
@@ -168,7 +192,7 @@ public final class ExceptionlessHandler extends Handler {
    * LogLevel#WARN}). {@link LogLevel#OFF} sends only what the project settings enable.
    */
   public void setMinimumLevel(LogLevel minimumLevel) {
-    this.minimumLevel = minimumLevel;
+    support.setMinimumLevel(minimumLevel);
   }
 
   /**
@@ -176,15 +200,12 @@ public final class ExceptionlessHandler extends Handler {
    * such as {@code warn}, {@code warning} or {@code severe}.
    */
   public void setMinimumLevel(String minimumLevel) {
-    LogLevel level = LogLevel.parse(minimumLevel);
-    if (level == null) {
+    if (!support.setMinimumLevel(minimumLevel)) {
       reportError(
-          "Unknown minimumLevel '" + minimumLevel + "'; using " + this.minimumLevel.value(),
+          "Unknown minimumLevel '" + minimumLevel + "'; using " + support.getMinimumLevel(),
           null,
           ErrorManager.GENERIC_FAILURE);
-      return;
     }
-    this.minimumLevel = level;
   }
 
   /**
@@ -193,66 +214,29 @@ public final class ExceptionlessHandler extends Handler {
    * yet.
    */
   public @Nullable ExceptionlessClient getClient() {
-    ExceptionlessClient explicit = client;
-    return explicit != null ? explicit : ownedClient;
+    return support.getClient();
   }
 
   /** Sends to the given client. The handler doesn't close it. Takes precedence over the API key. */
   public void setClient(@Nullable ExceptionlessClient client) {
-    this.client = client;
+    support.setClient(client);
   }
 
   @Override
   public void publish(@Nullable LogRecord record) {
-    if (record == null || closed || PUBLISHING.get() != null) {
+    if (record == null || !support.isStarted() || !isLoggable(record)) {
       return;
     }
-    if (isInternal(record.getLoggerName(), Thread.currentThread().getName())
-        || !isLoggable(record)) {
-      return;
-    }
-    PUBLISHING.set(Boolean.TRUE);
-    try {
-      ExceptionlessClient target = resolveClient();
-      if (target == null) {
-        return;
-      }
-      String loggerName = record.getLoggerName();
-      LogLevel level = toLogLevel(record.getLevel());
-      if (!target.isLogLevelEnabled(loggerName, level, minimumLevel)
-          || !target.getConfiguration().isEnabled()) {
-        return;
-      }
-      createEvent(target, record, level).submit();
-    } catch (RuntimeException | LinkageError e) {
-      reportError(
-          "Unable to send a log record to Exceptionless",
-          asException(e),
-          ErrorManager.WRITE_FAILURE);
-    } finally {
-      PUBLISHING.remove();
-    }
-  }
-
-  private EventBuilder createEvent(ExceptionlessClient target, LogRecord record, LogLevel level) {
     String loggerName = record.getLoggerName();
-    String message = formatMessage(record);
-    Throwable exception = record.getThrown();
-
-    EventBuilder builder;
-    if (exception != null) {
-      builder =
-          target
-              .createException(exception)
-              .setSource(loggerName)
-              .setMessage(message)
-              .setLevel(level);
-    } else {
-      builder = target.createLog(loggerName, message, level);
-    }
-    return builder
-        .setSubmissionMethod(SUBMISSION_METHOD)
-        .setProperty("thread", Thread.currentThread().getName());
+    String threadName = Thread.currentThread().getName();
+    LogLevel level = toLogLevel(record.getLevel());
+    support.submit(
+        loggerName,
+        threadName,
+        level,
+        client ->
+            support.createEvent(
+                client, loggerName, formatMessage(record), level, record.getThrown(), threadName));
   }
 
   private String formatMessage(LogRecord record) {
@@ -266,62 +250,12 @@ public final class ExceptionlessHandler extends Handler {
     return message != null ? message : "";
   }
 
-  private @Nullable ExceptionlessClient resolveClient() {
-    ExceptionlessClient explicit = client;
-    if (explicit != null) {
-      return explicit;
-    }
-    String key = apiKey;
-    if (key == null) {
-      if (!Exceptionless.hasDefault()) {
-        return null;
-      }
-      ExceptionlessClient defaultClient = Exceptionless.getDefault();
-      return defaultClient.isStarted() ? defaultClient : null;
-    }
-    ExceptionlessClient owned = ownedClient;
-    if (owned != null || clientFailed) {
-      return owned;
-    }
-    synchronized (clientLock) {
-      if (ownedClient == null && !clientFailed && !closed) {
-        try {
-          ExceptionlessConfiguration config =
-              ExceptionlessConfiguration.fromEnvironment()
-                  .apiKey(key)
-                  .captureUncaughtExceptions(false);
-          String url = serverUrl;
-          if (url != null) {
-            config.serverUrl(url);
-          }
-          ownedClient = new ExceptionlessClient(config).startup();
-        } catch (RuntimeException e) {
-          clientFailed = true;
-          reportError("Unable to create the Exceptionless client", e, ErrorManager.OPEN_FAILURE);
-        }
-      }
-      return ownedClient;
-    }
-  }
-
-  private void resetOwnedClient() {
-    ExceptionlessClient owned;
-    synchronized (clientLock) {
-      owned = ownedClient;
-      ownedClient = null;
-      clientFailed = false;
-    }
-    if (owned != null) {
-      owned.close();
-    }
-  }
-
   /** Starts sending queued events, without waiting. */
   @Override
   public void flush() {
     ExceptionlessClient target = getClient();
     if (target != null) {
-      target.processQueue();
+      CompletableFuture<Void> unused = target.processQueue();
     }
   }
 
@@ -331,22 +265,13 @@ public final class ExceptionlessHandler extends Handler {
    */
   @Override
   public void close() {
-    ExceptionlessClient owned;
-    synchronized (clientLock) {
-      closed = true;
-      owned = ownedClient;
-      ownedClient = null;
-    }
-    if (owned != null) {
-      try {
-        owned.close();
-      } catch (RuntimeException e) {
-        reportError("Unable to close the Exceptionless client", e, ErrorManager.CLOSE_FAILURE);
-      }
-    }
+    support.close();
   }
 
-  /** Maps a {@code java.util.logging} level to an Exceptionless level. */
+  /**
+   * Maps a {@code java.util.logging} level to an Exceptionless level. {@code SEVERE} is the most
+   * severe level, so {@code OFF} maps to error and {@code ALL} to trace; {@code null} maps to info.
+   */
   static LogLevel toLogLevel(@Nullable Level level) {
     if (level == null) {
       return LogLevel.INFO;
@@ -365,17 +290,6 @@ public final class ExceptionlessHandler extends Handler {
       return LogLevel.DEBUG;
     }
     return LogLevel.TRACE;
-  }
-
-  /** True for the Exceptionless client's own loggers and background threads. */
-  static boolean isInternal(@Nullable String loggerName, @Nullable String threadName) {
-    if (threadName != null && threadName.startsWith(INTERNAL_THREAD_PREFIX)) {
-      return true;
-    }
-    return loggerName != null
-        && loggerName.startsWith(INTERNAL_LOGGER_PREFIX)
-        && (loggerName.length() == INTERNAL_LOGGER_PREFIX.length()
-            || loggerName.charAt(INTERNAL_LOGGER_PREFIX.length()) == '.');
   }
 
   private static Exception asException(Throwable error) {

@@ -1,13 +1,14 @@
 package com.exceptionless.servlet;
 
-import static com.exceptionless.servlet.RecordingSubmissionClient.data;
-import static com.exceptionless.servlet.RecordingSubmissionClient.error;
-import static com.exceptionless.servlet.RecordingSubmissionClient.request;
+import static com.exceptionless.TestClients.data;
+import static com.exceptionless.TestClients.error;
+import static com.exceptionless.TestClients.request;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.exceptionless.Exceptionless;
 import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.ExceptionlessConfiguration;
+import com.exceptionless.TestClients.CapturingSubmissionClient;
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.Filter;
@@ -27,7 +28,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 class ExceptionlessFilterTest {
-  private final RecordingSubmissionClient recorder = new RecordingSubmissionClient();
+  private final CapturingSubmissionClient recorder = new CapturingSubmissionClient();
   private ExceptionlessClient client;
   private JettyServer server;
 
@@ -43,7 +44,7 @@ class ExceptionlessFilterTest {
 
   private void start(Consumer<ExceptionlessConfiguration> configure, Consumer<JettyServer> filters)
       throws Exception {
-    ExceptionlessConfiguration config = RecordingSubmissionClient.configuration(recorder);
+    ExceptionlessConfiguration config = recorder.newConfiguration();
     configure.accept(config);
     client = new ExceptionlessClient(config).startup();
     server = new JettyServer();
@@ -367,6 +368,60 @@ class ExceptionlessFilterTest {
 
       assertThat(recorder.awaitEvents(client, 1).get(0).get("type")).isEqualTo("error");
     } finally {
+      Exceptionless.setDefault(previous);
+    }
+  }
+
+  @Test
+  void passesRequestsThroughUntilTheDefaultClientHasStarted() throws Exception {
+    ExceptionlessClient previous = Exceptionless.hasDefault() ? Exceptionless.getDefault() : null;
+    Exceptionless.setDefault(null);
+    ExceptionlessClient notStarted = new ExceptionlessClient(recorder.newConfiguration());
+    try {
+      start(c -> {}, s -> s.filter(new ExceptionlessFilter()));
+
+      assertThat(server.get("/fail").statusCode()).isEqualTo(500);
+      assertThat(Exceptionless.hasDefault()).as("the filter never creates it").isFalse();
+
+      Exceptionless.setDefault(notStarted);
+      assertThat(server.get("/fail").statusCode()).isEqualTo(500);
+      assertThat(notStarted.isStarted()).as("the filter never starts it").isFalse();
+
+      client.submitLog("marker");
+      assertThat(recorder.awaitEvents(client, 1))
+          .extracting(e -> e.get("message"))
+          .containsExactly("marker");
+    } finally {
+      notStarted.close();
+      Exceptionless.setDefault(previous);
+    }
+  }
+
+  @Test
+  void followsTheDefaultClientWhenItIsReplaced() throws Exception {
+    ExceptionlessClient previous = Exceptionless.hasDefault() ? Exceptionless.getDefault() : null;
+    CapturingSubmissionClient otherRecorder = new CapturingSubmissionClient();
+    ExceptionlessClient other = otherRecorder.newClient();
+    try {
+      start(
+          c -> {},
+          s -> {
+            Exceptionless.setDefault(client);
+            s.filter(new ExceptionlessFilter());
+          });
+      server.get("/fail");
+      assertThat(recorder.awaitEvents(client, 1)).hasSize(1);
+
+      Exceptionless.setDefault(other);
+      server.get("/missing");
+
+      Map<String, Object> event = otherRecorder.awaitEvents(other, 1).get(0);
+      assertThat(event.get("type")).isEqualTo("404");
+      assertThat(request(event)).containsEntry("path", "/missing");
+      assertThat(other.getConfiguration().hasPlugin(ServletRequestInfoPlugin.NAME)).isTrue();
+      assertThat(recorder.flush(client)).hasSize(1);
+    } finally {
+      other.close();
       Exceptionless.setDefault(previous);
     }
   }

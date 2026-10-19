@@ -3,7 +3,6 @@ package com.exceptionless.spring.boot;
 import com.exceptionless.EventBuilder;
 import com.exceptionless.ExceptionlessClient;
 import java.security.Principal;
-import java.util.Optional;
 import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.Ordered;
@@ -100,25 +99,22 @@ public class ExceptionlessWebFilter implements WebFilter, Ordered {
     return status != null && status.value() == 404;
   }
 
-  private Mono<Void> withUser(
-      ServerWebExchange exchange, Function<Optional<String>, Mono<Void>> action) {
-    if (!client.getConfiguration().isIncludeUserName()) {
-      return Mono.defer(() -> action.apply(Optional.empty()));
-    }
-    return exchange
-        .getPrincipal()
-        .map(Principal::getName)
-        .map(Optional::of)
-        .defaultIfEmpty(Optional.empty())
-        .onErrorReturn(Optional.empty())
-        .flatMap(action);
+  /** Runs {@code action} with the signed in user's name, or an empty string. */
+  private Mono<Void> withUser(ServerWebExchange exchange, Function<String, Mono<Void>> action) {
+    Mono<String> user =
+        client.getConfiguration().isIncludeUserName()
+            ? exchange.getPrincipal().map(Principal::getName).defaultIfEmpty("").onErrorReturn("")
+            : Mono.just("");
+    return user.flatMap(action);
   }
 
   private static Mono<Void> submit(
-      EventBuilder builder, ServerWebExchange exchange, Optional<String> user, String failure) {
+      EventBuilder builder, ServerWebExchange exchange, String user, String failure) {
     try {
       builder.setRequestInfo(ServerHttpRequestInfoFactory.create(exchange.getRequest()));
-      user.filter(name -> !name.isBlank()).ifPresent(builder::setUserIdentity);
+      if (!user.isBlank()) {
+        builder.setUserIdentity(user);
+      }
       builder.submit();
     } catch (RuntimeException | LinkageError e) {
       LOG.log(System.Logger.Level.WARNING, failure, e);

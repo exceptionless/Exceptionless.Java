@@ -14,6 +14,7 @@
     <description>Jakarta Servlet filter that reports unhandled exceptions and 404s with request details to Exceptionless.</description>
 
     <properties>
+        <automatic.module.name>com.exceptionless.servlet</automatic.module.name>
         <jetty.version>12.1.14</jetty.version>
     </properties>
 
@@ -34,6 +35,17 @@
         </dependency>
 
         <dependency>
+            <groupId>com.exceptionless</groupId>
+            <artifactId>exceptionless-core</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
@@ -50,20 +62,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <Automatic-Module-Name>com.exceptionless.servlet</Automatic-Module-Name>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>

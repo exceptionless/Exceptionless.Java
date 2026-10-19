@@ -1,28 +1,42 @@
 package com.exceptionless.log4j2;
 
-import static com.exceptionless.log4j2.CapturingSubmissionClient.data;
+import static com.exceptionless.TestClients.data;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.exceptionless.Exceptionless;
 import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.ExceptionlessConfiguration;
+import com.exceptionless.FakeServer;
 import com.exceptionless.LogLevel;
+import com.exceptionless.TestClients;
+import com.exceptionless.TestClients.CapturingSubmissionClient;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.MarkerManager;
 import org.apache.logging.log4j.ThreadContext;
 import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.AppenderLoggingException;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.core.config.LoggerConfig;
+import org.apache.logging.log4j.core.impl.Log4jLogEvent;
+import org.apache.logging.log4j.message.Message;
+import org.apache.logging.log4j.message.StringMapMessage;
+import org.apache.logging.log4j.message.StructuredDataMessage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class ExceptionlessAppenderTest {
   private final CapturingSubmissionClient server = new CapturingSubmissionClient();
@@ -66,16 +80,23 @@ class ExceptionlessAppenderTest {
     return contextWith(appender).getLogger(name);
   }
 
+  @ParameterizedTest
+  @CsvSource({
+    "ALL, TRACE",
+    "TRACE, TRACE",
+    "DEBUG, DEBUG",
+    "INFO, INFO",
+    "WARN, WARN",
+    "ERROR, ERROR",
+    "FATAL, FATAL",
+    "OFF, FATAL"
+  })
+  void mapsLevels(String log4j, LogLevel expected) {
+    assertThat(ExceptionlessAppender.toLogLevel(Level.getLevel(log4j))).isEqualTo(expected);
+  }
+
   @Test
-  void mapsLevels() {
-    assertThat(ExceptionlessAppender.toLogLevel(Level.TRACE)).isEqualTo(LogLevel.TRACE);
-    assertThat(ExceptionlessAppender.toLogLevel(Level.DEBUG)).isEqualTo(LogLevel.DEBUG);
-    assertThat(ExceptionlessAppender.toLogLevel(Level.INFO)).isEqualTo(LogLevel.INFO);
-    assertThat(ExceptionlessAppender.toLogLevel(Level.WARN)).isEqualTo(LogLevel.WARN);
-    assertThat(ExceptionlessAppender.toLogLevel(Level.ERROR)).isEqualTo(LogLevel.ERROR);
-    assertThat(ExceptionlessAppender.toLogLevel(Level.FATAL)).isEqualTo(LogLevel.FATAL);
-    assertThat(ExceptionlessAppender.toLogLevel(Level.OFF)).isEqualTo(LogLevel.FATAL);
-    assertThat(ExceptionlessAppender.toLogLevel(Level.ALL)).isEqualTo(LogLevel.TRACE);
+  void mapsCustomLevelsByIntensityAndAMissingLevelToInfo() {
     assertThat(ExceptionlessAppender.toLogLevel(Level.forName("NOTICE", 350)))
         .isEqualTo(LogLevel.INFO);
     assertThat(ExceptionlessAppender.toLogLevel(null)).isEqualTo(LogLevel.INFO);
@@ -176,6 +197,25 @@ class ExceptionlessAppenderTest {
     Map<String, Object> event = server.flush(client).get(0);
     assertThat(data(event)).containsEntry("requestId", "r-1");
     assertThat(event.get("tags")).isEqualTo(List.of("checkout"));
+  }
+
+  @Test
+  void addsMapMessageFields() {
+    client = server.newClient();
+    Logger logger = logger("com.example.Orders", builder(client).build());
+
+    logger.error(new StringMapMessage().with("orderId", "42").with("status", "declined"));
+    StructuredDataMessage audit = new StructuredDataMessage("audit@1", "Refund issued", "Audit");
+    audit.put("amount", "9.95");
+    logger.warn(audit);
+
+    List<Map<String, Object>> events = server.flush(client);
+    assertThat(events).hasSize(2);
+    assertThat(data(events.get(0)))
+        .containsEntry("orderId", "42")
+        .containsEntry("status", "declined");
+    assertThat(events.get(1)).containsEntry("message", "Refund issued");
+    assertThat(data(events.get(1))).containsEntry("amount", "9.95");
   }
 
   @Test
@@ -282,12 +322,117 @@ class ExceptionlessAppenderTest {
   }
 
   @Test
+  void reportsTheFirstFailureAndIgnoresItByDefault() {
+    client = server.newClient();
+    ExceptionlessAppender appender = builder(client).build();
+    AtomicInteger reported = new AtomicInteger();
+    appender.setHandler(
+        new org.apache.logging.log4j.core.ErrorHandler() {
+          @Override
+          public void error(String msg) {
+            reported.incrementAndGet();
+          }
+
+          @Override
+          public void error(String msg, Throwable t) {
+            reported.incrementAndGet();
+          }
+
+          @Override
+          public void error(String msg, LogEvent event, Throwable t) {
+            reported.incrementAndGet();
+          }
+        });
+    contextWith(appender);
+
+    assertThatCode(
+            () -> {
+              appender.append(failingEvent());
+              appender.append(failingEvent());
+            })
+        .doesNotThrowAnyException();
+    assertThat(reported).hasValue(1);
+  }
+
+  @Test
+  void throwsFailuresWhenNotIgnoringExceptions() {
+    client = server.newClient();
+    ExceptionlessAppender appender = builder(client).setIgnoreExceptions(false).build();
+    contextWith(appender);
+
+    assertThatThrownBy(() -> appender.append(failingEvent()))
+        .isInstanceOf(AppenderLoggingException.class)
+        .hasRootCauseMessage("cannot format");
+    assertThatThrownBy(() -> appender.append(failingEvent()))
+        .isInstanceOf(AppenderLoggingException.class);
+  }
+
+  /** An event whose message can't be formatted. */
+  private static LogEvent failingEvent() {
+    Message message =
+        new Message() {
+          @Override
+          public String getFormattedMessage() {
+            throw new IllegalStateException("cannot format");
+          }
+
+          @Override
+          public Object[] getParameters() {
+            return null;
+          }
+
+          @Override
+          public Throwable getThrowable() {
+            return null;
+          }
+        };
+    return Log4jLogEvent.newBuilder()
+        .setLoggerName("com.example.Orders")
+        .setLevel(Level.ERROR)
+        .setMessage(message)
+        .build();
+  }
+
+  @Test
+  void stopWaitsAtMostTheGivenTimeoutForQueuedEvents() throws Exception {
+    CountDownLatch slowServer = new CountDownLatch(1);
+    try (FakeServer fake = new FakeServer()) {
+      fake.onEvents(
+          request -> {
+            try {
+              slowServer.await(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+            }
+            return FakeServer.Response.of(202);
+          });
+      ExceptionlessAppender appender =
+          ExceptionlessAppender.newBuilder()
+              .setName("Exceptionless")
+              .setApiKey(TestClients.API_KEY)
+              .setServerUrl(fake.url())
+              .build();
+      logger("com.example.Orders", appender).error("Order failed");
+      ExceptionlessClient owned = appender.getClient();
+      assertThat(owned).isNotNull();
+
+      long start = System.nanoTime();
+      appender.stop(200, TimeUnit.MILLISECONDS);
+      assertThat(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)).isLessThan(3_000);
+      assertThat(owned.isStarted()).isFalse();
+      assertThat(owned.getConfiguration().getShutdownTimeout()).hasMillis(200);
+      // Let the server answer, so closing it doesn't wait for the handler.
+      slowServer.countDown();
+    }
+  }
+
+  @Test
   void ownsAndClosesTheClientForItsApiKey() throws Exception {
     try (FakeServer fake = new FakeServer()) {
       ExceptionlessAppender appender =
           ExceptionlessAppender.newBuilder()
               .setName("Exceptionless")
-              .setApiKey(CapturingSubmissionClient.API_KEY)
+              .setApiKey(TestClients.API_KEY)
               .setServerUrl(fake.url())
               .build();
       Logger logger = logger("com.example.Orders", appender);
@@ -329,7 +474,7 @@ class ExceptionlessAppenderTest {
       assertThat(configured).isInstanceOf(ExceptionlessAppender.class);
       ExceptionlessAppender appender = (ExceptionlessAppender) configured;
       assertThat(appender.isStarted()).isTrue();
-      assertThat(appender.getApiKey()).isEqualTo(CapturingSubmissionClient.API_KEY);
+      assertThat(appender.getApiKey()).isEqualTo(TestClients.API_KEY);
       assertThat(appender.getServerUrl()).isEqualTo(fake.url());
       assertThat(appender.getMinimumLevel()).isEqualTo(LogLevel.INFO);
       assertThat(appender.isIncludeMdc()).isFalse();

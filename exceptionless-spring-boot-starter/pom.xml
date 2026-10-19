@@ -18,6 +18,11 @@
       application's Spring Boot version is used. The tests also run against Spring Boot 4 with -Pspring-boot-4.
     -->
 
+    <properties>
+        <automatic.module.name>com.exceptionless.spring.boot</automatic.module.name>
+        <spring-boot-starter-webmvc.artifactId>spring-boot-starter-web</spring-boot-starter-webmvc.artifactId>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -80,13 +85,30 @@
         </dependency>
 
         <dependency>
+            <groupId>com.exceptionless</groupId>
+            <artifactId>exceptionless-core</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- spring-boot-starter-web, or spring-boot-starter-webmvc with -Pspring-boot-4 -->
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>${spring-boot-starter-webmvc.artifactId}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -100,6 +122,15 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Mockito (through spring-boot-starter-test) attaches its agent at runtime; JDK 21+
+                         warns about that unless dynamic agent loading is allowed explicitly. -->
+                    <argLine>@{argLine} -XX:+EnableDynamicAgentLoading</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <annotationProcessorPaths>
@@ -111,17 +142,6 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <Automatic-Module-Name>com.exceptionless.spring.boot</Automatic-Module-Name>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 
@@ -130,8 +150,11 @@
         <profile>
             <id>spring-boot-4</id>
             <properties>
+        <automatic.module.name>com.exceptionless.spring.boot</automatic.module.name>
                 <spring-boot.version>4.1.1</spring-boot.version>
                 <junit.version>6.0.3</junit.version>
+                <!-- Boot 4 deprecates spring-boot-starter-web in favour of spring-boot-starter-webmvc. -->
+                <spring-boot-starter-webmvc.artifactId>spring-boot-starter-webmvc</spring-boot-starter-webmvc.artifactId>
             </properties>
         </profile>
     </profiles>

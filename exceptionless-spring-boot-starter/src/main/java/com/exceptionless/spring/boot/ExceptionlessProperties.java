@@ -1,5 +1,7 @@
 package com.exceptionless.spring.boot;
 
+import com.exceptionless.LogLevel;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,7 +56,7 @@ public class ExceptionlessProperties {
   private @Nullable Boolean includePrivateInformation;
 
   /** A directory to persist queued events and settings in, so events survive restarts. */
-  private @Nullable String storagePath;
+  private @Nullable Path storagePath;
 
   /** Whether to track sessions, with heartbeats. */
   private boolean useSessions;
@@ -137,11 +139,11 @@ public class ExceptionlessProperties {
     this.includePrivateInformation = includePrivateInformation;
   }
 
-  public @Nullable String getStoragePath() {
+  public @Nullable Path getStoragePath() {
     return storagePath;
   }
 
-  public void setStoragePath(@Nullable String storagePath) {
+  public void setStoragePath(@Nullable Path storagePath) {
     this.storagePath = storagePath;
   }
 
@@ -190,7 +192,7 @@ public class ExceptionlessProperties {
      * The minimum level sent when the project has no matching @@log setting: trace, debug, info,
      * warn, error, fatal or off.
      */
-    private String minimumLevel = "warn";
+    private LogLevel minimumLevel = LogLevel.WARN;
 
     public boolean isEnabled() {
       return enabled;
@@ -200,11 +202,11 @@ public class ExceptionlessProperties {
       this.enabled = enabled;
     }
 
-    public String getMinimumLevel() {
+    public LogLevel getMinimumLevel() {
       return minimumLevel;
     }
 
-    public void setMinimumLevel(String minimumLevel) {
+    public void setMinimumLevel(LogLevel minimumLevel) {
       this.minimumLevel = minimumLevel;
     }
   }

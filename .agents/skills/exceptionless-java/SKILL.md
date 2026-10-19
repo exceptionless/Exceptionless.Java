@@ -13,7 +13,7 @@ version 2.x, Java 17+). Keep answers compact and copyable, with imports.
 | App | Dependency | Setup |
 | --- | --- | --- |
 | Spring Boot 3 or 4 | `exceptionless-spring-boot-starter` | `exceptionless.api-key` property; inject `ExceptionlessClient` |
-| Servlet container (Tomcat, Jetty...) | `exceptionless-servlet` | `ExceptionlessFilter` + `Exceptionless.startup(...)` |
+| Servlet container (Tomcat, Jetty...) | `exceptionless-servlet` | `ExceptionlessFilter` + `Exceptionless.startup(...)` (the filter passes requests through until the default client has started) |
 | Plain Java / CLI / desktop | `exceptionless-core` | `Exceptionless.startup("KEY")` |
 | Logback / SLF4J | `exceptionless-logback` | `com.exceptionless.logback.ExceptionlessAppender` |
 | Log4j 2 | `exceptionless-log4j2` | `<Exceptionless name="..." />` appender |
@@ -28,6 +28,10 @@ Always recommend importing `com.exceptionless:exceptionless-bom` to align versio
   (`EXCEPTIONLESS_API_KEY`, `EXCEPTIONLESS_SERVER_URL`) and `exceptionless.properties`.
 - In Spring Boot, never call `Exceptionless.startup`; the starter creates the client bean and makes it
   the default. Customize with an `ExceptionlessConfigurationCustomizer` bean.
+  `exceptionless.logging.minimum-level` is a `LogLevel` (`trace` ... `off`, any case; aliases such as
+  `warning` are rejected) and `exceptionless.storage-path` a directory path.
+- The starter only wires Logback. For Log4j 2, add `exceptionless-log4j2` and the `<Exceptionless />`
+  appender to `log4j2.xml`; without `apiKey` it uses the starter's client.
 - `serverUrl(...)` also sets the config and heartbeat URLs; override those after it.
 - The API key, server URLs, storage path, proxy and TLS settings are locked once the client starts.
 - `submitException` / `createException` take any `Throwable`; causes and suppressed exceptions are included.
@@ -41,6 +45,8 @@ Always recommend importing `com.exceptionless:exceptionless-bom` to align versio
 - Use lowercase log levels in settings: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `off`.
 - Don't put application loggers under the `com.exceptionless` package; the integrations treat those as
   the client's own diagnostics and skip them.
+- For another logging framework, build the appender on `com.exceptionless.logging.LogEventSupport`
+  (client selection, owned client lifecycle, recursion guard, level checks, event creation).
 
 ## Privacy
 
@@ -83,5 +89,6 @@ Verify behavior in:
 - `exceptionless-core/src/main/java/com/exceptionless/queue/DefaultEventQueue.java` (status handling)
 - `exceptionless-spring-boot-starter/src/main/java/com/exceptionless/spring/boot/`
 - `exceptionless-servlet/src/main/java/com/exceptionless/servlet/ExceptionlessFilter.java`
+- `exceptionless-core/src/main/java/com/exceptionless/logging/LogEventSupport.java` (shared appender logic)
 - The appenders in `exceptionless-logback`, `exceptionless-log4j2`, `exceptionless-jul`
 - `README.md` and `samples/`

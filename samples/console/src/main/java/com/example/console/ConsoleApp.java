@@ -5,6 +5,7 @@ import com.exceptionless.LogLevel;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -26,7 +27,9 @@ public final class ConsoleApp {
 
   public static void main(String[] args) throws Exception {
     // Route java.util.logging WARNING+ records to Exceptionless (see logging.properties).
-    try (var config = ConsoleApp.class.getResourceAsStream("/logging.properties")) {
+    try (var config =
+        Objects.requireNonNull(
+            ConsoleApp.class.getResourceAsStream("/logging.properties"), "logging.properties")) {
       LogManager.getLogManager().readConfiguration(config);
     }
 

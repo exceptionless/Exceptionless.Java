@@ -1,13 +1,13 @@
 package com.exceptionless.spring.boot;
 
-import static com.exceptionless.spring.boot.RecordingSubmissionClient.data;
-import static com.exceptionless.spring.boot.RecordingSubmissionClient.error;
-import static com.exceptionless.spring.boot.RecordingSubmissionClient.request;
+import static com.exceptionless.TestClients.data;
+import static com.exceptionless.TestClients.error;
+import static com.exceptionless.TestClients.request;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.ExceptionlessConfiguration;
+import com.exceptionless.TestClients.CapturingSubmissionClient;
 import java.net.URI;
 import java.security.Principal;
 import java.util.List;
@@ -24,9 +24,10 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 class ExceptionlessWebFilterTest {
-  private final RecordingSubmissionClient recorder = new RecordingSubmissionClient();
+  private final CapturingSubmissionClient recorder = new CapturingSubmissionClient();
   private ExceptionlessClient client;
 
   @AfterEach
@@ -38,7 +39,7 @@ class ExceptionlessWebFilterTest {
 
   private ExceptionlessWebFilter filter(
       boolean captureNotFound, Consumer<ExceptionlessConfiguration> configure) {
-    ExceptionlessConfiguration config = RecordingSubmissionClient.configuration(recorder);
+    ExceptionlessConfiguration config = recorder.newConfiguration();
     configure.accept(config);
     client = new ExceptionlessClient(config).startup();
     return new ExceptionlessWebFilter(client, captureNotFound, 0);
@@ -54,17 +55,16 @@ class ExceptionlessWebFilterTest {
   }
 
   @Test
-  void reportsErrorsWithRequestInfoAndPassesThemOn() throws Exception {
+  void reportsErrorsWithRequestInfoAndPassesThemOn() {
     ExceptionlessWebFilter filter = filter(true, c -> {});
     IllegalStateException boom = new IllegalStateException("boom");
 
-    assertThatThrownBy(
-            () ->
-                filter
-                    .filter(
-                        exchange("http://example.com:8080/orders?id=42&name=a%20b"), failing(boom))
-                    .block())
-        .isSameAs(boom);
+    StepVerifier.create(
+            filter.filter(
+                exchange("http://example.com:8080/orders?id=42&name=a%20b&flag&id=43"),
+                failing(boom)))
+        .expectErrorSatisfies(error -> assertThat(error).isSameAs(boom))
+        .verify();
 
     Map<String, Object> event = recorder.awaitEvents(client, 1).get(0);
     assertThat(event).containsEntry("type", "error");
@@ -78,7 +78,7 @@ class ExceptionlessWebFilterTest {
         .containsEntry("port", 8080L)
         .containsEntry("is_secure", false)
         .containsEntry("user_agent", "TestAgent/1.0")
-        .containsEntry("query_string", Map.of("id", "42", "name", "a b"))
+        .containsEntry("query_string", Map.of("id", "42", "name", "a b", "flag", ""))
         .containsEntry("cookies", Map.of("session", "abc123"));
     @SuppressWarnings("unchecked")
     Map<String, Object> headers = (Map<String, Object>) request.get("headers");
@@ -87,17 +87,13 @@ class ExceptionlessWebFilterTest {
   }
 
   @Test
-  void reportsNotFoundErrorsAsNotFound() throws Exception {
+  void reportsNotFoundErrorsAsNotFound() {
     ExceptionlessWebFilter filter = filter(true, c -> {});
 
-    assertThatThrownBy(
-            () ->
-                filter
-                    .filter(
-                        exchange("/missing"),
-                        failing(new ResponseStatusException(HttpStatus.NOT_FOUND)))
-                    .block())
-        .isInstanceOf(ResponseStatusException.class);
+    StepVerifier.create(
+            filter.filter(
+                exchange("/missing"), failing(new ResponseStatusException(HttpStatus.NOT_FOUND))))
+        .verifyError(ResponseStatusException.class);
 
     Map<String, Object> event = recorder.awaitEvents(client, 1).get(0);
     assertThat(event).containsEntry("type", "404").containsEntry("source", "/missing");
@@ -105,10 +101,11 @@ class ExceptionlessWebFilterTest {
   }
 
   @Test
-  void reportsNotFoundResponses() throws Exception {
+  void reportsNotFoundResponses() {
     ExceptionlessWebFilter filter = filter(true, c -> {});
 
-    filter.filter(exchange("/gone"), respondWith(HttpStatus.NOT_FOUND)).block();
+    StepVerifier.create(filter.filter(exchange("/gone"), respondWith(HttpStatus.NOT_FOUND)))
+        .verifyComplete();
 
     assertThat(recorder.awaitEvents(client, 1).get(0))
         .containsEntry("type", "404")
@@ -116,27 +113,21 @@ class ExceptionlessWebFilterTest {
   }
 
   @Test
-  void ignoresClientErrorsSuccessAndDisabledNotFound() throws Exception {
+  void ignoresClientErrorsSuccessAndDisabledNotFound() {
     ExceptionlessWebFilter filter = filter(false, c -> {});
 
-    assertThatThrownBy(
-            () ->
-                filter
-                    .filter(
-                        exchange("/bad"),
-                        failing(new ResponseStatusException(HttpStatus.BAD_REQUEST)))
-                    .block())
-        .isInstanceOf(ResponseStatusException.class);
-    assertThatThrownBy(
-            () ->
-                filter
-                    .filter(
-                        exchange("/missing"),
-                        failing(new ResponseStatusException(HttpStatus.NOT_FOUND)))
-                    .block())
-        .isInstanceOf(ResponseStatusException.class);
-    filter.filter(exchange("/gone"), respondWith(HttpStatus.NOT_FOUND)).block();
-    filter.filter(exchange("/ok"), respondWith(HttpStatus.OK)).block();
+    StepVerifier.create(
+            filter.filter(
+                exchange("/bad"), failing(new ResponseStatusException(HttpStatus.BAD_REQUEST))))
+        .verifyError(ResponseStatusException.class);
+    StepVerifier.create(
+            filter.filter(
+                exchange("/missing"), failing(new ResponseStatusException(HttpStatus.NOT_FOUND))))
+        .verifyError(ResponseStatusException.class);
+    StepVerifier.create(filter.filter(exchange("/gone"), respondWith(HttpStatus.NOT_FOUND)))
+        .verifyComplete();
+    StepVerifier.create(filter.filter(exchange("/ok"), respondWith(HttpStatus.OK)))
+        .verifyComplete();
     client.submitLog("marker");
 
     assertThat(recorder.awaitEvents(client, 1))
@@ -145,45 +136,39 @@ class ExceptionlessWebFilterTest {
   }
 
   @Test
-  void reportsServerErrorStatusExceptions() throws Exception {
+  void reportsServerErrorStatusExceptions() {
     ExceptionlessWebFilter filter = filter(true, c -> {});
 
-    assertThatThrownBy(
-            () ->
-                filter
-                    .filter(
-                        exchange("/x"),
-                        failing(
-                            new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "down")))
-                    .block())
-        .isInstanceOf(ResponseStatusException.class);
+    StepVerifier.create(
+            filter.filter(
+                exchange("/x"),
+                failing(new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "down"))))
+        .verifyError(ResponseStatusException.class);
 
     assertThat(recorder.awaitEvents(client, 1).get(0)).containsEntry("type", "error");
   }
 
   @Test
-  void includesSignedInUserUnlessUserNamesAreExcluded() throws Exception {
+  void includesSignedInUserUnlessUserNamesAreExcluded() {
     ExceptionlessWebFilter filter = filter(true, c -> {});
     Principal alice = () -> "alice";
     ServerWebExchange exchange = exchange("/x").mutate().principal(Mono.just(alice)).build();
 
-    assertThatThrownBy(
-            () -> filter.filter(exchange, failing(new IllegalStateException("a"))).block())
-        .isInstanceOf(IllegalStateException.class);
+    StepVerifier.create(filter.filter(exchange, failing(new IllegalStateException("a"))))
+        .verifyError(IllegalStateException.class);
 
     assertThat(data(recorder.awaitEvents(client, 1).get(0)).get("@user"))
         .isEqualTo(Map.of("identity", "alice"));
   }
 
   @Test
-  void omitsSignedInUserWhenExcluded() throws Exception {
+  void omitsSignedInUserWhenExcluded() {
     ExceptionlessWebFilter filter = filter(true, c -> c.includeUserName(false));
     Principal alice = () -> "alice";
     ServerWebExchange exchange = exchange("/x").mutate().principal(Mono.just(alice)).build();
 
-    assertThatThrownBy(
-            () -> filter.filter(exchange, failing(new IllegalStateException("a"))).block())
-        .isInstanceOf(IllegalStateException.class);
+    StepVerifier.create(filter.filter(exchange, failing(new IllegalStateException("a"))))
+        .verifyError(IllegalStateException.class);
 
     assertThat(data(recorder.awaitEvents(client, 1).get(0))).doesNotContainKey("@user");
   }

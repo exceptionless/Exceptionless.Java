@@ -6,11 +6,12 @@ updates:
       interval: weekly
     groups:
       test-dependencies:
-        patterns: ["org.junit*", "org.assertj*", "org.testcontainers*", "org.eclipse.jetty*"]
+        patterns: ["org.junit*", "org.assertj*", "org.awaitility*", "org.testcontainers*", "org.eclipse.jetty*"]
       maven-plugins:
         patterns: ["org.apache.maven.plugins*", "org.codehaus.mojo*", "org.jacoco*", "org.sonatype.central*", "com.diffplug.spotless*"]
-    # Integration targets (logback, log4j, servlet, Spring Boot) stay at the oldest supported
-    # version on purpose; consumers bring their own.
+    # Integration targets (Logback, Log4j, the Servlet API, Spring Boot) are provided dependencies:
+    # applications bring their own version, so these only set what the integrations are compiled
+    # and tested against, and are bumped deliberately (e.g. alongside the -Pspring-boot-4 profile).
     ignore:
       - dependency-name: "ch.qos.logback:*"
       - dependency-name: "org.apache.logging.log4j:*"

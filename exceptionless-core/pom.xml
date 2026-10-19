@@ -12,6 +12,10 @@
     <name>Exceptionless Core</name>
     <description>Dependency-free Exceptionless client for Java: errors, logs, feature usage, 404s and sessions.</description>
 
+    <properties>
+        <automatic.module.name>com.exceptionless.core</automatic.module.name>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.jspecify</groupId>
@@ -26,6 +30,11 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -43,6 +52,32 @@
                                 <arg>--add-modules=jdk.httpserver</arg>
                                 <arg>--add-reads=com.exceptionless.core=jdk.httpserver</arg>
                             </compilerArgs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!-- Publishes the shared test helpers as exceptionless-core-tests.jar for the integration
+                     modules' tests. Only the helpers: the core tests and their resources (such as
+                     exceptionless.properties) must not leak onto other modules' test class paths. -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>test-jar</id>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>com/exceptionless/FakeServer*.class</include>
+                                <include>com/exceptionless/TestClients*.class</include>
+                            </includes>
+                            <archive>
+                                <manifestEntries>
+                                    <Automatic-Module-Name>com.exceptionless.core.testing</Automatic-Module-Name>
+                                </manifestEntries>
+                            </archive>
                         </configuration>
                     </execution>
                 </executions>

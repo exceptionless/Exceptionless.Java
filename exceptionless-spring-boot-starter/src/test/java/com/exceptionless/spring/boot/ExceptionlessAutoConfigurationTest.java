@@ -5,12 +5,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.util.ContextInitializer;
 import ch.qos.logback.core.Appender;
 import com.exceptionless.Exceptionless;
 import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.ExceptionlessConfiguration;
+import com.exceptionless.LogLevel;
+import com.exceptionless.TestClients;
+import com.exceptionless.TestClients.CapturingSubmissionClient;
 import com.exceptionless.logback.ExceptionlessAppender;
 import com.exceptionless.servlet.ExceptionlessFilter;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -19,26 +24,29 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.info.BuildProperties;
+import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.MapPropertySource;
+import reactor.core.publisher.Mono;
 
 class ExceptionlessAutoConfigurationTest {
   private static final AutoConfigurations AUTO_CONFIGURATION =
       AutoConfigurations.of(ExceptionlessAutoConfiguration.class);
 
-  private final RecordingSubmissionClient recorder = new RecordingSubmissionClient();
+  private final CapturingSubmissionClient recorder = new CapturingSubmissionClient();
 
   private final ApplicationContextRunner runner =
       new ApplicationContextRunner()
           .withConfiguration(AUTO_CONFIGURATION)
           .withPropertyValues(
-              "exceptionless.api-key=" + RecordingSubmissionClient.API_KEY,
+              "exceptionless.api-key=" + TestClients.API_KEY,
               "exceptionless.capture-uncaught-exceptions=false")
           .withBean(
               "recordingCustomizer",
@@ -51,9 +59,10 @@ class ExceptionlessAutoConfigurationTest {
   }
 
   @Test
-  void createsStartedClientFromProperties() {
+  void createsStartedClientFromProperties(@TempDir Path storage) {
     runner
         .withPropertyValues(
+            "exceptionless.storage-path=" + storage,
             "exceptionless.server-url=http://localhost:5200/",
             "exceptionless.version=1.2.3",
             "exceptionless.default-tags=web,api",
@@ -77,7 +86,10 @@ class ExceptionlessAutoConfigurationTest {
               ExceptionlessClient client = context.getBean(ExceptionlessClient.class);
               assertThat(client.isStarted()).isTrue();
               ExceptionlessConfiguration config = client.getConfiguration();
-              assertThat(config.getApiKey()).isEqualTo(RecordingSubmissionClient.API_KEY);
+              assertThat(config.getApiKey()).isEqualTo(TestClients.API_KEY);
+              assertThat(context.getBean(ExceptionlessProperties.class).getStoragePath())
+                  .isEqualTo(storage);
+              assertThat(config.getStoragePath()).isEqualTo(storage);
               assertThat(config.getServerUrl()).isEqualTo("http://localhost:5200");
               assertThat(config.getVersion()).isEqualTo("1.2.3");
               assertThat(config.getDefaultTags()).containsExactlyInAnyOrder("web", "api");
@@ -167,8 +179,7 @@ class ExceptionlessAutoConfigurationTest {
     new WebApplicationContextRunner()
         .withConfiguration(AUTO_CONFIGURATION)
         .withPropertyValues(
-            "exceptionless.enabled=false",
-            "exceptionless.api-key=" + RecordingSubmissionClient.API_KEY)
+            "exceptionless.enabled=false", "exceptionless.api-key=" + TestClients.API_KEY)
         .run(
             context -> {
               assertThat(context).doesNotHaveBean(ExceptionlessClient.class);
@@ -183,7 +194,7 @@ class ExceptionlessAutoConfigurationTest {
     new WebApplicationContextRunner()
         .withConfiguration(AUTO_CONFIGURATION)
         .withPropertyValues(
-            "exceptionless.api-key=" + RecordingSubmissionClient.API_KEY,
+            "exceptionless.api-key=" + TestClients.API_KEY,
             "exceptionless.capture-uncaught-exceptions=false",
             "exceptionless.capture-not-found=false",
             "exceptionless.filter-order=42")
@@ -203,7 +214,7 @@ class ExceptionlessAutoConfigurationTest {
     new WebApplicationContextRunner()
         .withConfiguration(AUTO_CONFIGURATION)
         .withPropertyValues(
-            "exceptionless.api-key=" + RecordingSubmissionClient.API_KEY,
+            "exceptionless.api-key=" + TestClients.API_KEY,
             "exceptionless.capture-uncaught-exceptions=false")
         .run(
             context -> {
@@ -218,13 +229,72 @@ class ExceptionlessAutoConfigurationTest {
     new ReactiveWebApplicationContextRunner()
         .withConfiguration(AUTO_CONFIGURATION)
         .withPropertyValues(
-            "exceptionless.api-key=" + RecordingSubmissionClient.API_KEY,
+            "exceptionless.api-key=" + TestClients.API_KEY,
             "exceptionless.capture-uncaught-exceptions=false")
         .run(
             context -> {
               assertThat(context).hasSingleBean(ExceptionlessWebFilter.class);
               assertThat(context).doesNotHaveBean(ExceptionlessFilter.class);
               assertThat(context.getBean(ExceptionlessWebFilter.class).getOrder()).isEqualTo(-99);
+            });
+  }
+
+  @Test
+  void backsOffFromTheServletFilterWithoutExceptionlessServlet() {
+    new WebApplicationContextRunner()
+        .withConfiguration(AUTO_CONFIGURATION)
+        .withClassLoader(new FilteredClassLoader(ExceptionlessFilter.class))
+        .withPropertyValues(
+            "exceptionless.api-key=" + TestClients.API_KEY,
+            "exceptionless.capture-uncaught-exceptions=false")
+        .run(
+            context -> {
+              assertThat(context).hasSingleBean(ExceptionlessClient.class);
+              assertThat(context).doesNotHaveBean(OrderedExceptionlessFilter.class);
+            });
+  }
+
+  @Test
+  void backsOffFromTheWebFilterWithoutReactor() {
+    new ReactiveWebApplicationContextRunner()
+        .withConfiguration(AUTO_CONFIGURATION)
+        .withClassLoader(new FilteredClassLoader(Mono.class))
+        .withPropertyValues(
+            "exceptionless.api-key=" + TestClients.API_KEY,
+            "exceptionless.capture-uncaught-exceptions=false")
+        .run(
+            context -> {
+              assertThat(context).hasSingleBean(ExceptionlessClient.class);
+              assertThat(context).doesNotHaveBean(ExceptionlessWebFilter.class);
+            });
+  }
+
+  @Test
+  void backsOffFromLogbackWithoutLogback() {
+    runner
+        .withClassLoader(new FilteredClassLoader(LoggerContext.class))
+        .run(
+            context -> {
+              assertThat(context).hasSingleBean(ExceptionlessClient.class);
+              assertThat(context).doesNotHaveBean(LogbackAppenderRegistration.class);
+            });
+  }
+
+  @Test
+  void bindsTheMinimumLevelCaseInsensitively() {
+    runner
+        .withPropertyValues("exceptionless.logging.minimum-level=ERROR")
+        .run(
+            context -> {
+              assertThat(
+                      context.getBean(ExceptionlessProperties.class).getLogging().getMinimumLevel())
+                  .isEqualTo(LogLevel.ERROR);
+              assertThat(
+                      context
+                          .getBean(LogbackAppenderRegistration.class)
+                          .getAppender()
+                          .getMinimumLevel())
+                  .isEqualTo(LogLevel.ERROR);
             });
   }
 
@@ -248,7 +318,7 @@ class ExceptionlessAutoConfigurationTest {
               appender.set(context.getBean(LogbackAppenderRegistration.class).getAppender());
               assertThat(appender.get()).isNotNull();
               assertThat(appender.get().getClient()).isSameAs(client);
-              assertThat(appender.get().getMinimumLevel()).isEqualTo("info");
+              assertThat(appender.get().getMinimumLevel()).isEqualTo(LogLevel.INFO);
               assertThat(rootAppenders()).contains(appender.get());
 
               LoggerFactory.getLogger("com.example.Checkout")
@@ -260,9 +330,7 @@ class ExceptionlessAutoConfigurationTest {
               List<Map<String, Object>> events = recorder.flush(client);
               assertThat(events)
                   .anySatisfy(
-                      e ->
-                          assertThat(RecordingSubmissionClient.error(e))
-                              .containsEntry("message", "declined"))
+                      e -> assertThat(TestClients.error(e)).containsEntry("message", "declined"))
                   .anySatisfy(
                       e ->
                           assertThat(e)
@@ -272,6 +340,42 @@ class ExceptionlessAutoConfigurationTest {
             });
     assertThat(rootAppenders()).doesNotContain(appender.get());
     assertThat(appender.get().isStarted()).isFalse();
+  }
+
+  @Test
+  void addsTheAppenderAgainWhenLogbackIsReset() throws Exception {
+    LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+    AtomicReference<LogbackAppenderRegistration> registration = new AtomicReference<>();
+    try {
+      runner.run(
+          context -> {
+            ExceptionlessClient client = context.getBean(ExceptionlessClient.class);
+            registration.set(context.getBean(LogbackAppenderRegistration.class));
+            ExceptionlessAppender original = registration.get().getAppender();
+            assertThat(rootAppenders()).contains(original);
+
+            // What Logback does when it reloads a changed logback.xml (scan="true").
+            loggerContext.reset();
+
+            ExceptionlessAppender replacement = registration.get().getAppender();
+            assertThat(replacement).isNotNull().isNotSameAs(original);
+            assertThat(replacement.isStarted()).isTrue();
+            assertThat(original.isStarted()).isFalse();
+            assertThat(rootAppenders()).contains(replacement).doesNotContain(original);
+
+            LoggerFactory.getLogger("com.example.Reset").error("After reset");
+            assertThat(recorder.awaitEvents(client, 1))
+                .extracting(e -> e.get("message"))
+                .contains("After reset");
+          });
+      assertThat(rootAppenders())
+          .noneMatch(a -> LogbackAppenderRegistration.APPENDER_NAME.equals(a.getName()));
+      assertThat(loggerContext.getCopyOfListenerList()).doesNotContain(registration.get());
+    } finally {
+      // Restore the default configuration (logback-test.xml or Logback's defaults).
+      loggerContext.reset();
+      new ContextInitializer(loggerContext).autoConfig();
+    }
   }
 
   @Test

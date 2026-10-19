@@ -5,13 +5,12 @@ import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.ExceptionlessConfiguration;
 import com.exceptionless.servlet.ExceptionlessFilter;
 import java.nio.file.Path;
-import java.util.Map;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.info.BuildProperties;
@@ -41,18 +40,14 @@ import org.springframework.util.StringUtils;
  *       WebFlux;
  *   <li>when Logback is the logging system, an appender on the root logger that sends log messages
  *       at or above {@code exceptionless.logging.minimum-level} (default {@code warn}) and logged
- *       exceptions.
+ *       exceptions. Log4j 2 users add the {@code exceptionless-log4j2} appender to their
+ *       configuration themselves; without an API key it uses this client.
  * </ul>
  *
  * <p>Set {@code exceptionless.enabled=false} to turn all of it off.
  */
 @AutoConfiguration
-@ConditionalOnClass(ExceptionlessClient.class)
-@ConditionalOnProperty(
-    prefix = "exceptionless",
-    name = "enabled",
-    havingValue = "true",
-    matchIfMissing = true)
+@ConditionalOnBooleanProperty(name = "exceptionless.enabled", matchIfMissing = true)
 @EnableConfigurationProperties(ExceptionlessProperties.class)
 public class ExceptionlessAutoConfiguration {
 
@@ -75,9 +70,7 @@ public class ExceptionlessAutoConfiguration {
     config.registerShutdownHook(false);
     customizers.orderedStream().forEach(customizer -> customizer.customize(config));
 
-    ExceptionlessClient client = new ExceptionlessClient(config);
-    Exceptionless.setDefault(client);
-    return client.startup();
+    return new ExceptionlessClient(config).startup();
   }
 
   static void apply(ExceptionlessProperties properties, ExceptionlessConfiguration config) {
@@ -91,15 +84,15 @@ public class ExceptionlessAutoConfiguration {
       config.version(properties.getVersion());
     }
     config.addDefaultTags(properties.getDefaultTags().toArray(String[]::new));
-    for (Map.Entry<String, Object> entry : properties.getDefaultData().entrySet()) {
-      config.addDefaultData(entry.getKey(), entry.getValue());
-    }
+    properties.getDefaultData().forEach(config::addDefaultData);
     properties.getSettings().forEach(config::setting);
-    if (properties.getIncludePrivateInformation() != null) {
-      config.includePrivateInformation(properties.getIncludePrivateInformation());
+    Boolean includePrivateInformation = properties.getIncludePrivateInformation();
+    if (includePrivateInformation != null) {
+      config.includePrivateInformation(includePrivateInformation);
     }
-    if (StringUtils.hasText(properties.getStoragePath())) {
-      config.useFileStorage(Path.of(properties.getStoragePath()));
+    Path storagePath = properties.getStoragePath();
+    if (storagePath != null) {
+      config.useFileStorage(storagePath);
     }
     if (properties.isUseSessions()) {
       config.useSessions();
@@ -170,11 +163,7 @@ public class ExceptionlessAutoConfiguration {
         "ch.qos.logback.classic.LoggerContext",
         "com.exceptionless.logback.ExceptionlessAppender"
       })
-  @ConditionalOnProperty(
-      prefix = "exceptionless.logging",
-      name = "enabled",
-      havingValue = "true",
-      matchIfMissing = true)
+  @ConditionalOnBooleanProperty(name = "exceptionless.logging.enabled", matchIfMissing = true)
   static class LogbackConfiguration {
     /** Adds the Exceptionless appender to the Logback root logger. */
     @Bean

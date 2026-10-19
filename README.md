@@ -102,13 +102,20 @@ exceptionless:
   api-key: ${EXCEPTIONLESS_API_KEY}
   # server-url: https://exceptionless.example.com   # self hosted
   # use-sessions: true
+  # storage-path: /var/lib/myapp/exceptionless     # persist queued events across restarts
   # logging:
-  #   minimum-level: warn                            # log messages sent from Logback
+  #   minimum-level: warn                            # trace, debug, info, warn, error, fatal or off
 ```
 
 Unhandled controller exceptions (MVC and WebFlux) and 404s are reported with the request details,
 Logback warnings and errors are sent as log events, and the `ExceptionlessClient` bean is available
 for injection. Customize the configuration with an `ExceptionlessConfigurationCustomizer` bean.
+
+The starter only adds the Logback appender (when Logback is the logging system). With Log4j 2, add
+`exceptionless-log4j2` and its `<Exceptionless />` appender to your `log4j2.xml` yourself; without
+an `apiKey` it sends through the starter's client. If Logback reloads its configuration
+(`scan="true"`), the appender is added again; if your `logback-spring.xml` declares its own
+`ExceptionlessAppender`, the starter leaves the root logger alone.
 
 ## Sending events
 
@@ -233,8 +240,16 @@ handlers=java.util.logging.ConsoleHandler, com.exceptionless.jul.ExceptionlessHa
 com.exceptionless.jul.ExceptionlessHandler.level=WARNING
 ```
 
-MDC / ThreadContext values become event properties, markers become tags, and logged exceptions
-become error events.
+MDC / ThreadContext values (and Log4j `MapMessage` fields) become event properties, markers become
+tags, and logged exceptions become error events. Appending never throws: the first failure after
+the appender starts is reported to the framework's status output (Logback status, Log4j's error
+handler, JUL's `ErrorManager`). Log4j 2 appenders with `ignoreExceptions="false"` also rethrow
+failures as `AppenderLoggingException`, for `Failover` appenders.
+
+To integrate another logging framework, build on `com.exceptionless.logging.LogEventSupport` (in
+`exceptionless-core`): it implements the client selection (explicit client, a client owned for an
+`apiKey`, or the started default client), the filtering of the client's own diagnostics and of
+recursive logging, the level checks and the error/log event creation the bundled integrations share.
 
 ## Servlet containers
 
@@ -246,6 +261,10 @@ servletContext.addFilter("exceptionless", new ExceptionlessFilter()).addMappingF
 Unhandled exceptions and 404s are reported with the request (method, path, headers, cookies, query
 string, form fields, user) after your privacy settings and data exclusions are applied. Errors logged
 while handling a request get the request details too.
+
+Without a client (`new ExceptionlessFilter()`), the filter looks up the default client on every
+request and only uses it once `Exceptionless.startup(...)` has run; until then requests pass through
+untouched. Pass a client (`new ExceptionlessFilter(client)`) to report to a specific one.
 
 ## Plugins and hooks
 

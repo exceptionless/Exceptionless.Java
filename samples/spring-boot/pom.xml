@@ -14,6 +14,7 @@
     <description>A Spring Boot web app that reports errors, 404s, logs and feature usage.</description>
 
     <properties>
+        <automatic.module.name>com.example.springboot</automatic.module.name>
         <maven.deploy.skip>true</maven.deploy.skip>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <maven.source.skip>true</maven.source.skip>

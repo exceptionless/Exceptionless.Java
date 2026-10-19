@@ -17,6 +17,7 @@
     </description>
 
     <properties>
+        <automatic.module.name>com.exceptionless.e2e</automatic.module.name>
         <testcontainers.version>2.0.5</testcontainers.version>
         <!-- The published all-in-one image (server + jobs + Elasticsearch). Override with -De2e.image=... -->
         <e2e.image>exceptionless/exceptionless:8.10.0</e2e.image>
@@ -43,6 +44,11 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

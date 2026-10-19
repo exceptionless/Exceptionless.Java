@@ -1,13 +1,16 @@
 package com.exceptionless.jul;
 
-import static com.exceptionless.jul.CapturingSubmissionClient.data;
+import static com.exceptionless.TestClients.data;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.exceptionless.Exceptionless;
 import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.ExceptionlessConfiguration;
+import com.exceptionless.FakeServer;
 import com.exceptionless.LogLevel;
+import com.exceptionless.TestClients;
+import com.exceptionless.TestClients.CapturingSubmissionClient;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,7 +19,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.ErrorManager;
 import java.util.logging.Filter;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
@@ -26,6 +31,8 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class ExceptionlessHandlerTest {
   private final CapturingSubmissionClient server = new CapturingSubmissionClient();
@@ -81,17 +88,24 @@ class ExceptionlessHandlerTest {
     void run() throws Exception;
   }
 
+  @ParameterizedTest
+  @CsvSource({
+    "ALL, TRACE",
+    "FINEST, TRACE",
+    "FINER, TRACE",
+    "FINE, DEBUG",
+    "CONFIG, DEBUG",
+    "INFO, INFO",
+    "WARNING, WARN",
+    "SEVERE, ERROR",
+    "OFF, ERROR"
+  })
+  void mapsLevels(String jul, LogLevel expected) {
+    assertThat(ExceptionlessHandler.toLogLevel(Level.parse(jul))).isEqualTo(expected);
+  }
+
   @Test
-  void mapsLevels() {
-    assertThat(ExceptionlessHandler.toLogLevel(Level.FINEST)).isEqualTo(LogLevel.TRACE);
-    assertThat(ExceptionlessHandler.toLogLevel(Level.FINER)).isEqualTo(LogLevel.TRACE);
-    assertThat(ExceptionlessHandler.toLogLevel(Level.FINE)).isEqualTo(LogLevel.DEBUG);
-    assertThat(ExceptionlessHandler.toLogLevel(Level.CONFIG)).isEqualTo(LogLevel.DEBUG);
-    assertThat(ExceptionlessHandler.toLogLevel(Level.INFO)).isEqualTo(LogLevel.INFO);
-    assertThat(ExceptionlessHandler.toLogLevel(Level.WARNING)).isEqualTo(LogLevel.WARN);
-    assertThat(ExceptionlessHandler.toLogLevel(Level.SEVERE)).isEqualTo(LogLevel.ERROR);
-    assertThat(ExceptionlessHandler.toLogLevel(Level.ALL)).isEqualTo(LogLevel.TRACE);
-    assertThat(ExceptionlessHandler.toLogLevel(Level.OFF)).isEqualTo(LogLevel.ERROR);
+  void mapsAMissingLevelToInfo() {
     assertThat(ExceptionlessHandler.toLogLevel(null)).isEqualTo(LogLevel.INFO);
   }
 
@@ -328,6 +342,36 @@ class ExceptionlessHandlerTest {
   }
 
   @Test
+  void reportsOnlyTheFirstFailure() {
+    client = server.newClient();
+    ExceptionlessHandler handler = handler(client);
+    List<String> errors = new CopyOnWriteArrayList<>();
+    handler.setErrorManager(
+        new ErrorManager() {
+          @Override
+          public void error(String msg, Exception ex, int code) {
+            errors.add(msg);
+          }
+        });
+    LogRecord failing =
+        new LogRecord(Level.SEVERE, "boom") {
+          @Override
+          public Throwable getThrown() {
+            throw new IllegalStateException("cannot read the exception");
+          }
+        };
+    failing.setLoggerName("com.example.jul.Failing");
+
+    assertThatCode(
+            () -> {
+              handler.publish(failing);
+              handler.publish(failing);
+            })
+        .doesNotThrowAnyException();
+    assertThat(errors).containsExactly("Unable to send a log event to Exceptionless");
+  }
+
+  @Test
   void closeLeavesAnExplicitClientOpen() {
     client = server.newClient();
     ExceptionlessHandler handler = handler(client);
@@ -345,7 +389,7 @@ class ExceptionlessHandlerTest {
     try (FakeServer fake = new FakeServer()) {
       ExceptionlessHandler handler = new ExceptionlessHandler();
       handlers.add(handler);
-      handler.setApiKey(CapturingSubmissionClient.API_KEY);
+      handler.setApiKey(TestClients.API_KEY);
       handler.setServerUrl(fake.url());
       assertThat(handler.getClient()).isNull();
       Logger logger = logger("com.example.jul.Owned", handler);
@@ -373,7 +417,7 @@ class ExceptionlessHandlerTest {
   void changingTheApiKeyReplacesTheOwnedClient() {
     ExceptionlessHandler handler = new ExceptionlessHandler();
     handlers.add(handler);
-    handler.setApiKey(CapturingSubmissionClient.API_KEY);
+    handler.setApiKey(TestClients.API_KEY);
     handler.setServerUrl("http://127.0.0.1:9");
     Logger logger = logger("com.example.jul.Rekey", handler);
     logger.info("creates the client");
@@ -403,7 +447,7 @@ class ExceptionlessHandlerTest {
     withLogManagerProperties(
         prefix
             + ".apiKey = "
-            + CapturingSubmissionClient.API_KEY
+            + TestClients.API_KEY
             + "\n"
             + prefix
             + ".serverUrl = http://127.0.0.1:9/\n"
@@ -420,7 +464,7 @@ class ExceptionlessHandlerTest {
         () -> {
           ExceptionlessHandler handler = new ExceptionlessHandler();
           handlers.add(handler);
-          assertThat(handler.getApiKey()).isEqualTo(CapturingSubmissionClient.API_KEY);
+          assertThat(handler.getApiKey()).isEqualTo(TestClients.API_KEY);
           assertThat(handler.getServerUrl()).isEqualTo("http://127.0.0.1:9/");
           assertThat(handler.getMinimumLevel()).isEqualTo(LogLevel.INFO);
           assertThat(handler.getLevel()).isEqualTo(Level.FINE);

@@ -121,7 +121,7 @@ public final class ServletRequestInfoFactory {
     if (queryString == null || queryString.isEmpty()) {
       return values;
     }
-    for (String pair : queryString.split("&")) {
+    for (String pair : queryString.split("&", -1)) {
       if (pair.isEmpty()) {
         continue;
       }

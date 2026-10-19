@@ -14,6 +14,7 @@
     <description>A plain Java app that reports errors, logs, feature usage and sessions.</description>
 
     <properties>
+        <automatic.module.name>com.example.console</automatic.module.name>
         <maven.deploy.skip>true</maven.deploy.skip>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <maven.source.skip>true</maven.source.skip>

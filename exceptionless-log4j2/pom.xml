@@ -13,12 +13,16 @@
     <name>Exceptionless Log4j 2</name>
     <description>Log4j 2 appender that sends log messages and exceptions to Exceptionless.</description>
 
+    <properties>
+        <automatic.module.name>com.exceptionless.log4j2</automatic.module.name>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.exceptionless</groupId>
             <artifactId>exceptionless-core</artifactId>
         </dependency>
-        <!-- The application brings its own Log4j 2. -->
+        <!-- The application brings its own Log4j 2. Built and tested against ${log4j2.version}. -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
@@ -32,6 +36,17 @@
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>com.exceptionless</groupId>
+            <artifactId>exceptionless-core</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -63,17 +78,6 @@
                         <!-- log4j-core references annotations (bnd, errorprone, spotbugs) that aren't on the class path. -->
                         <arg>-Xlint:-classfile</arg>
                     </compilerArgs>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <Automatic-Module-Name>com.exceptionless.log4j2</Automatic-Module-Name>
-                        </manifestEntries>
-                    </archive>
                 </configuration>
             </plugin>
         </plugins>

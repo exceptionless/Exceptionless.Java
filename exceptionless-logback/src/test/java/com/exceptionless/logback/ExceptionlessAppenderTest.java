@@ -1,6 +1,6 @@
 package com.exceptionless.logback;
 
-import static com.exceptionless.logback.CapturingSubmissionClient.data;
+import static com.exceptionless.TestClients.data;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
@@ -8,10 +8,15 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.classic.spi.LoggingEvent;
+import ch.qos.logback.core.status.Status;
 import com.exceptionless.Exceptionless;
 import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.ExceptionlessConfiguration;
+import com.exceptionless.FakeServer;
 import com.exceptionless.LogLevel;
+import com.exceptionless.TestClients;
+import com.exceptionless.TestClients.CapturingSubmissionClient;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +24,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.slf4j.MDC;
 import org.slf4j.MarkerFactory;
 
@@ -61,13 +68,22 @@ class ExceptionlessAppenderTest {
     return logger;
   }
 
+  @ParameterizedTest
+  @CsvSource({
+    "ALL, TRACE",
+    "TRACE, TRACE",
+    "DEBUG, DEBUG",
+    "INFO, INFO",
+    "WARN, WARN",
+    "ERROR, ERROR",
+    "OFF, ERROR"
+  })
+  void mapsLevels(String logback, LogLevel expected) {
+    assertThat(ExceptionlessAppender.toLogLevel(Level.toLevel(logback))).isEqualTo(expected);
+  }
+
   @Test
-  void mapsLevels() {
-    assertThat(ExceptionlessAppender.toLogLevel(Level.TRACE)).isEqualTo(LogLevel.TRACE);
-    assertThat(ExceptionlessAppender.toLogLevel(Level.DEBUG)).isEqualTo(LogLevel.DEBUG);
-    assertThat(ExceptionlessAppender.toLogLevel(Level.INFO)).isEqualTo(LogLevel.INFO);
-    assertThat(ExceptionlessAppender.toLogLevel(Level.WARN)).isEqualTo(LogLevel.WARN);
-    assertThat(ExceptionlessAppender.toLogLevel(Level.ERROR)).isEqualTo(LogLevel.ERROR);
+  void mapsAMissingLevelToInfo() {
     assertThat(ExceptionlessAppender.toLogLevel(null)).isEqualTo(LogLevel.INFO);
   }
 
@@ -101,9 +117,9 @@ class ExceptionlessAppenderTest {
     client = server.newClient();
     ExceptionlessAppender appender = appender(client);
     appender.setMinimumLevel("info");
-    assertThat(appender.getMinimumLevel()).isEqualTo("info");
+    assertThat(appender.getMinimumLevel()).isEqualTo(LogLevel.INFO);
     appender.setMinimumLevel("bogus");
-    assertThat(appender.getMinimumLevel()).isEqualTo("info");
+    assertThat(appender.getMinimumLevel()).isEqualTo(LogLevel.INFO);
     Logger logger = logger("com.example.Orders", appender);
 
     logger.debug("debug");
@@ -298,11 +314,47 @@ class ExceptionlessAppenderTest {
   }
 
   @Test
+  void reportsTheFirstFailureUntilRestarted() {
+    client = server.newClient();
+    ExceptionlessAppender appender = appender(client);
+    Logger logger = logger("com.example.Orders", appender);
+
+    assertThatCode(
+            () -> {
+              appender.doAppend(failingEvent(logger));
+              appender.doAppend(failingEvent(logger));
+            })
+        .doesNotThrowAnyException();
+    assertThat(sendFailures()).hasSize(1);
+
+    appender.stop();
+    appender.start();
+    appender.doAppend(failingEvent(logger));
+    assertThat(sendFailures()).hasSize(2);
+  }
+
+  /** An event whose message can't be formatted. */
+  private static LoggingEvent failingEvent(Logger logger) {
+    return new LoggingEvent(Logger.FQCN, logger, Level.ERROR, "unused", null, null) {
+      @Override
+      public String getFormattedMessage() {
+        throw new IllegalStateException("cannot format");
+      }
+    };
+  }
+
+  private List<Status> sendFailures() {
+    return context.getStatusManager().getCopyOfStatusList().stream()
+        .filter(s -> s.getMessage().startsWith("Unable to send a log event"))
+        .toList();
+  }
+
+  @Test
   void ownsAndClosesTheClientForItsApiKey() throws Exception {
     try (FakeServer fake = new FakeServer()) {
       ExceptionlessAppender appender = new ExceptionlessAppender();
       appender.setContext(context);
-      appender.setApiKey(CapturingSubmissionClient.API_KEY);
+      appender.setApiKey(TestClients.API_KEY);
       appender.setServerUrl(fake.url());
       appender.start();
       assertThat(appender.getClient()).isNull();
@@ -338,9 +390,9 @@ class ExceptionlessAppenderTest {
               context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("EXCEPTIONLESS");
       assertThat(appender).isNotNull();
       assertThat(appender.isStarted()).isTrue();
-      assertThat(appender.getApiKey()).isEqualTo(CapturingSubmissionClient.API_KEY);
+      assertThat(appender.getApiKey()).isEqualTo(TestClients.API_KEY);
       assertThat(appender.getServerUrl()).isEqualTo(fake.url());
-      assertThat(appender.getMinimumLevel()).isEqualTo("info");
+      assertThat(appender.getMinimumLevel()).isEqualTo(LogLevel.INFO);
       assertThat(appender.isIncludeMdc()).isFalse();
 
       org.slf4j.Logger logger = context.getLogger("com.example.Xml");

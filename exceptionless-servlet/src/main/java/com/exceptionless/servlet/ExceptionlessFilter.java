@@ -4,16 +4,14 @@ import com.exceptionless.EventBuilder;
 import com.exceptionless.Exceptionless;
 import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.ExceptionlessConfiguration;
+import com.exceptionless.logging.LogEventSupport;
 import com.exceptionless.models.UserInfo;
 import jakarta.servlet.AsyncEvent;
 import jakarta.servlet.AsyncListener;
 import jakarta.servlet.DispatcherType;
-import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.FilterConfig;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -55,8 +53,10 @@ import org.jspecify.annotations.Nullable;
  *     .addMappingForUrlPatterns(null, false, "/*");
  * }</pre>
  *
- * <p>Without a client, the filter uses {@link Exceptionless#getDefault()}, looked up on the first
- * request. Exceptions are always rethrown unchanged, so the container's error handling still runs.
+ * <p>Without a client, the filter uses {@link Exceptionless#getDefault() the default client},
+ * looked up on every request and only once the application has started it; until then (and after
+ * {@link Exceptionless#shutdown()}) requests pass through untouched. Exceptions are always rethrown
+ * unchanged, so the container's error handling still runs.
  *
  * <p><b>Async requests:</b> when the request goes async ({@link HttpServletRequest#startAsync()}),
  * the 404 check waits until the async request completes, and errors reported to {@link
@@ -64,7 +64,7 @@ import org.jspecify.annotations.Nullable;
  * async processing don't get request details, because the request is only tracked on the container
  * threads that run the filter.
  */
-public class ExceptionlessFilter implements Filter {
+public class ExceptionlessFilter extends HttpFilter {
   /** The {@code @submission_method} of the events reported by this filter. */
   public static final String SUBMISSION_METHOD = "servletFilter";
 
@@ -75,20 +75,29 @@ public class ExceptionlessFilter implements Filter {
   private static final String HANDLED_ATTRIBUTE = ExceptionlessFilter.class.getName() + ".HANDLED";
   private static final String ASYNC_ATTRIBUTE = ExceptionlessFilter.class.getName() + ".ASYNC";
 
-  private volatile @Nullable ExceptionlessClient client;
+  private static final int MAX_UNWRAP_DEPTH = 10;
+
+  private final transient @Nullable ExceptionlessClient client;
+
+  /** The client {@link ServletRequestInfoPlugin} was last registered with. */
+  private transient volatile @Nullable ExceptionlessClient pluginClient;
+
   private volatile boolean captureNotFound = true;
 
-  /** Uses {@link Exceptionless#getDefault()}. */
-  public ExceptionlessFilter() {}
+  /** Uses {@link Exceptionless#getDefault() the default client} once it has started. */
+  public ExceptionlessFilter() {
+    this.client = null;
+  }
 
   /** Reports to {@code client}. */
   public ExceptionlessFilter(ExceptionlessClient client) {
     this.client = client;
   }
 
+  /** Reads the {@value #CAPTURE_NOT_FOUND_PARAM} init parameter. */
   @Override
-  public void init(FilterConfig filterConfig) {
-    String value = filterConfig.getInitParameter(CAPTURE_NOT_FOUND_PARAM);
+  public void init() {
+    String value = getInitParameter(CAPTURE_NOT_FOUND_PARAM);
     if (value != null && !value.isBlank()) {
       captureNotFound = Boolean.parseBoolean(value.trim());
     }
@@ -100,45 +109,47 @@ public class ExceptionlessFilter implements Filter {
   }
 
   /** Turns 404 reporting on (the default) or off. */
-  public ExceptionlessFilter setCaptureNotFound(boolean captureNotFound) {
+  public void setCaptureNotFound(boolean captureNotFound) {
     this.captureNotFound = captureNotFound;
-    return this;
   }
 
-  /** The client events are reported to. */
-  public ExceptionlessClient getClient() {
-    ExceptionlessClient current = client;
-    if (current == null) {
-      current = Exceptionless.getDefault();
-      client = current;
-    }
-    registerPlugin(current.getConfiguration());
-    return current;
+  /**
+   * The client events are reported to now: the one passed to the constructor, else the {@link
+   * Exceptionless#getDefault() default client} once it has started, else {@code null} (requests
+   * pass through). Never creates the default client.
+   */
+  public @Nullable ExceptionlessClient getClient() {
+    return client != null ? client : LogEventSupport.startedDefaultClient();
   }
 
-  private static void registerPlugin(ExceptionlessConfiguration config) {
-    if (!config.hasPlugin(ServletRequestInfoPlugin.NAME)) {
-      config.addPlugin(new ServletRequestInfoPlugin());
+  /** Registers {@link ServletRequestInfoPlugin} once per client. */
+  private void registerPlugin(ExceptionlessClient exceptionless) {
+    if (pluginClient != exceptionless) {
+      ExceptionlessConfiguration config = exceptionless.getConfiguration();
+      if (!config.hasPlugin(ServletRequestInfoPlugin.NAME)) {
+        config.addPlugin(new ServletRequestInfoPlugin());
+      }
+      pluginClient = exceptionless;
     }
   }
 
   @Override
-  public void doFilter(
-      ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain)
+  protected void doFilter(
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws IOException, ServletException {
-    if (!(servletRequest instanceof HttpServletRequest request)
-        || !(servletResponse instanceof HttpServletResponse response)) {
-      chain.doFilter(servletRequest, servletResponse);
+    ExceptionlessClient exceptionless = getClient();
+    if (exceptionless == null) {
+      chain.doFilter(request, response);
       return;
     }
+    registerPlugin(exceptionless);
 
-    ExceptionlessClient exceptionless = getClient();
     // Only the first REQUEST dispatch checks for 404s, even if the filter is registered twice.
     boolean checkNotFound =
         request.getDispatcherType() == DispatcherType.REQUEST
             && request.getAttribute(HANDLED_ATTRIBUTE) == null;
     if (checkNotFound) {
-      request.setAttribute(HANDLED_ATTRIBUTE, Boolean.TRUE);
+      request.setAttribute(HANDLED_ATTRIBUTE, true);
     }
 
     HttpServletRequest previous = ServletRequestInfoPlugin.setCurrentRequest(request);
@@ -166,7 +177,7 @@ public class ExceptionlessFilter implements Filter {
     if (request.getAttribute(ASYNC_ATTRIBUTE) != null) {
       return;
     }
-    request.setAttribute(ASYNC_ATTRIBUTE, Boolean.TRUE);
+    request.setAttribute(ASYNC_ATTRIBUTE, true);
     try {
       request
           .getAsyncContext()
@@ -223,20 +234,15 @@ public class ExceptionlessFilter implements Filter {
    */
   static Throwable unwrap(Throwable error) {
     Throwable current = error;
-    for (int depth = 0;
-        depth < 10 && current instanceof ServletException servletException;
-        depth++) {
-      Throwable cause = servletException.getRootCause();
-      if (cause == null || cause == current) {
+    for (int depth = 0; depth < MAX_UNWRAP_DEPTH; depth++) {
+      Throwable cause = current instanceof ServletException e ? e.getRootCause() : null;
+      if (cause == null) {
         break;
       }
       current = cause;
     }
     return current;
   }
-
-  @Override
-  public void destroy() {}
 
   private final class CompletionListener implements AsyncListener {
     private final ExceptionlessClient exceptionless;

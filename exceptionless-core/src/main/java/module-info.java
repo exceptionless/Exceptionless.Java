@@ -7,6 +7,7 @@ module com.exceptionless.core {
 
   exports com.exceptionless;
   exports com.exceptionless.json;
+  exports com.exceptionless.logging;
   exports com.exceptionless.models;
   exports com.exceptionless.plugins;
   exports com.exceptionless.queue;

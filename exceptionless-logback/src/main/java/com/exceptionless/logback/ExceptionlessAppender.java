@@ -11,6 +11,7 @@ import com.exceptionless.Exceptionless;
 import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.ExceptionlessConfiguration;
 import com.exceptionless.LogLevel;
+import com.exceptionless.logging.LogEventSupport;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -50,64 +51,52 @@ import org.slf4j.event.KeyValuePair;
  * exception handler) on first use and closes it, sending queued events, when the appender stops.
  * Otherwise it uses {@link Exceptionless#getDefault() the default client} once the application has
  * started it, so logging never starts or locks the default client's configuration; messages logged
- * before then are not sent. {@link #setClient} uses a specific client instead.
+ * before then are not sent. {@link #setClient} uses a specific client instead. See {@link
+ * LogEventSupport}, which the Log4j 2 and {@code java.util.logging} integrations share.
  *
  * <p>The client's own diagnostics (loggers under {@code com.exceptionless} and anything logged on
  * its background threads) and messages logged while an event is being submitted are never sent.
- * Appending never blocks on the network and never throws.
+ * Appending never blocks on the network and never throws; the first failure after the appender
+ * starts is reported to Logback's status manager.
  */
-public class ExceptionlessAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
+public final class ExceptionlessAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
   /** The submission method recorded on events sent by this appender. */
   public static final String SUBMISSION_METHOD = "logback";
 
-  private static final String INTERNAL_LOGGER_PREFIX = "com.exceptionless";
-  private static final String INTERNAL_THREAD_PREFIX = "exceptionless-";
-  private static final ThreadLocal<Boolean> APPENDING = new ThreadLocal<>();
-
-  private final Object clientLock = new Object();
-  private volatile @Nullable String apiKey;
-  private volatile @Nullable String serverUrl;
-  private volatile LogLevel minimumLevel = LogLevel.WARN;
+  private final LogEventSupport support = new LogEventSupport(SUBMISSION_METHOD, this::addError);
   private volatile boolean includeMdc = true;
-  private volatile @Nullable ExceptionlessClient client;
-  private volatile @Nullable ExceptionlessClient ownedClient;
-  private volatile boolean clientFailed;
-  private volatile boolean reportedFailure;
 
   public @Nullable String getApiKey() {
-    return apiKey;
+    return support.getApiKey();
   }
 
   /** The project API key. When set, the appender creates and owns its own client. */
   public void setApiKey(@Nullable String apiKey) {
-    this.apiKey = trimToNull(apiKey);
+    support.setApiKey(apiKey);
   }
 
   public @Nullable String getServerUrl() {
-    return serverUrl;
+    return support.getServerUrl();
   }
 
   /** The server URL for self hosted installs. Only used together with {@link #setApiKey}. */
   public void setServerUrl(@Nullable String serverUrl) {
-    this.serverUrl = trimToNull(serverUrl);
+    support.setServerUrl(serverUrl);
   }
 
-  public String getMinimumLevel() {
-    return minimumLevel.value();
+  public LogLevel getMinimumLevel() {
+    return support.getMinimumLevel();
   }
 
   /**
    * The minimum level sent when the project has no matching {@code @@log} setting (default {@code
    * warn}). Accepts Exceptionless and Logback level names; {@code off} sends only what the project
-   * settings enable.
+   * settings enable. A String (not {@link LogLevel}) so it can be set from {@code logback.xml}.
    */
   public void setMinimumLevel(@Nullable String minimumLevel) {
-    LogLevel level = LogLevel.parse(minimumLevel);
-    if (level == null) {
-      addWarn("Unknown minimumLevel '" + minimumLevel + "'; using " + this.minimumLevel.value());
-      return;
+    if (!support.setMinimumLevel(minimumLevel)) {
+      addWarn("Unknown minimumLevel '" + minimumLevel + "'; using " + support.getMinimumLevel());
     }
-    this.minimumLevel = level;
   }
 
   public boolean isIncludeMdc() {
@@ -125,94 +114,51 @@ public class ExceptionlessAppender extends UnsynchronizedAppenderBase<ILoggingEv
    * yet.
    */
   public @Nullable ExceptionlessClient getClient() {
-    ExceptionlessClient explicit = client;
-    return explicit != null ? explicit : ownedClient;
+    return support.getClient();
   }
 
   /**
    * Sends to the given client. The appender doesn't close it. Takes precedence over the API key.
    */
   public void setClient(@Nullable ExceptionlessClient client) {
-    this.client = client;
+    support.setClient(client);
   }
 
   @Override
   public void start() {
-    clientFailed = false;
+    support.start();
     super.start();
   }
 
+  /** Stops the appender and closes the client it created, sending queued events. */
   @Override
   public void stop() {
     super.stop();
-    ExceptionlessClient owned;
-    synchronized (clientLock) {
-      owned = ownedClient;
-      ownedClient = null;
-    }
-    if (owned != null) {
-      try {
-        owned.close();
-      } catch (RuntimeException e) {
-        addError("Unable to close the Exceptionless client", e);
-      }
-    }
+    support.close();
   }
 
   @Override
   protected void append(ILoggingEvent event) {
-    if (APPENDING.get() != null || isInternal(event.getLoggerName(), event.getThreadName())) {
-      return;
-    }
-    APPENDING.set(Boolean.TRUE);
-    try {
-      ExceptionlessClient target = resolveClient();
-      if (target == null) {
-        return;
-      }
-      String loggerName = event.getLoggerName();
-      LogLevel level = toLogLevel(event.getLevel());
-      if (!target.isLogLevelEnabled(loggerName, level, minimumLevel)
-          || !target.getConfiguration().isEnabled()) {
-        return;
-      }
-      createEvent(target, event, level).submit();
-    } catch (RuntimeException | LinkageError e) {
-      if (!reportedFailure) {
-        reportedFailure = true;
-        addError("Unable to send a log event to Exceptionless", e);
-      }
-    } finally {
-      APPENDING.remove();
-    }
+    LogLevel level = toLogLevel(event.getLevel());
+    support.submit(
+        event.getLoggerName(), event.getThreadName(), level, client -> createEvent(client, event));
   }
 
-  private EventBuilder createEvent(
-      ExceptionlessClient target, ILoggingEvent event, LogLevel level) {
-    String loggerName = event.getLoggerName();
-    String message = event.getFormattedMessage();
-    if (message == null) {
-      message = "";
-    }
+  private EventBuilder createEvent(ExceptionlessClient client, ILoggingEvent event) {
     IThrowableProxy proxy = event.getThrowableProxy();
     Throwable exception = proxy instanceof ThrowableProxy p ? p.getThrowable() : null;
-
-    EventBuilder builder;
-    if (exception != null) {
-      builder =
-          target
-              .createException(exception)
-              .setSource(loggerName)
-              .setMessage(message)
-              .setLevel(level);
-    } else {
-      builder = target.createLog(loggerName, message, level);
-      if (proxy != null) {
-        // Deserialized events (e.g. from a socket appender) only carry the formatted stack trace.
-        builder.setProperty("exception", ThrowableProxyUtil.asString(proxy));
-      }
+    EventBuilder builder =
+        support.createEvent(
+            client,
+            event.getLoggerName(),
+            event.getFormattedMessage(),
+            toLogLevel(event.getLevel()),
+            exception,
+            event.getThreadName());
+    if (exception == null && proxy != null) {
+      // Deserialized events (e.g. from a socket appender) only carry the formatted stack trace.
+      builder.setProperty("exception", ThrowableProxyUtil.asString(proxy));
     }
-    builder.setSubmissionMethod(SUBMISSION_METHOD);
 
     if (includeMdc) {
       Map<String, String> mdc = event.getMDCPropertyMap();
@@ -228,10 +174,6 @@ public class ExceptionlessAppender extends UnsynchronizedAppenderBase<ILoggingEv
         }
       }
     }
-    String thread = event.getThreadName();
-    if (thread != null) {
-      builder.setProperty("thread", thread);
-    }
     List<Marker> markers = event.getMarkerList();
     if (markers != null) {
       for (Marker marker : markers) {
@@ -243,45 +185,10 @@ public class ExceptionlessAppender extends UnsynchronizedAppenderBase<ILoggingEv
     return builder;
   }
 
-  private @Nullable ExceptionlessClient resolveClient() {
-    ExceptionlessClient explicit = client;
-    if (explicit != null) {
-      return explicit;
-    }
-    String key = apiKey;
-    if (key == null) {
-      if (!Exceptionless.hasDefault()) {
-        return null;
-      }
-      ExceptionlessClient defaultClient = Exceptionless.getDefault();
-      return defaultClient.isStarted() ? defaultClient : null;
-    }
-    ExceptionlessClient owned = ownedClient;
-    if (owned != null || clientFailed || !isStarted()) {
-      return owned;
-    }
-    synchronized (clientLock) {
-      if (ownedClient == null && !clientFailed && isStarted()) {
-        try {
-          ExceptionlessConfiguration config =
-              ExceptionlessConfiguration.fromEnvironment()
-                  .apiKey(key)
-                  .captureUncaughtExceptions(false);
-          String url = serverUrl;
-          if (url != null) {
-            config.serverUrl(url);
-          }
-          ownedClient = new ExceptionlessClient(config).startup();
-        } catch (RuntimeException e) {
-          clientFailed = true;
-          addError("Unable to create the Exceptionless client", e);
-        }
-      }
-      return ownedClient;
-    }
-  }
-
-  /** Maps a Logback level to an Exceptionless level. */
+  /**
+   * Maps a Logback level to an Exceptionless level. Logback has no fatal level, so {@code OFF} (the
+   * most severe) maps to error and {@code ALL} to trace; {@code null} maps to info.
+   */
   static LogLevel toLogLevel(@Nullable Level level) {
     if (level == null) {
       return LogLevel.INFO;
@@ -300,24 +207,5 @@ public class ExceptionlessAppender extends UnsynchronizedAppenderBase<ILoggingEv
       return LogLevel.DEBUG;
     }
     return LogLevel.TRACE;
-  }
-
-  /** True for the Exceptionless client's own loggers and background threads. */
-  static boolean isInternal(@Nullable String loggerName, @Nullable String threadName) {
-    if (threadName != null && threadName.startsWith(INTERNAL_THREAD_PREFIX)) {
-      return true;
-    }
-    return loggerName != null
-        && loggerName.startsWith(INTERNAL_LOGGER_PREFIX)
-        && (loggerName.length() == INTERNAL_LOGGER_PREFIX.length()
-            || loggerName.charAt(INTERNAL_LOGGER_PREFIX.length()) == '.');
-  }
-
-  private static @Nullable String trimToNull(@Nullable String value) {
-    if (value == null) {
-      return null;
-    }
-    String trimmed = value.trim();
-    return trimmed.isEmpty() ? null : trimmed;
   }
 }
