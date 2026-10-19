@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.exceptionless</groupId>
+        <artifactId>exceptionless-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>exceptionless-sample-console</artifactId>
+    <name>Exceptionless Sample: Console</name>
+    <description>A plain Java app that reports errors, logs, feature usage and sessions.</description>
+
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <exec.mainClass>com.example.console.ConsoleApp</exec.mainClass>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.exceptionless</groupId>
+            <artifactId>exceptionless-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.exceptionless</groupId>
+            <artifactId>exceptionless-jul</artifactId>
+        </dependency>
+    </dependencies>
+</project>

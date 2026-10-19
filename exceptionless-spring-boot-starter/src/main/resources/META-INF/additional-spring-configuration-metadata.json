@@ -1,0 +1,16 @@
+{
+  "hints": [
+    {
+      "name": "exceptionless.logging.minimum-level",
+      "values": [
+        { "value": "trace" },
+        { "value": "debug" },
+        { "value": "info" },
+        { "value": "warn" },
+        { "value": "error" },
+        { "value": "fatal" },
+        { "value": "off" }
+      ]
+    }
+  ]
+}
