@@ -12,9 +12,15 @@ import org.jspecify.annotations.Nullable;
 public record SubmissionResponse(
     int statusCode, @Nullable String message, @Nullable Integer configVersion) {
 
+  /** A request that failed without a response. */
   public static SubmissionResponse failed(Throwable error) {
     return new SubmissionResponse(
         -1, error.getClass().getSimpleName() + ": " + error.getMessage(), null);
+  }
+
+  /** A request that was not sent, for example because the client is disabled. */
+  public static SubmissionResponse notSent(String message) {
+    return new SubmissionResponse(-1, message, null);
   }
 
   public boolean isSuccess() {

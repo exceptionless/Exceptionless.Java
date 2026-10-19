@@ -1,4 +1,4 @@
-package com.exceptionless.settings;
+package com.exceptionless.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,7 +18,7 @@ class SettingsManagerTest {
 
   @Test
   void appliesAndPersistsNewSettings() {
-    submission.settingsResponse = SettingsResponse.of(Map.of("@@log:*", "info"), 4);
+    submission.settingsResponse = new SettingsResponse.Updated(Map.of("@@log:*", "info"), 4);
     manager.updateSettings();
     assertThat(config.getSettings().getString("@@log:*")).isEqualTo("info");
     assertThat(manager.getVersion()).isEqualTo(4);
@@ -30,9 +30,9 @@ class SettingsManagerTest {
 
   @Test
   void sendsCurrentVersionAndKeepsSettingsWhenNotModified() {
-    submission.settingsResponse = SettingsResponse.of(Map.of("a", "1"), 2);
+    submission.settingsResponse = new SettingsResponse.Updated(Map.of("a", "1"), 2);
     manager.updateSettings();
-    submission.settingsResponse = SettingsResponse.notModifiedResponse();
+    submission.settingsResponse = new SettingsResponse.NotModified();
     manager.updateSettings();
     assertThat(submission.settingsRequests).containsExactly(0, 2);
     assertThat(config.getSettings().getString("a")).isEqualTo("1");
@@ -40,9 +40,9 @@ class SettingsManagerTest {
 
   @Test
   void removedServerSettingsAreDropped() {
-    submission.settingsResponse = SettingsResponse.of(Map.of("a", "1", "b", "2"), 1);
+    submission.settingsResponse = new SettingsResponse.Updated(Map.of("a", "1", "b", "2"), 1);
     manager.updateSettings();
-    submission.settingsResponse = SettingsResponse.of(Map.of("a", "1"), 2);
+    submission.settingsResponse = new SettingsResponse.Updated(Map.of("a", "1"), 2);
     manager.updateSettings();
     assertThat(config.getSettings().getString("b")).isNull();
   }
@@ -50,7 +50,7 @@ class SettingsManagerTest {
   @Test
   void localSettingsSurviveButServerWins() {
     config.setting("@@log:*", "error").setting("local", "yes");
-    submission.settingsResponse = SettingsResponse.of(Map.of("@@log:*", "debug"), 1);
+    submission.settingsResponse = new SettingsResponse.Updated(Map.of("@@log:*", "debug"), 1);
     manager.updateSettings();
     assertThat(config.getSettings().getString("@@log:*")).isEqualTo("debug");
     assertThat(config.getSettings().getString("local")).isEqualTo("yes");
@@ -58,9 +58,9 @@ class SettingsManagerTest {
 
   @Test
   void failuresKeepCurrentSettings() {
-    submission.settingsResponse = SettingsResponse.of(Map.of("a", "1"), 1);
+    submission.settingsResponse = new SettingsResponse.Updated(Map.of("a", "1"), 1);
     manager.updateSettings();
-    submission.settingsResponse = SettingsResponse.failed("boom");
+    submission.settingsResponse = new SettingsResponse.Failed("boom");
     manager.updateSettings();
     assertThat(config.getSettings().getString("a")).isEqualTo("1");
     assertThat(manager.getVersion()).isEqualTo(1);
@@ -88,7 +88,7 @@ class SettingsManagerTest {
 
   @Test
   void checkVersionOnlyUpdatesWhenNewer() {
-    submission.settingsResponse = SettingsResponse.of(Map.of(), 3);
+    submission.settingsResponse = new SettingsResponse.Updated(Map.of(), 3);
     manager.checkVersion(null);
     manager.checkVersion(0);
     assertThat(submission.settingsRequests).isEmpty();

@@ -173,7 +173,7 @@ class ErrorConverterTest {
 
   @Test
   void attachesModulesToTheOutermostErrorOnly() {
-    ModuleInfo module = new ModuleInfo().setName("lib").setVersion("1.0");
+    ModuleInfo module = new ModuleInfo(0, "lib", "1.0", false);
     ErrorInfo error =
         ErrorConverter.convert(
             new RuntimeException("x", new RuntimeException("y")), name -> false, List.of(module));

@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Attaches the request from the context data and applies the privacy settings and data exclusions
@@ -19,7 +20,7 @@ public final class RequestInfoPlugin implements EventPlugin {
   public static final int PRIORITY = 60;
 
   /** Headers that are never sent: credentials, and values already captured elsewhere. */
-  public static final Set<String> IGNORED_HEADERS =
+  private static final Set<String> IGNORED_HEADERS =
       Set.of(
           "authorization",
           "proxy-authorization",
@@ -55,7 +56,7 @@ public final class RequestInfoPlugin implements EventPlugin {
   }
 
   /** Applies the privacy settings and data exclusions to {@code request} in place. */
-  public static void sanitize(RequestInfo request, ExceptionlessConfiguration config) {
+  private static void sanitize(RequestInfo request, ExceptionlessConfiguration config) {
     Predicate<String> excluded = Exclusions.of(config.getDataExclusions());
 
     if (!config.isIncludeIpAddress()) {
@@ -83,11 +84,12 @@ public final class RequestInfoPlugin implements EventPlugin {
       }
       request.setPostData(filtered.isEmpty() ? null : filtered);
     }
+    Map<String, List<String>> headers = request.getHeaders();
     if (!config.isIncludeHeaders()) {
       request.setHeaders(null);
-    } else if (request.getHeaders() != null) {
+    } else if (headers != null) {
       Map<String, List<String>> filtered = new LinkedHashMap<>();
-      for (Map.Entry<String, List<String>> entry : request.getHeaders().entrySet()) {
+      for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
         String name = entry.getKey();
         if (name == null
             || IGNORED_HEADERS.contains(name.toLowerCase(Locale.ROOT))
@@ -102,8 +104,8 @@ public final class RequestInfoPlugin implements EventPlugin {
     }
   }
 
-  private static Map<String, String> filter(
-      Map<String, String> values, Predicate<String> excluded) {
+  private static @Nullable Map<String, String> filter(
+      @Nullable Map<String, String> values, Predicate<String> excluded) {
     if (values == null || values.isEmpty()) {
       return null;
     }

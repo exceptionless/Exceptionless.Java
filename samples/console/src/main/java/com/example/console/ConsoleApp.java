@@ -38,7 +38,7 @@ public final class ConsoleApp {
                 .version("1.0.0")
                 .addDefaultTags("sample", "console")
                 .addDefaultData("environment", "development")
-                .setUserIdentity("sample-user", "Sample User")
+                .userIdentity("sample-user", "Sample User")
                 .addDataExclusions("*password*")
                 .useSessions());
 

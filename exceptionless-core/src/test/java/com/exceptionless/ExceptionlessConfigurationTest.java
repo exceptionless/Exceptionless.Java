@@ -19,7 +19,7 @@ class ExceptionlessConfigurationTest {
     assertThat(config.getConfigServerUrl()).isEqualTo("https://config.exceptionless.io");
     assertThat(config.getHeartbeatServerUrl()).isEqualTo("https://heartbeat.exceptionless.io");
     assertThat(config.isIncludePrivateInformation()).isTrue();
-    assertThat(config.isUseReferenceIds()).isTrue();
+    assertThat(config.isReferenceIdsEnabled()).isTrue();
     assertThat(config.getSubmissionBatchSize()).isEqualTo(50);
     assertThat(config.getUpdateSettingsWhenIdleInterval()).isEqualTo(Duration.ofMinutes(2));
     assertThat(config.isEnabled()).isFalse(); // no API key
@@ -179,12 +179,12 @@ class ExceptionlessConfigurationTest {
   }
 
   @Test
-  void setUserIdentityAddsDefaultUser() {
+  void userIdentityAddsDefaultUser() {
     ExceptionlessConfiguration config =
-        new ExceptionlessConfiguration().setUserIdentity("id-1", "Ann");
+        new ExceptionlessConfiguration().userIdentity("id-1", "Ann");
     assertThat(config.getDefaultData().get("@user"))
         .isEqualTo(new com.exceptionless.models.UserInfo("id-1", "Ann"));
-    config.setUserIdentity(null);
+    config.userIdentity(null);
     assertThat(config.getDefaultData()).doesNotContainKey("@user");
   }
 }

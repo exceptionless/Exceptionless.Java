@@ -1,33 +1,39 @@
 package com.exceptionless.submission;
 
 import java.util.Map;
-import org.jspecify.annotations.Nullable;
 
 /**
- * The result of fetching project settings.
+ * The result of fetching project settings: {@link Updated new settings}, {@link NotModified no
+ * change}, or {@link Failed a failure}.
  *
- * @param success whether new settings were received
- * @param notModified true when the server's settings version matches ours (HTTP 304)
- * @param settings the settings, when successful
- * @param version the settings version, when successful
- * @param message an error message, when not successful
+ * <pre>{@code
+ * if (client.getSettings(version) instanceof SettingsResponse.Updated updated) {
+ *   apply(updated.settings(), updated.version());
+ * }
+ * }</pre>
  */
-public record SettingsResponse(
-    boolean success,
-    boolean notModified,
-    Map<String, String> settings,
-    int version,
-    @Nullable String message) {
+public sealed interface SettingsResponse
+    permits SettingsResponse.Updated, SettingsResponse.NotModified, SettingsResponse.Failed {
 
-  public static SettingsResponse notModifiedResponse() {
-    return new SettingsResponse(false, true, Map.of(), -1, null);
+  /**
+   * New settings were received.
+   *
+   * @param settings the project settings
+   * @param version the settings version
+   */
+  record Updated(Map<String, String> settings, int version) implements SettingsResponse {
+    public Updated {
+      settings = Map.copyOf(settings);
+    }
   }
 
-  public static SettingsResponse failed(String message) {
-    return new SettingsResponse(false, false, Map.of(), -1, message);
-  }
+  /** The server's settings version matches ours (HTTP 304). */
+  record NotModified() implements SettingsResponse {}
 
-  public static SettingsResponse of(Map<String, String> settings, int version) {
-    return new SettingsResponse(true, false, Map.copyOf(settings), version, null);
-  }
+  /**
+   * The settings could not be fetched.
+   *
+   * @param message why
+   */
+  record Failed(String message) implements SettingsResponse {}
 }

@@ -23,7 +23,7 @@ Remove any OkHttp version pins you added for the old client.
 | `Configuration.builder()...build()` | `new ExceptionlessConfiguration().apiKey(...)...` (fluent setters) |
 | `client.submitException(Exception)` | `client.submitException(Throwable)` |
 | `client.createError()` / `createLog(...)` + `.build()` + `submitEvent(EventPluginContext.from(...))` | `client.createException(e)` / `createLog(...)` + `.submit()` |
-| `EventPluginIF` | `com.exceptionless.plugins.EventPlugin` |
+| `EventPluginIF` | `com.exceptionless.plugins.EventPlugin`, or `EventPlugin.of(name, priority, ctx -> ...)` for a lambda |
 | `EventQueueIF`, `SubmissionClientIF`, `SettingsClientIF`, `StorageProviderIF` | `EventQueue`, `SubmissionClient`, `QueueStorage` / `KeyValueStorage` |
 | `PrivateInformationInclusions` | `config.includePrivateInformation(...)`, `includeHeaders(...)`, `includeCookies(...)`, ... |
 | `LogCapturerIF` | Use a logging integration (`exceptionless-logback`, `-log4j2`, `-jul`). |

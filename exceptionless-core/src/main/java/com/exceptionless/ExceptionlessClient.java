@@ -3,6 +3,7 @@ package com.exceptionless;
 import com.exceptionless.internal.DaemonThreadFactory;
 import com.exceptionless.internal.Ids;
 import com.exceptionless.internal.Log;
+import com.exceptionless.internal.SettingsManager;
 import com.exceptionless.internal.Strings;
 import com.exceptionless.models.Event;
 import com.exceptionless.models.EventTypes;
@@ -15,7 +16,6 @@ import com.exceptionless.plugins.EventPluginContext;
 import com.exceptionless.plugins.HeartbeatPlugin;
 import com.exceptionless.queue.DefaultEventQueue;
 import com.exceptionless.queue.EventQueue;
-import com.exceptionless.settings.SettingsManager;
 import com.exceptionless.storage.FileKeyValueStorage;
 import com.exceptionless.storage.FileQueueStorage;
 import com.exceptionless.storage.InMemoryKeyValueStorage;
@@ -362,7 +362,9 @@ public final class ExceptionlessClient implements AutoCloseable {
 
   /** Creates an event of any type. */
   public EventBuilder createEvent() {
-    return new EventBuilder(this, new Event().setDate(OffsetDateTime.now()), new ContextData());
+    Event event = new Event();
+    event.setDate(OffsetDateTime.now());
+    return new EventBuilder(this, event, new ContextData());
   }
 
   /** Creates an error event for an exception. */
@@ -573,7 +575,7 @@ public final class ExceptionlessClient implements AutoCloseable {
     String identifier = sessionIdentifier(sessionIdOrUserId);
     if (identifier == null) {
       return CompletableFuture.completedFuture(
-          new SubmissionResponse(-1, "No session or user identity", null));
+          SubmissionResponse.notSent("No session or user identity"));
     }
     return supplyAsync(() -> sendHeartbeat(identifier, false));
   }
@@ -584,7 +586,7 @@ public final class ExceptionlessClient implements AutoCloseable {
     String identifier = sessionIdentifier(sessionIdOrUserId);
     if (identifier == null) {
       return CompletableFuture.completedFuture(
-          new SubmissionResponse(-1, "No session or user identity", null));
+          SubmissionResponse.notSent("No session or user identity"));
     }
     if (identifier.equals(config.getCurrentSessionIdentifier())) {
       config.currentSessionIdentifier(null);
@@ -615,9 +617,9 @@ public final class ExceptionlessClient implements AutoCloseable {
   private SubmissionResponse sendHeartbeat(String identifier, boolean close) {
     SubmissionClient client = submissionClient;
     if (client == null || !config.isEnabled()) {
-      return new SubmissionResponse(-1, "Exceptionless is disabled", null);
+      return SubmissionResponse.notSent("Exceptionless is disabled");
     }
-    return client.sendHeartbeat(identifier, close, config);
+    return client.sendHeartbeat(identifier, close);
   }
 
   /**
@@ -634,10 +636,9 @@ public final class ExceptionlessClient implements AutoCloseable {
         () -> {
           SubmissionClient client = submissionClient;
           if (client == null || !config.isEnabled()) {
-            return new SubmissionResponse(-1, "Exceptionless is disabled", null);
+            return SubmissionResponse.notSent("Exceptionless is disabled");
           }
-          SubmissionResponse response =
-              client.postUserDescription(referenceId, userDescription, config);
+          SubmissionResponse response = client.postUserDescription(referenceId, userDescription);
           SettingsManager settings = settingsManager;
           if (settings != null) {
             settings.checkVersion(response.configVersion());

@@ -3,6 +3,7 @@ package com.exceptionless;
 import com.exceptionless.internal.Log;
 import com.exceptionless.internal.Strings;
 import com.exceptionless.models.Event;
+import com.exceptionless.models.KnownDataKeys;
 import com.exceptionless.models.UserInfo;
 import com.exceptionless.plugins.CancelSessionsWithNoUserPlugin;
 import com.exceptionless.plugins.ConfigurationDefaultsPlugin;
@@ -39,6 +40,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -79,9 +81,8 @@ public final class ExceptionlessConfiguration {
   private volatile boolean locked;
   private volatile @Nullable String version;
 
-  private final Set<String> defaultTags = Collections.synchronizedSet(new LinkedHashSet<>());
-  private final Map<String, Object> defaultData =
-      Collections.synchronizedMap(new LinkedHashMap<>());
+  private final Set<String> defaultTags = new CopyOnWriteArraySet<>();
+  private final Map<String, Object> defaultData = new ConcurrentHashMap<>();
   private final Map<String, String> settings = new ConcurrentHashMap<>();
   private final List<String> dataExclusions = new CopyOnWriteArrayList<>();
   private final List<String> userAgentBotPatterns = new CopyOnWriteArrayList<>();
@@ -101,7 +102,7 @@ public final class ExceptionlessConfiguration {
   private volatile boolean includeQueryString = true;
   private volatile boolean includeModules = true;
 
-  private volatile boolean useReferenceIds = true;
+  private volatile boolean referenceIdsEnabled = true;
   private volatile boolean sessionsEnabled;
   private volatile boolean sendHeartbeats;
   private volatile Duration heartbeatInterval = Duration.ofSeconds(60);
@@ -119,7 +120,7 @@ public final class ExceptionlessConfiguration {
 
   private volatile Duration connectTimeout = Duration.ofSeconds(10);
   private volatile Duration requestTimeout = Duration.ofSeconds(30);
-  private volatile @Nullable ProxySelector proxySelector;
+  private volatile @Nullable ProxySelector proxy;
   private volatile @Nullable SSLContext sslContext;
   private volatile @Nullable HttpClient httpClient;
   private volatile @Nullable SubmissionClient submissionClient;
@@ -191,34 +192,23 @@ public final class ExceptionlessConfiguration {
    */
   public ExceptionlessConfiguration readFromValues(
       Map<String, String> values, Function<String, String> keyMapper) {
-    String value;
-    if ((value = trimmed(values.get(keyMapper.apply("apiKey")))) != null) {
-      apiKey(value);
-    }
-    if ((value = trimmed(values.get(keyMapper.apply("serverUrl")))) != null) {
-      serverUrl(value);
-    }
-    if ((value = trimmed(values.get(keyMapper.apply("configServerUrl")))) != null) {
-      configServerUrl(value);
-    }
-    if ((value = trimmed(values.get(keyMapper.apply("heartbeatServerUrl")))) != null) {
-      heartbeatServerUrl(value);
-    }
-    if ((value = trimmed(values.get(keyMapper.apply("enabled")))) != null) {
-      enabled(Boolean.parseBoolean(value));
-    }
-    if ((value = trimmed(values.get(keyMapper.apply("version")))) != null) {
-      version(value);
-    }
-    if ((value = trimmed(values.get(keyMapper.apply("storagePath")))) != null) {
-      useFileStorage(Path.of(value));
-    }
-    if ((value = trimmed(values.get(keyMapper.apply("includePrivateInformation")))) != null) {
-      includePrivateInformation(Boolean.parseBoolean(value));
-    }
-    if ((value = trimmed(values.get(keyMapper.apply("defaultTags")))) != null) {
-      addDefaultTags(ClientSettings.splitList(value).toArray(String[]::new));
-    }
+    apply(values, keyMapper, "apiKey", this::apiKey);
+    apply(values, keyMapper, "serverUrl", this::serverUrl);
+    apply(values, keyMapper, "configServerUrl", this::configServerUrl);
+    apply(values, keyMapper, "heartbeatServerUrl", this::heartbeatServerUrl);
+    apply(values, keyMapper, "enabled", value -> enabled(Boolean.parseBoolean(value)));
+    apply(values, keyMapper, "version", this::version);
+    apply(values, keyMapper, "storagePath", value -> useFileStorage(Path.of(value)));
+    apply(
+        values,
+        keyMapper,
+        "includePrivateInformation",
+        value -> includePrivateInformation(Boolean.parseBoolean(value)));
+    apply(
+        values,
+        keyMapper,
+        "defaultTags",
+        value -> addDefaultTags(Strings.splitList(value).toArray(String[]::new)));
     String settingsPrefix = keyMapper.apply("settings.");
     for (Map.Entry<String, String> entry : values.entrySet()) {
       if (entry.getKey().startsWith(settingsPrefix)
@@ -248,8 +238,16 @@ public final class ExceptionlessConfiguration {
     return sb.toString();
   }
 
-  private static @Nullable String trimmed(@Nullable String value) {
-    return Strings.trimToNull(value);
+  /** Passes the trimmed value of {@code name} to {@code setter}, when it is set. */
+  private static void apply(
+      Map<String, String> values,
+      Function<String, String> keyMapper,
+      String name,
+      Consumer<String> setter) {
+    String value = Strings.trimToNull(values.get(keyMapper.apply(name)));
+    if (value != null) {
+      setter.accept(value);
+    }
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -378,9 +376,7 @@ public final class ExceptionlessConfiguration {
 
   /** A snapshot of the tags added to every event. */
   public Set<String> getDefaultTags() {
-    synchronized (defaultTags) {
-      return Set.copyOf(defaultTags);
-    }
+    return Collections.unmodifiableSet(new LinkedHashSet<>(defaultTags));
   }
 
   public ExceptionlessConfiguration addDefaultTags(String... tags) {
@@ -402,9 +398,7 @@ public final class ExceptionlessConfiguration {
 
   /** A snapshot of the data added to every event. */
   public Map<String, Object> getDefaultData() {
-    synchronized (defaultData) {
-      return new LinkedHashMap<>(defaultData);
-    }
+    return Map.copyOf(defaultData);
   }
 
   /** Adds data to every event. The value is normalized when events are created. */
@@ -418,17 +412,15 @@ public final class ExceptionlessConfiguration {
   }
 
   /** Sets the user attached to every event (for example in a desktop or CLI app). */
-  public ExceptionlessConfiguration setUserIdentity(@Nullable String identity) {
-    return setUserIdentity(identity, null);
+  public ExceptionlessConfiguration userIdentity(@Nullable String identity) {
+    return userIdentity(identity, null);
   }
 
-  public ExceptionlessConfiguration setUserIdentity(
-      @Nullable String identity, @Nullable String name) {
+  public ExceptionlessConfiguration userIdentity(@Nullable String identity, @Nullable String name) {
     if (Strings.isBlank(identity) && Strings.isBlank(name)) {
-      return addDefaultData(com.exceptionless.models.KnownDataKeys.USER_INFO, null);
+      return addDefaultData(KnownDataKeys.USER_INFO, null);
     }
-    return addDefaultData(
-        com.exceptionless.models.KnownDataKeys.USER_INFO, new UserInfo(identity, name));
+    return addDefaultData(KnownDataKeys.USER_INFO, new UserInfo(identity, name));
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -458,7 +450,10 @@ public final class ExceptionlessConfiguration {
     return this;
   }
 
-  /** Applies settings received from the server. */
+  /**
+   * Applies settings received from the server. Called by the client when it loads or fetches the
+   * project settings; applications normally don't need to call it.
+   */
   public void applyServerSettings(Map<String, String> values) {
     this.serverSettings = ClientSettings.of(values);
     recomputeSettings();
@@ -490,7 +485,7 @@ public final class ExceptionlessConfiguration {
     }
     List<String> all = new ArrayList<>(dataExclusions);
     all.addAll(server);
-    return all;
+    return List.copyOf(all);
   }
 
   /** Ignores requests whose user agent matches (wildcards supported, e.g. {@code *bot*}). */
@@ -512,7 +507,7 @@ public final class ExceptionlessConfiguration {
     }
     List<String> all = new ArrayList<>(userAgentBotPatterns);
     all.addAll(server);
-    return all;
+    return List.copyOf(all);
   }
 
   /** Adds a callback that returns {@code true} for events that should be discarded. */
@@ -653,13 +648,13 @@ public final class ExceptionlessConfiguration {
   // ---------------------------------------------------------------------------------------------
   // Reference ids and sessions
 
-  public boolean isUseReferenceIds() {
-    return useReferenceIds;
+  /** Whether error events get a random reference id (on by default). */
+  public boolean isReferenceIdsEnabled() {
+    return referenceIdsEnabled;
   }
 
-  /** Whether error events get a random reference id (on by default). */
-  public ExceptionlessConfiguration useReferenceIds(boolean useReferenceIds) {
-    this.useReferenceIds = useReferenceIds;
+  public ExceptionlessConfiguration useReferenceIds(boolean enabled) {
+    this.referenceIdsEnabled = enabled;
     return this;
   }
 
@@ -831,14 +826,14 @@ public final class ExceptionlessConfiguration {
     return this;
   }
 
-  public @Nullable ProxySelector getProxySelector() {
-    return proxySelector;
+  public @Nullable ProxySelector getProxy() {
+    return proxy;
   }
 
   /** Sends requests through a proxy, e.g. {@code ProxySelector.of(new InetSocketAddress(...))}. */
-  public ExceptionlessConfiguration proxy(@Nullable ProxySelector proxySelector) {
+  public ExceptionlessConfiguration proxy(@Nullable ProxySelector proxy) {
     ensureUnlocked("proxy");
-    this.proxySelector = proxySelector;
+    this.proxy = proxy;
     return this;
   }
 
@@ -913,9 +908,7 @@ public final class ExceptionlessConfiguration {
 
   /** The plugins in the order they run (ascending priority). */
   public List<EventPlugin> getPlugins() {
-    List<EventPlugin> sorted = new ArrayList<>(plugins);
-    sorted.sort(Comparator.comparingInt(EventPlugin::getPriority));
-    return sorted;
+    return plugins.stream().sorted(Comparator.comparingInt(EventPlugin::getPriority)).toList();
   }
 
   /** Adds a plugin, replacing any existing plugin with the same name. */
@@ -925,26 +918,10 @@ public final class ExceptionlessConfiguration {
     return this;
   }
 
-  /** Adds a plugin from a lambda. Lower priorities run first. */
+  /** Adds a plugin from a lambda. Lower priorities run first. See {@link EventPlugin#of}. */
   public ExceptionlessConfiguration addPlugin(
       String name, int priority, Consumer<EventPluginContext> plugin) {
-    return addPlugin(
-        new EventPlugin() {
-          @Override
-          public String getName() {
-            return name;
-          }
-
-          @Override
-          public int getPriority() {
-            return priority;
-          }
-
-          @Override
-          public void run(EventPluginContext context) {
-            plugin.accept(context);
-          }
-        });
+    return addPlugin(EventPlugin.of(name, priority, plugin));
   }
 
   public ExceptionlessConfiguration removePlugin(String name) {

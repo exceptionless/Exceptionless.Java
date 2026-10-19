@@ -75,7 +75,7 @@ class DefaultPluginsTest {
   @Test
   void configurationDefaultsNormalizeObjects() {
     config.addDefaultData("info", Map.of("nested", List.of(1, 2)));
-    config.setUserIdentity("user-1", "Ann");
+    config.userIdentity("user-1", "Ann");
     Event event = new Event();
     PluginTestSupport.run(new ConfigurationDefaultsPlugin(), client, event);
     assertThat(event.getData().get("info")).isEqualTo(Map.of("nested", List.of(1, 2)));
@@ -145,23 +145,24 @@ class DefaultPluginsTest {
         new ErrorPlugin(), client, event, new ContextData().setException(new RuntimeException()));
     assertThat(event.getError().getModules()).isNotEmpty();
     assertThat(event.getError().getModules())
-        .anySatisfy(m -> assertThat(m.getName()).contains("junit"));
+        .anySatisfy(m -> assertThat(m.name()).contains("junit"));
   }
 
   @Test
   void referenceIdsOnlyForErrors() {
     ReferenceIdPlugin plugin = new ReferenceIdPlugin();
-    Event error = new Event().setType("error");
+    Event error = event("error");
     PluginTestSupport.run(plugin, client, error);
     assertThat(error.getReferenceId()).hasSize(16);
-    Event log = new Event().setType("log");
+    Event log = event("log");
     PluginTestSupport.run(plugin, client, log);
     assertThat(log.getReferenceId()).isNull();
-    Event explicit = new Event().setType("error").setReferenceId("my-own-id");
+    Event explicit = event("error");
+    explicit.setReferenceId("my-own-id");
     PluginTestSupport.run(plugin, client, explicit);
     assertThat(explicit.getReferenceId()).isEqualTo("my-own-id");
     config.useReferenceIds(false);
-    Event disabled = new Event().setType("error");
+    Event disabled = event("error");
     PluginTestSupport.run(plugin, client, disabled);
     assertThat(disabled.getReferenceId()).isNull();
   }
@@ -186,6 +187,24 @@ class DefaultPluginsTest {
         .doesNotContain("machine_name");
   }
 
+  private static Event event(String type) {
+    Event event = new Event();
+    event.setType(type);
+    return event;
+  }
+
+  private static Event withRequest(RequestInfo request) {
+    Event event = new Event();
+    event.setRequestInfo(request);
+    return event;
+  }
+
+  private static Event withUserAgent(String userAgent) {
+    RequestInfo request = new RequestInfo();
+    request.setUserAgent(userAgent);
+    return withRequest(request);
+  }
+
   private static RequestInfo request() {
     Map<String, List<String>> headers = new LinkedHashMap<>();
     headers.put("Authorization", List.of("Bearer secret"));
@@ -199,15 +218,16 @@ class DefaultPluginsTest {
     Map<String, String> query = new LinkedHashMap<>();
     query.put("q", "search");
     query.put("passwordReset", "1");
-    return new RequestInfo()
-        .setHttpMethod("POST")
-        .setPath("/orders")
-        .setClientIpAddress("10.0.0.1")
-        .setUserAgent("Mozilla/5.0")
-        .setHeaders(headers)
-        .setCookies(cookies)
-        .setQueryString(query)
-        .setPostData(new LinkedHashMap<>(Map.of("name", "Ann", "password", "x")));
+    RequestInfo request = new RequestInfo();
+    request.setHttpMethod("POST");
+    request.setPath("/orders");
+    request.setClientIpAddress("10.0.0.1");
+    request.setUserAgent("Mozilla/5.0");
+    request.setHeaders(headers);
+    request.setCookies(cookies);
+    request.setQueryString(query);
+    request.setPostData(new LinkedHashMap<>(Map.of("name", "Ann", "password", "x")));
+    return request;
   }
 
   @Test
@@ -235,7 +255,7 @@ class DefaultPluginsTest {
   @Test
   void requestInfoRespectsPrivacySwitches() {
     config.includePrivateInformation(false);
-    Event event = new Event().setRequestInfo(request());
+    Event event = withRequest(request());
     PluginTestSupport.run(new RequestInfoPlugin(), client, event);
     RequestInfo request = event.getRequestInfo();
     assertThat(request.getHeaders()).isNull();
@@ -251,7 +271,7 @@ class DefaultPluginsTest {
     config.applyServerSettings(Map.of("@@IncludePrivateInformation", "false"));
     assertThat(config.isIncludePrivateInformation()).isFalse();
     assertThat(config.isIncludeCookies()).isFalse();
-    Event event = new Event().setRequestInfo(request());
+    Event event = withRequest(request());
     PluginTestSupport.run(new RequestInfoPlugin(), client, event);
     assertThat(event.getRequestInfo().getCookies()).isNull();
   }
@@ -261,26 +281,11 @@ class DefaultPluginsTest {
     config.addUserAgentBotPatterns("*bot*");
     config.applyServerSettings(Map.of("@@UserAgentBotPatterns", "*crawler*"));
     IgnoreUserAgentPlugin plugin = new IgnoreUserAgentPlugin();
-    assertThat(
-            PluginTestSupport.run(
-                    plugin,
-                    client,
-                    new Event().setRequestInfo(new RequestInfo().setUserAgent("Googlebot/2.1")))
-                .isCancelled())
+    assertThat(PluginTestSupport.run(plugin, client, withUserAgent("Googlebot/2.1")).isCancelled())
         .isTrue();
-    assertThat(
-            PluginTestSupport.run(
-                    plugin,
-                    client,
-                    new Event().setRequestInfo(new RequestInfo().setUserAgent("SomeCrawler")))
-                .isCancelled())
+    assertThat(PluginTestSupport.run(plugin, client, withUserAgent("SomeCrawler")).isCancelled())
         .isTrue();
-    assertThat(
-            PluginTestSupport.run(
-                    plugin,
-                    client,
-                    new Event().setRequestInfo(new RequestInfo().setUserAgent("Mozilla/5.0")))
-                .isCancelled())
+    assertThat(PluginTestSupport.run(plugin, client, withUserAgent("Mozilla/5.0")).isCancelled())
         .isFalse();
     assertThat(PluginTestSupport.run(plugin, client, new Event()).isCancelled()).isFalse();
   }
@@ -291,7 +296,8 @@ class DefaultPluginsTest {
     Event event = new Event();
     PluginTestSupport.run(new VersionPlugin(), client, event);
     assertThat(event.getVersion()).isEqualTo("1.2.3");
-    Event explicit = new Event().setVersion("9.9");
+    Event explicit = new Event();
+    explicit.setVersion("9.9");
     PluginTestSupport.run(new VersionPlugin(), client, explicit);
     assertThat(explicit.getVersion()).isEqualTo("9.9");
   }
@@ -310,39 +316,31 @@ class DefaultPluginsTest {
   @Test
   void sessionsWithoutUserAreCancelled() {
     CancelSessionsWithNoUserPlugin plugin = new CancelSessionsWithNoUserPlugin();
-    assertThat(PluginTestSupport.run(plugin, client, new Event().setType("session")).isCancelled())
-        .isTrue();
-    assertThat(
-            PluginTestSupport.run(
-                    plugin, client, new Event().setType("session").setUserInfo(new UserInfo("u1")))
-                .isCancelled())
-        .isFalse();
-    assertThat(
-            PluginTestSupport.run(
-                    plugin,
-                    client,
-                    new Event().setType("session").setReferenceId("0123456789abcdef"))
-                .isCancelled())
-        .isFalse();
-    assertThat(PluginTestSupport.run(plugin, client, new Event().setType("log")).isCancelled())
-        .isFalse();
+    assertThat(PluginTestSupport.run(plugin, client, event("session")).isCancelled()).isTrue();
+    Event withUser = event("session");
+    withUser.setUserInfo(new UserInfo("u1"));
+    assertThat(PluginTestSupport.run(plugin, client, withUser).isCancelled()).isFalse();
+    Event withSessionId = event("session");
+    withSessionId.setReferenceId("0123456789abcdef");
+    assertThat(PluginTestSupport.run(plugin, client, withSessionId).isCancelled()).isFalse();
+    assertThat(PluginTestSupport.run(plugin, client, event("log")).isCancelled()).isFalse();
   }
 
   @Test
   void sessionIdManagement() {
     SessionIdManagementPlugin plugin = new SessionIdManagementPlugin();
-    Event start = new Event().setType("session");
+    Event start = event("session");
     PluginTestSupport.run(plugin, client, start);
     String sessionId = start.getReferenceId();
     assertThat(sessionId).matches("[0-9a-f]{32}");
     assertThat(config.getCurrentSessionIdentifier()).isEqualTo(sessionId);
 
-    Event log = new Event().setType("log");
+    Event log = event("log");
     PluginTestSupport.run(plugin, client, log);
     assertThat(log.getSessionId()).isEqualTo(sessionId);
     assertThat(log.getData()).containsEntry("@ref:session", sessionId);
 
-    Event end = new Event().setType("sessionend");
+    Event end = event("sessionend");
     PluginTestSupport.run(plugin, client, end);
     assertThat(end.getReferenceId()).isEqualTo(sessionId);
     assertThat(config.getCurrentSessionIdentifier()).isNull();

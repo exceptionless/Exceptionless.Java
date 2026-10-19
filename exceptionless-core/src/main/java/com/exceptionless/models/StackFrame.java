@@ -22,63 +22,56 @@ public final class StackFrame implements JsonSerializable {
     return name;
   }
 
-  public StackFrame setName(@Nullable String name) {
+  public void setName(@Nullable String name) {
     this.name = name;
-    return this;
   }
 
   public @Nullable String getDeclaringNamespace() {
     return declaringNamespace;
   }
 
-  public StackFrame setDeclaringNamespace(@Nullable String declaringNamespace) {
+  public void setDeclaringNamespace(@Nullable String declaringNamespace) {
     this.declaringNamespace = declaringNamespace;
-    return this;
   }
 
   public @Nullable String getDeclaringType() {
     return declaringType;
   }
 
-  public StackFrame setDeclaringType(@Nullable String declaringType) {
+  public void setDeclaringType(@Nullable String declaringType) {
     this.declaringType = declaringType;
-    return this;
   }
 
   public @Nullable String getFileName() {
     return fileName;
   }
 
-  public StackFrame setFileName(@Nullable String fileName) {
+  public void setFileName(@Nullable String fileName) {
     this.fileName = fileName;
-    return this;
   }
 
   public @Nullable Integer getLineNumber() {
     return lineNumber;
   }
 
-  public StackFrame setLineNumber(@Nullable Integer lineNumber) {
+  public void setLineNumber(@Nullable Integer lineNumber) {
     this.lineNumber = lineNumber;
-    return this;
   }
 
   public @Nullable Integer getColumn() {
     return column;
   }
 
-  public StackFrame setColumn(@Nullable Integer column) {
+  public void setColumn(@Nullable Integer column) {
     this.column = column;
-    return this;
   }
 
   public @Nullable Integer getModuleId() {
     return moduleId;
   }
 
-  public StackFrame setModuleId(@Nullable Integer moduleId) {
+  public void setModuleId(@Nullable Integer moduleId) {
     this.moduleId = moduleId;
-    return this;
   }
 
   public Map<String, Object> getData() {
@@ -115,6 +108,9 @@ public final class StackFrame implements JsonSerializable {
 
   @Override
   public String toString() {
-    return getFullName() + (fileName != null ? "(" + fileName + ":" + lineNumber + ")" : "");
+    if (fileName == null) {
+      return getFullName();
+    }
+    return getFullName() + "(" + fileName + (lineNumber != null ? ":" + lineNumber : "") + ")";
   }
 }

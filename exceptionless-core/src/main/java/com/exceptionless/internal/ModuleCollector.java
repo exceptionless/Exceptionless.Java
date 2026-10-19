@@ -47,7 +47,8 @@ public final class ModuleCollector {
   }
 
   static List<ModuleInfo> collect() {
-    Map<String, ModuleInfo> byName = new LinkedHashMap<>();
+    // Libraries can appear more than once (e.g. shaded); one of the copies may be the entry point.
+    Map<String, Library> byName = new LinkedHashMap<>();
     try {
       ClassLoader loader = Thread.currentThread().getContextClassLoader();
       if (loader == null) {
@@ -60,29 +61,31 @@ public final class ModuleCollector {
       Enumeration<URL> manifests = loader.getResources("META-INF/MANIFEST.MF");
       while (manifests.hasMoreElements() && byName.size() < MAX_MODULES) {
         URL url = manifests.nextElement();
-        ModuleInfo module = read(url, entryPoint);
+        Library module = read(url, entryPoint);
         if (module != null) {
-          String key = module.getName() + "@" + module.getVersion();
-          ModuleInfo existing = byName.putIfAbsent(key, module);
-          if (existing != null && module.isEntry()) {
-            existing.setEntry(true);
-          }
+          byName.merge(module.name() + "@" + module.version(), module, Library::merge);
         }
       }
     } catch (IOException | RuntimeException | LinkageError e) {
       LOG.debug(() -> "Unable to collect modules: " + e);
     }
-    List<ModuleInfo> modules = new ArrayList<>(byName.values());
-    modules.sort(
-        Comparator.comparing(
-            (ModuleInfo m) -> String.valueOf(m.getName()), String.CASE_INSENSITIVE_ORDER));
-    for (int i = 0; i < modules.size(); i++) {
-      modules.get(i).setModuleId(i);
+    List<Library> sorted = new ArrayList<>(byName.values());
+    sorted.sort(Comparator.comparing(Library::name, String.CASE_INSENSITIVE_ORDER));
+    List<ModuleInfo> modules = new ArrayList<>(sorted.size());
+    for (Library module : sorted) {
+      modules.add(new ModuleInfo(modules.size(), module.name(), module.version(), module.entry()));
     }
     return modules;
   }
 
-  private static @Nullable ModuleInfo read(URL url, @Nullable String entryPoint) {
+  /** A library read from a manifest, before it is given a module id. */
+  private record Library(String name, @Nullable String version, boolean entry) {
+    Library merge(Library other) {
+      return other.entry && !entry ? other : this;
+    }
+  }
+
+  private static @Nullable Library read(URL url, @Nullable String entryPoint) {
     String location = url.toString();
     Manifest manifest;
     try {
@@ -124,16 +127,14 @@ public final class ModuleCollector {
             attributes.getValue("Bundle-Version"),
             fileVersion);
 
-    ModuleInfo module = new ModuleInfo().setName(name).setVersion(version);
     String mainClass = attributes.getValue("Main-Class");
     String startClass = attributes.getValue("Start-Class");
-    if (entryPoint != null
-        && (entryPoint.equals(mainClass)
-            || entryPoint.equals(startClass)
-            || (entryPoint.endsWith(".jar") && location.contains(fileNameOf(entryPoint))))) {
-      module.setEntry(true);
-    }
-    return module;
+    boolean entry =
+        entryPoint != null
+            && (entryPoint.equals(mainClass)
+                || entryPoint.equals(startClass)
+                || (entryPoint.endsWith(".jar") && location.contains(fileNameOf(entryPoint))));
+    return new Library(name, version, entry);
   }
 
   private static @Nullable String entryPoint() {

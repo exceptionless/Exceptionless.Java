@@ -51,8 +51,15 @@ class DefaultEventQueueTest {
 
   private void enqueue(int count) {
     for (int i = 0; i < count; i++) {
-      queue.enqueue(new Event().setType("log").setMessage("message " + i));
+      queue.enqueue(log("message " + i));
     }
+  }
+
+  private static Event log(String message) {
+    Event event = new Event();
+    event.setType("log");
+    event.setMessage(message);
+    return event;
   }
 
   private void respond(int status) {
@@ -228,7 +235,7 @@ class DefaultEventQueueTest {
   @Test
   void doesNotSendWhileSuspendedOrDisabled() {
     enqueue(1);
-    queue.suspendProcessing(Duration.ofMinutes(1), false, false);
+    queue.suspendProcessing(Duration.ofMinutes(1));
     queue.process();
     assertThat(submission.posts).isEmpty();
     queue.resume();
@@ -269,7 +276,7 @@ class DefaultEventQueueTest {
   void limitsBatchBytes() {
     String big = "x".repeat(300_000);
     for (int i = 0; i < 5; i++) {
-      queue.enqueue(new Event().setType("log").setMessage(big));
+      queue.enqueue(log(big));
     }
     queue.process();
     assertThat(submission.posts.size()).isGreaterThanOrEqualTo(2);

@@ -4,7 +4,9 @@ import com.exceptionless.json.JsonSerializable;
 import com.exceptionless.json.JsonWriter;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -31,9 +33,8 @@ public final class Event implements JsonSerializable {
     return type;
   }
 
-  public Event setType(@Nullable String type) {
+  public void setType(@Nullable String type) {
     this.type = type;
-    return this;
   }
 
   public boolean isError() {
@@ -60,56 +61,69 @@ public final class Event implements JsonSerializable {
     return source;
   }
 
-  public Event setSource(@Nullable String source) {
+  public void setSource(@Nullable String source) {
     this.source = source;
-    return this;
   }
 
   public @Nullable OffsetDateTime getDate() {
     return date;
   }
 
-  public Event setDate(@Nullable OffsetDateTime date) {
+  public void setDate(@Nullable OffsetDateTime date) {
     this.date = date;
-    return this;
   }
 
-  /** The event's tags. The set is live and may be modified. */
+  /**
+   * The event's tags, as a read-only view. Use {@link #addTags(String...)} and {@link
+   * #removeTags(String...)} to change them.
+   */
   public Set<String> getTags() {
-    return tags;
+    return Collections.unmodifiableSet(tags);
   }
 
-  public Event addTags(String... tags) {
+  /** Whether the event has the tag. */
+  public boolean hasTag(@Nullable String tag) {
+    String stripped = normalizeTag(tag);
+    return stripped != null && tags.contains(stripped);
+  }
+
+  /** Adds tags. Surrounding whitespace is removed and blank tags are ignored. */
+  public void addTags(String... tags) {
+    addTags(Arrays.asList(tags));
+  }
+
+  public void addTags(Collection<String> tags) {
     for (String tag : tags) {
-      addTag(tag);
+      String stripped = normalizeTag(tag);
+      if (stripped != null) {
+        this.tags.add(stripped);
+      }
     }
-    return this;
   }
 
-  public Event addTags(Collection<String> tags) {
+  public void removeTags(String... tags) {
     for (String tag : tags) {
-      addTag(tag);
+      String stripped = normalizeTag(tag);
+      if (stripped != null) {
+        this.tags.remove(stripped);
+      }
     }
-    return this;
   }
 
-  private void addTag(@Nullable String tag) {
+  private static @Nullable String normalizeTag(@Nullable String tag) {
     if (tag == null) {
-      return;
+      return null;
     }
-    String trimmed = tag.trim();
-    if (!trimmed.isEmpty()) {
-      tags.add(trimmed);
-    }
+    String stripped = tag.strip();
+    return stripped.isEmpty() ? null : stripped;
   }
 
   public @Nullable String getMessage() {
     return message;
   }
 
-  public Event setMessage(@Nullable String message) {
+  public void setMessage(@Nullable String message) {
     this.message = message;
-    return this;
   }
 
   /** The location as {@code "latitude,longitude"}. */
@@ -117,27 +131,24 @@ public final class Event implements JsonSerializable {
     return geo;
   }
 
-  public Event setGeo(@Nullable String geo) {
+  public void setGeo(@Nullable String geo) {
     this.geo = geo;
-    return this;
   }
 
   public @Nullable BigDecimal getValue() {
     return value;
   }
 
-  public Event setValue(@Nullable BigDecimal value) {
+  public void setValue(@Nullable BigDecimal value) {
     this.value = value;
-    return this;
   }
 
   public @Nullable Integer getCount() {
     return count;
   }
 
-  public Event setCount(@Nullable Integer count) {
+  public void setCount(@Nullable Integer count) {
     this.count = count;
-    return this;
   }
 
   /** Extended data. The map is live and may be modified. */
@@ -149,49 +160,48 @@ public final class Event implements JsonSerializable {
     return referenceId;
   }
 
-  public Event setReferenceId(@Nullable String referenceId) {
+  public void setReferenceId(@Nullable String referenceId) {
     this.referenceId = referenceId;
-    return this;
   }
 
   public @Nullable ErrorInfo getError() {
     return data.get(KnownDataKeys.ERROR) instanceof ErrorInfo error ? error : null;
   }
 
-  public Event setError(@Nullable ErrorInfo error) {
-    return putOrRemove(KnownDataKeys.ERROR, error);
+  public void setError(@Nullable ErrorInfo error) {
+    putOrRemove(KnownDataKeys.ERROR, error);
   }
 
   public @Nullable RequestInfo getRequestInfo() {
     return data.get(KnownDataKeys.REQUEST_INFO) instanceof RequestInfo request ? request : null;
   }
 
-  public Event setRequestInfo(@Nullable RequestInfo requestInfo) {
-    return putOrRemove(KnownDataKeys.REQUEST_INFO, requestInfo);
+  public void setRequestInfo(@Nullable RequestInfo requestInfo) {
+    putOrRemove(KnownDataKeys.REQUEST_INFO, requestInfo);
   }
 
   public @Nullable EnvironmentInfo getEnvironmentInfo() {
     return data.get(KnownDataKeys.ENVIRONMENT_INFO) instanceof EnvironmentInfo env ? env : null;
   }
 
-  public Event setEnvironmentInfo(@Nullable EnvironmentInfo environmentInfo) {
-    return putOrRemove(KnownDataKeys.ENVIRONMENT_INFO, environmentInfo);
+  public void setEnvironmentInfo(@Nullable EnvironmentInfo environmentInfo) {
+    putOrRemove(KnownDataKeys.ENVIRONMENT_INFO, environmentInfo);
   }
 
   public @Nullable UserInfo getUserInfo() {
     return data.get(KnownDataKeys.USER_INFO) instanceof UserInfo user ? user : null;
   }
 
-  public Event setUserInfo(@Nullable UserInfo userInfo) {
-    return putOrRemove(KnownDataKeys.USER_INFO, userInfo);
+  public void setUserInfo(@Nullable UserInfo userInfo) {
+    putOrRemove(KnownDataKeys.USER_INFO, userInfo);
   }
 
   public @Nullable UserDescription getUserDescription() {
     return data.get(KnownDataKeys.USER_DESCRIPTION) instanceof UserDescription d ? d : null;
   }
 
-  public Event setUserDescription(@Nullable UserDescription userDescription) {
-    return putOrRemove(KnownDataKeys.USER_DESCRIPTION, userDescription);
+  public void setUserDescription(@Nullable UserDescription userDescription) {
+    putOrRemove(KnownDataKeys.USER_DESCRIPTION, userDescription);
   }
 
   public @Nullable ManualStackingInfo getManualStackingInfo() {
@@ -200,8 +210,8 @@ public final class Event implements JsonSerializable {
         : null;
   }
 
-  public Event setManualStackingInfo(@Nullable ManualStackingInfo info) {
-    return putOrRemove(KnownDataKeys.MANUAL_STACKING_INFO, info);
+  public void setManualStackingInfo(@Nullable ManualStackingInfo info) {
+    putOrRemove(KnownDataKeys.MANUAL_STACKING_INFO, info);
   }
 
   /** The log level ({@code @level}), e.g. {@code "error"}. */
@@ -209,24 +219,24 @@ public final class Event implements JsonSerializable {
     return data.get(KnownDataKeys.LEVEL) instanceof String level ? level : null;
   }
 
-  public Event setLevel(@Nullable String level) {
-    return putOrRemove(KnownDataKeys.LEVEL, level);
+  public void setLevel(@Nullable String level) {
+    putOrRemove(KnownDataKeys.LEVEL, level);
   }
 
   public @Nullable String getVersion() {
     return data.get(KnownDataKeys.VERSION) instanceof String version ? version : null;
   }
 
-  public Event setVersion(@Nullable String version) {
-    return putOrRemove(KnownDataKeys.VERSION, version);
+  public void setVersion(@Nullable String version) {
+    putOrRemove(KnownDataKeys.VERSION, version);
   }
 
   public @Nullable String getSubmissionMethod() {
     return data.get(KnownDataKeys.SUBMISSION_METHOD) instanceof String method ? method : null;
   }
 
-  public Event setSubmissionMethod(@Nullable String submissionMethod) {
-    return putOrRemove(KnownDataKeys.SUBMISSION_METHOD, submissionMethod);
+  public void setSubmissionMethod(@Nullable String submissionMethod) {
+    putOrRemove(KnownDataKeys.SUBMISSION_METHOD, submissionMethod);
   }
 
   /** The id of the session this event belongs to ({@code @ref:session}). */
@@ -238,17 +248,16 @@ public final class Event implements JsonSerializable {
     return data.get(KnownDataKeys.REFERENCE_PREFIX + name) instanceof String id ? id : null;
   }
 
-  public Event setEventReference(String name, @Nullable String id) {
-    return putOrRemove(KnownDataKeys.REFERENCE_PREFIX + name, id);
+  public void setEventReference(String name, @Nullable String id) {
+    putOrRemove(KnownDataKeys.REFERENCE_PREFIX + name, id);
   }
 
-  private Event putOrRemove(String key, @Nullable Object value) {
+  private void putOrRemove(String key, @Nullable Object value) {
     if (value == null) {
       data.remove(key);
     } else {
       data.put(key, value);
     }
-    return this;
   }
 
   @Override

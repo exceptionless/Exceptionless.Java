@@ -39,10 +39,10 @@ class CollectorsTest {
     assertThat(modules)
         .anySatisfy(
             m -> {
-              assertThat(m.getName()).containsIgnoringCase("assertj");
-              assertThat(m.getVersion()).isNotBlank();
+              assertThat(m.name()).containsIgnoringCase("assertj");
+              assertThat(m.version()).isNotBlank();
             });
-    assertThat(modules).extracting(ModuleInfo::getModuleId).doesNotHaveDuplicates();
+    assertThat(modules).extracting(ModuleInfo::moduleId).doesNotHaveDuplicates();
     assertThat(ModuleCollector.getModules()).isSameAs(modules);
   }
 }

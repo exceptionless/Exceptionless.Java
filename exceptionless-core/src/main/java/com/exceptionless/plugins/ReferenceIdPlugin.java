@@ -19,7 +19,7 @@ public final class ReferenceIdPlugin implements EventPlugin {
   @Override
   public void run(EventPluginContext context) {
     Event event = context.getEvent();
-    if (context.getConfiguration().isUseReferenceIds()
+    if (context.getConfiguration().isReferenceIdsEnabled()
         && event.isError()
         && Strings.isBlank(event.getReferenceId())) {
       event.setReferenceId(Ids.newReferenceId());

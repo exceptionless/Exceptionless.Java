@@ -24,9 +24,8 @@ public final class ErrorInfo implements JsonSerializable {
     return message;
   }
 
-  public ErrorInfo setMessage(@Nullable String message) {
+  public void setMessage(@Nullable String message) {
     this.message = message;
-    return this;
   }
 
   /** The fully qualified exception class name. */
@@ -34,18 +33,16 @@ public final class ErrorInfo implements JsonSerializable {
     return type;
   }
 
-  public ErrorInfo setType(@Nullable String type) {
+  public void setType(@Nullable String type) {
     this.type = type;
-    return this;
   }
 
   public @Nullable String getCode() {
     return code;
   }
 
-  public ErrorInfo setCode(@Nullable String code) {
+  public void setCode(@Nullable String code) {
     this.code = code;
-    return this;
   }
 
   /** The cause of this error, if any. */
@@ -53,9 +50,8 @@ public final class ErrorInfo implements JsonSerializable {
     return inner;
   }
 
-  public ErrorInfo setInner(@Nullable ErrorInfo inner) {
+  public void setInner(@Nullable ErrorInfo inner) {
     this.inner = inner;
-    return this;
   }
 
   public List<StackFrame> getStackTrace() {
@@ -95,6 +91,7 @@ public final class ErrorInfo implements JsonSerializable {
 
   @Override
   public String toString() {
-    return type + (message != null ? ": " + message : "");
+    String name = type != null ? type : "<unknown>";
+    return message != null ? name + ": " + message : name;
   }
 }

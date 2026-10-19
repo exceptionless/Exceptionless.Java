@@ -35,15 +35,14 @@ public final class ServerHttpRequestInfoFactory {
     if (port < 0) {
       port = secure ? 443 : 80;
     }
-    RequestInfo info =
-        new RequestInfo()
-            .setHttpMethod(request.getMethod().name())
-            .setSecure(secure)
-            .setHost(uri.getHost())
-            .setPort(port)
-            .setPath(uri.getRawPath())
-            .setReferrer(headers.getFirst("Referer"))
-            .setUserAgent(headers.getFirst("User-Agent"));
+    RequestInfo info = new RequestInfo();
+    info.setHttpMethod(request.getMethod().name());
+    info.setSecure(secure);
+    info.setHost(uri.getHost());
+    info.setPort(port);
+    info.setPath(uri.getRawPath());
+    info.setReferrer(headers.getFirst("Referer"));
+    info.setUserAgent(headers.getFirst("User-Agent"));
 
     InetSocketAddress remote = request.getRemoteAddress();
     if (remote != null) {

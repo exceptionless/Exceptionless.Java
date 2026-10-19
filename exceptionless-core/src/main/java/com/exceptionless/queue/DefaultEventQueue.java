@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiConsumer;
 
 /**
  * The default queue. Events are serialized when queued, so a bad event can never block the queue,
@@ -52,8 +51,7 @@ public final class DefaultEventQueue implements EventQueue {
   private final QueueStorage storage;
   private final Clock clock;
   private final ReentrantLock processLock = new ReentrantLock();
-  private final List<BiConsumer<Integer, SubmissionResponse>> handlers =
-      new CopyOnWriteArrayList<>();
+  private final List<EventsPostedListener> listeners = new CopyOnWriteArrayList<>();
 
   private volatile Instant suspendedUntil = Instant.MIN;
   private volatile Instant discardUntil = Instant.MIN;
@@ -117,7 +115,7 @@ public final class DefaultEventQueue implements EventQueue {
       }
     } catch (RuntimeException e) {
       LOG.error("Error processing the event queue", e);
-      suspendProcessing(Duration.ofMinutes(1), false, false);
+      suspendProcessing(Duration.ofMinutes(1));
     } finally {
       processLock.unlock();
     }
@@ -170,16 +168,16 @@ public final class DefaultEventQueue implements EventQueue {
 
     SubmissionResponse response;
     try {
-      response = submissionClient.postEvents(json.toString(), config);
+      response = submissionClient.postEvents(json.toString());
     } catch (RuntimeException e) {
       response = SubmissionResponse.failed(e);
     }
     boolean keepGoing = handleResponse(batch, response);
-    for (BiConsumer<Integer, SubmissionResponse> handler : handlers) {
+    for (EventsPostedListener listener : listeners) {
       try {
-        handler.accept(batch.size(), response);
+        listener.eventsPosted(batch.size(), response);
       } catch (RuntimeException e) {
-        LOG.warn("EventsPosted handler failed", e);
+        LOG.warn("EventsPosted listener failed", e);
       }
     }
     return keepGoing;
@@ -201,12 +199,12 @@ public final class DefaultEventQueue implements EventQueue {
         window = window.plus(15, ChronoUnit.MINUTES);
       }
       LOG.warn("Rate limit reached; pausing event submission until " + window);
-      suspendProcessing(Duration.between(now, window), false, false);
+      suspendProcessing(Duration.between(now, window));
       return false;
     }
     if (response.isServiceUnavailable()) {
       LOG.warn("Server unavailable (503); pausing event submission for 5 minutes");
-      suspendProcessing(Duration.ofMinutes(5), false, false);
+      suspendProcessing(Duration.ofMinutes(5));
       return false;
     }
     if (response.isPaymentRequired()) {
@@ -218,13 +216,13 @@ public final class DefaultEventQueue implements EventQueue {
       LOG.error(
           "Unable to send events: the API key is invalid or not authorized (" + status + ")", null);
       storage.remove(batch);
-      suspendProcessing(Duration.ofMinutes(15), false, false);
+      suspendProcessing(Duration.ofMinutes(15));
       return false;
     }
     if (response.isBadRequest() || response.isNotFound()) {
       LOG.error("Unable to send events (HTTP " + status + "): " + response.message(), null);
       storage.remove(batch);
-      suspendProcessing(Duration.ofHours(4), false, false);
+      suspendProcessing(Duration.ofHours(4));
       return false;
     }
     if (response.isRequestEntityTooLarge()) {
@@ -250,7 +248,7 @@ public final class DefaultEventQueue implements EventQueue {
             + "); retrying in "
             + seconds
             + " seconds");
-    suspendProcessing(Duration.ofSeconds(seconds), false, false);
+    suspendProcessing(Duration.ofSeconds(seconds));
     return false;
   }
 
@@ -284,11 +282,7 @@ public final class DefaultEventQueue implements EventQueue {
   }
 
   @Override
-  public void onEventsPosted(BiConsumer<Integer, SubmissionResponse> handler) {
-    handlers.add(handler);
-  }
-
-  public QueueStorage getStorage() {
-    return storage;
+  public void onEventsPosted(EventsPostedListener listener) {
+    listeners.add(listener);
   }
 }

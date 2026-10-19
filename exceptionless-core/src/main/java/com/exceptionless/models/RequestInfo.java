@@ -27,18 +27,16 @@ public final class RequestInfo implements JsonSerializable {
     return userAgent;
   }
 
-  public RequestInfo setUserAgent(@Nullable String userAgent) {
+  public void setUserAgent(@Nullable String userAgent) {
     this.userAgent = userAgent;
-    return this;
   }
 
   public @Nullable String getHttpMethod() {
     return httpMethod;
   }
 
-  public RequestInfo setHttpMethod(@Nullable String httpMethod) {
+  public void setHttpMethod(@Nullable String httpMethod) {
     this.httpMethod = httpMethod;
-    return this;
   }
 
   /** True when the request used HTTPS. */
@@ -46,54 +44,48 @@ public final class RequestInfo implements JsonSerializable {
     return secure;
   }
 
-  public RequestInfo setSecure(@Nullable Boolean secure) {
+  public void setSecure(@Nullable Boolean secure) {
     this.secure = secure;
-    return this;
   }
 
   public @Nullable String getHost() {
     return host;
   }
 
-  public RequestInfo setHost(@Nullable String host) {
+  public void setHost(@Nullable String host) {
     this.host = host;
-    return this;
   }
 
   public @Nullable Integer getPort() {
     return port;
   }
 
-  public RequestInfo setPort(@Nullable Integer port) {
+  public void setPort(@Nullable Integer port) {
     this.port = port;
-    return this;
   }
 
   public @Nullable String getPath() {
     return path;
   }
 
-  public RequestInfo setPath(@Nullable String path) {
+  public void setPath(@Nullable String path) {
     this.path = path;
-    return this;
   }
 
   public @Nullable String getReferrer() {
     return referrer;
   }
 
-  public RequestInfo setReferrer(@Nullable String referrer) {
+  public void setReferrer(@Nullable String referrer) {
     this.referrer = referrer;
-    return this;
   }
 
   public @Nullable String getClientIpAddress() {
     return clientIpAddress;
   }
 
-  public RequestInfo setClientIpAddress(@Nullable String clientIpAddress) {
+  public void setClientIpAddress(@Nullable String clientIpAddress) {
     this.clientIpAddress = clientIpAddress;
-    return this;
   }
 
   /** Request headers. Each header maps to all of its values. */
@@ -101,18 +93,16 @@ public final class RequestInfo implements JsonSerializable {
     return headers;
   }
 
-  public RequestInfo setHeaders(@Nullable Map<String, List<String>> headers) {
+  public void setHeaders(@Nullable Map<String, List<String>> headers) {
     this.headers = headers;
-    return this;
   }
 
   public @Nullable Map<String, String> getCookies() {
     return cookies;
   }
 
-  public RequestInfo setCookies(@Nullable Map<String, String> cookies) {
+  public void setCookies(@Nullable Map<String, String> cookies) {
     this.cookies = cookies;
-    return this;
   }
 
   /** Form fields (a map) or the raw request body (a string). */
@@ -120,18 +110,16 @@ public final class RequestInfo implements JsonSerializable {
     return postData;
   }
 
-  public RequestInfo setPostData(@Nullable Object postData) {
+  public void setPostData(@Nullable Object postData) {
     this.postData = postData;
-    return this;
   }
 
   public @Nullable Map<String, String> getQueryString() {
     return queryString;
   }
 
-  public RequestInfo setQueryString(@Nullable Map<String, String> queryString) {
+  public void setQueryString(@Nullable Map<String, String> queryString) {
     this.queryString = queryString;
-    return this;
   }
 
   public Map<String, Object> getData() {

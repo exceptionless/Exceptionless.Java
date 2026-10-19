@@ -35,31 +35,29 @@ public final class TestClients {
     public final List<Integer> settingsRequests = new CopyOnWriteArrayList<>();
     public volatile Function<String, SubmissionResponse> eventsResponse =
         json -> new SubmissionResponse(202, null, null);
-    public volatile SettingsResponse settingsResponse = SettingsResponse.notModifiedResponse();
+    public volatile SettingsResponse settingsResponse = new SettingsResponse.NotModified();
 
     @Override
-    public SubmissionResponse postEvents(String eventsJson, ExceptionlessConfiguration config) {
+    public SubmissionResponse postEvents(String eventsJson) {
       posts.add(eventsJson);
       return eventsResponse.apply(eventsJson);
     }
 
     @Override
-    public SubmissionResponse postUserDescription(
-        String referenceId, UserDescription description, ExceptionlessConfiguration config) {
+    public SubmissionResponse postUserDescription(String referenceId, UserDescription description) {
       userDescriptions.add(
           referenceId + "=" + com.exceptionless.json.JsonWriter.toJson(description));
       return new SubmissionResponse(202, null, null);
     }
 
     @Override
-    public SettingsResponse getSettings(int version, ExceptionlessConfiguration config) {
+    public SettingsResponse getSettings(int version) {
       settingsRequests.add(version);
       return settingsResponse;
     }
 
     @Override
-    public SubmissionResponse sendHeartbeat(
-        String sessionIdOrUserId, boolean closeSession, ExceptionlessConfiguration config) {
+    public SubmissionResponse sendHeartbeat(String sessionIdOrUserId, boolean closeSession) {
       heartbeats.add(sessionIdOrUserId + (closeSession ? ":close" : ""));
       return new SubmissionResponse(200, null, null);
     }

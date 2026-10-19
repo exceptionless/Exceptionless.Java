@@ -47,16 +47,15 @@ public final class ServletRequestInfoFactory {
    *     true} once the application is done with the request body.
    */
   public static RequestInfo create(HttpServletRequest request, boolean includeFormData) {
-    RequestInfo info =
-        new RequestInfo()
-            .setHttpMethod(request.getMethod())
-            .setSecure(request.isSecure())
-            .setHost(request.getServerName())
-            .setPort(request.getServerPort())
-            .setPath(request.getRequestURI())
-            .setReferrer(request.getHeader("Referer"))
-            .setUserAgent(request.getHeader("User-Agent"))
-            .setClientIpAddress(request.getRemoteAddr());
+    RequestInfo info = new RequestInfo();
+    info.setHttpMethod(request.getMethod());
+    info.setSecure(request.isSecure());
+    info.setHost(request.getServerName());
+    info.setPort(request.getServerPort());
+    info.setPath(request.getRequestURI());
+    info.setReferrer(request.getHeader("Referer"));
+    info.setUserAgent(request.getHeader("User-Agent"));
+    info.setClientIpAddress(request.getRemoteAddr());
 
     Map<String, List<String>> headers = headers(request);
     if (!headers.isEmpty()) {

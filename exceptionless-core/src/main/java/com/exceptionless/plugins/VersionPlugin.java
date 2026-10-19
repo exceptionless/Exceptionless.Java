@@ -38,8 +38,9 @@ public final class VersionPlugin implements EventPlugin {
   private @Nullable String detect() {
     if (!detectionAttempted) {
       for (ModuleInfo module : ModuleCollector.getModules()) {
-        if (module.isEntry() && module.getVersion() != null) {
-          detected = module.getVersion();
+        String version = module.version();
+        if (module.entry() && version != null) {
+          detected = version;
           break;
         }
       }

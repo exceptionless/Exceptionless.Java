@@ -1,6 +1,7 @@
 package com.exceptionless.settings;
 
 import com.exceptionless.LogLevel;
+import com.exceptionless.internal.Strings;
 import com.exceptionless.internal.Wildcard;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -82,7 +83,7 @@ public final class ClientSettings {
 
   /** A comma, semicolon or newline separated list setting. */
   public List<String> getStringList(String key) {
-    return splitList(values.get(key));
+    return Strings.splitList(values.get(key));
   }
 
   /**
@@ -154,21 +155,6 @@ public final class ClientSettings {
       case "false", "no", "0", "off" -> Boolean.FALSE;
       default -> null;
     };
-  }
-
-  /** Splits a comma, semicolon or newline separated list, trimming and dropping blanks. */
-  public static List<String> splitList(@Nullable String value) {
-    if (value == null || value.isBlank()) {
-      return List.of();
-    }
-    List<String> result = new ArrayList<>();
-    for (String part : value.split("[,;\\r\\n]")) {
-      String trimmed = part.trim();
-      if (!trimmed.isEmpty()) {
-        result.add(trimmed);
-      }
-    }
-    return List.copyOf(result);
   }
 
   @Override

@@ -1,9 +1,7 @@
 package com.exceptionless.queue;
 
 import com.exceptionless.models.Event;
-import com.exceptionless.submission.SubmissionResponse;
 import java.time.Duration;
-import java.util.function.BiConsumer;
 
 /** Queues events and sends them to the server in batches. */
 public interface EventQueue {
@@ -12,6 +10,11 @@ public interface EventQueue {
 
   /** Sends queued events now. Blocks the calling thread until done or suspended. */
   void process();
+
+  /** Stops sending for {@code duration}, keeping queued and new events. */
+  default void suspendProcessing(Duration duration) {
+    suspendProcessing(duration, false, false);
+  }
 
   /**
    * Stops sending for {@code duration}.
@@ -29,6 +32,6 @@ public interface EventQueue {
   /** The number of queued events. */
   int size();
 
-  /** Called after each batch is posted with the number of events and the response. */
-  void onEventsPosted(BiConsumer<Integer, SubmissionResponse> handler);
+  /** Adds a listener called after each batch is posted. */
+  void onEventsPosted(EventsPostedListener listener);
 }

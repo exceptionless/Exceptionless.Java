@@ -183,7 +183,7 @@ public final class EventBuilder {
     if (critical) {
       event.addTags(EventTags.CRITICAL);
     } else {
-      event.getTags().remove(EventTags.CRITICAL);
+      event.removeTags(EventTags.CRITICAL);
     }
     return this;
   }

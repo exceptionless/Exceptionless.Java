@@ -86,19 +86,18 @@ class EventWireFormatE2ETest {
     headers.put("Accept", List.of("text/html", "application/xhtml+xml"));
     headers.put("X-Request-Id", List.of("req-123"));
     headers.put("Authorization", List.of("Bearer secret")); // removed by the client
-    RequestInfo request =
-        new RequestInfo()
-            .setHttpMethod("GET")
-            .setSecure(true)
-            .setHost("shop.example.com")
-            .setPort(443)
-            .setPath("/products/missing")
-            .setReferrer("https://www.example.com/search")
-            .setClientIpAddress("203.0.113.10")
-            .setUserAgent(CHROME_UA)
-            .setHeaders(headers)
-            .setCookies(Map.of("theme", "dark", "visitor", "v-1"))
-            .setQueryString(Map.of("q", "shoes", "page", "2"));
+    RequestInfo request = new RequestInfo();
+    request.setHttpMethod("GET");
+    request.setSecure(true);
+    request.setHost("shop.example.com");
+    request.setPort(443);
+    request.setPath("/products/missing");
+    request.setReferrer("https://www.example.com/search");
+    request.setClientIpAddress("203.0.113.10");
+    request.setUserAgent(CHROME_UA);
+    request.setHeaders(headers);
+    request.setCookies(Map.of("theme", "dark", "visitor", "v-1"));
+    request.setQueryString(Map.of("q", "shoes", "page", "2"));
     client
         .createNotFound("/products/missing")
         .setRequestInfo(request)

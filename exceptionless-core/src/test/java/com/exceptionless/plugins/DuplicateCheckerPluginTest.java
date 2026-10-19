@@ -27,7 +27,8 @@ class DuplicateCheckerPluginTest {
   }
 
   private static Event error(Throwable t) {
-    Event event = new Event().setType("error");
+    Event event = new Event();
+    event.setType("error");
     event.setError(ErrorConverter.convert(t, n -> false, List.of()));
     return event;
   }
@@ -89,12 +90,12 @@ class DuplicateCheckerPluginTest {
 
   @Test
   void ignoresNonErrors() {
-    Event log = new Event().setType("log").setMessage("x");
-    assertThat(PluginTestSupport.run(plugin, client, log).isCancelled()).isFalse();
-    assertThat(
-            PluginTestSupport.run(plugin, client, new Event().setType("log").setMessage("x"))
-                .isCancelled())
-        .isFalse();
+    for (int i = 0; i < 2; i++) {
+      Event log = new Event();
+      log.setType("log");
+      log.setMessage("x");
+      assertThat(PluginTestSupport.run(plugin, client, log).isCancelled()).isFalse();
+    }
   }
 
   @Test
@@ -111,8 +112,10 @@ class DuplicateCheckerPluginTest {
   @Test
   void hashIgnoresDateButUsesStack() {
     List<Event> events = sameErrors(2);
-    Event a = events.get(0).setDate(java.time.OffsetDateTime.now());
-    Event b = events.get(1).setDate(java.time.OffsetDateTime.now().minusDays(1));
+    Event a = events.get(0);
+    a.setDate(java.time.OffsetDateTime.now());
+    Event b = events.get(1);
+    b.setDate(java.time.OffsetDateTime.now().minusDays(1));
     assertThat(DuplicateCheckerPlugin.hash(a)).isEqualTo(DuplicateCheckerPlugin.hash(b));
   }
 }

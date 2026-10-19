@@ -11,6 +11,7 @@ import com.exceptionless.models.Event;
 import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,8 +31,23 @@ class EventExclusionPluginTest {
     return PluginTestSupport.run(plugin, client, event).isCancelled();
   }
 
-  private static Event log(String source, String level) {
-    return new Event().setType("log").setSource(source).setLevel(level);
+  private static Event log(String source, @Nullable String level) {
+    Event event = event("log", source);
+    event.setLevel(level);
+    return event;
+  }
+
+  private static Event event(String type, @Nullable String source) {
+    Event event = new Event();
+    event.setType(type);
+    event.setSource(source);
+    return event;
+  }
+
+  private static Event message(String message) {
+    Event event = event("log", null);
+    event.setMessage(message);
+    return event;
   }
 
   @ParameterizedTest
@@ -54,7 +70,7 @@ class EventExclusionPluginTest {
   @Test
   void logsWithoutLevelOrMatchingSettingAreKept() {
     config.applyServerSettings(Map.of("@@log:com.example.*", "error"));
-    assertThat(cancelled(new Event().setType("log").setSource("com.example.X"))).isFalse();
+    assertThat(cancelled(log("com.example.X", null))).isFalse();
     assertThat(cancelled(log("org.other", "trace"))).isFalse();
   }
 
@@ -70,13 +86,13 @@ class EventExclusionPluginTest {
   @Test
   void excludesErrorTypesAcrossTheCauseChain() {
     config.applyServerSettings(Map.of("@@error:java.io.FileNotFoundException", "false"));
-    Event event = new Event().setType("error");
+    Event event = event("error", null);
     event.setError(
         ErrorConverter.convert(
             new IllegalStateException("x", new FileNotFoundException("f")), n -> false, List.of()));
     assertThat(cancelled(event)).isTrue();
 
-    Event other = new Event().setType("error");
+    Event other = event("error", null);
     other.setError(ErrorConverter.convert(new IllegalStateException("x"), n -> false, List.of()));
     assertThat(cancelled(other)).isFalse();
   }
@@ -84,10 +100,9 @@ class EventExclusionPluginTest {
   @Test
   void excludesErrorTypesByWildcard() {
     config.applyServerSettings(Map.of("@@error:org.springframework.web.*", "false"));
-    Event event = new Event().setType("error");
-    com.exceptionless.models.ErrorInfo error =
-        new com.exceptionless.models.ErrorInfo()
-            .setType("org.springframework.web.HttpMediaTypeNotSupportedException");
+    Event event = event("error", null);
+    com.exceptionless.models.ErrorInfo error = new com.exceptionless.models.ErrorInfo();
+    error.setType("org.springframework.web.HttpMediaTypeNotSupportedException");
     event.setError(error);
     assertThat(cancelled(event)).isTrue();
   }
@@ -96,11 +111,11 @@ class EventExclusionPluginTest {
   void excludesTypesAndSources() {
     config.applyServerSettings(
         Map.of("@@usage:Export", "false", "@@404:/favicon.ico", "false", "@@404:/wp-*", "false"));
-    assertThat(cancelled(new Event().setType("usage").setSource("Export"))).isTrue();
-    assertThat(cancelled(new Event().setType("usage").setSource("Import"))).isFalse();
-    assertThat(cancelled(new Event().setType("404").setSource("/favicon.ico"))).isTrue();
-    assertThat(cancelled(new Event().setType("404").setSource("/wp-admin"))).isTrue();
-    assertThat(cancelled(new Event().setType("404").setSource("/api"))).isFalse();
+    assertThat(cancelled(event("usage", "Export"))).isTrue();
+    assertThat(cancelled(event("usage", "Import"))).isFalse();
+    assertThat(cancelled(event("404", "/favicon.ico"))).isTrue();
+    assertThat(cancelled(event("404", "/wp-admin"))).isTrue();
+    assertThat(cancelled(event("404", "/api"))).isFalse();
   }
 
   @Test
@@ -110,8 +125,8 @@ class EventExclusionPluginTest {
         e -> {
           throw new IllegalStateException("failing callbacks are ignored");
         });
-    assertThat(cancelled(new Event().setType("log").setMessage("secret"))).isTrue();
-    assertThat(cancelled(new Event().setType("log").setMessage("public"))).isFalse();
+    assertThat(cancelled(message("secret"))).isTrue();
+    assertThat(cancelled(message("public"))).isFalse();
   }
 
   @Test

@@ -19,22 +19,27 @@ public final class SubmittingEvent {
     this.contextData = contextData;
   }
 
+  /** The client submitting the event. */
   public ExceptionlessClient getClient() {
     return client;
   }
 
+  /** The event about to be queued. Handlers may change it. */
   public Event getEvent() {
     return event;
   }
 
+  /** Data available to handlers but not sent to the server, such as the exception. */
   public ContextData getContextData() {
     return contextData;
   }
 
+  /** Whether a handler {@link #cancel() cancelled} the event. */
   public boolean isCancelled() {
     return cancelled;
   }
 
+  /** Discards the event; it is not queued. */
   public void cancel() {
     this.cancelled = true;
   }

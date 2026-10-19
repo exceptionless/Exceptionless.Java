@@ -157,7 +157,7 @@ Exceptionless.startup(config -> config
     .version("1.4.2")                                // or read from your jar's manifest
     .addDefaultTags("backend")
     .addDefaultData("region", "us-east-1")
-    .setUserIdentity("service-account")              // desktop/CLI apps
+    .userIdentity("service-account")                 // desktop/CLI apps
     .addDataExclusions("*password*", "*secret*")      // never sent, at any depth
     .includePrivateInformation(false)                // no IPs, machine name, headers, cookies...
     .useFileStorage(Path.of("/var/lib/myapp/exceptionless"))  // survive restarts

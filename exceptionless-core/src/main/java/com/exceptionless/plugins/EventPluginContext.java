@@ -9,7 +9,7 @@ public final class EventPluginContext {
   private final ExceptionlessClient client;
   private final Event event;
   private final ContextData contextData;
-  private volatile boolean cancelled;
+  private boolean cancelled;
 
   public EventPluginContext(ExceptionlessClient client, Event event, ContextData contextData) {
     this.client = client;
@@ -17,22 +17,27 @@ public final class EventPluginContext {
     this.contextData = contextData;
   }
 
+  /** The client processing the event. */
   public ExceptionlessClient getClient() {
     return client;
   }
 
+  /** The client's configuration. */
   public ExceptionlessConfiguration getConfiguration() {
     return client.getConfiguration();
   }
 
+  /** The event being processed. Plugins may change it. */
   public Event getEvent() {
     return event;
   }
 
+  /** Data available to plugins but not sent to the server, such as the exception. */
   public ContextData getContextData() {
     return contextData;
   }
 
+  /** Whether a plugin {@link #cancel() cancelled} the event. */
   public boolean isCancelled() {
     return cancelled;
   }
@@ -40,9 +45,5 @@ public final class EventPluginContext {
   /** Discards the event; no further plugins run. */
   public void cancel() {
     this.cancelled = true;
-  }
-
-  public void setCancelled(boolean cancelled) {
-    this.cancelled = cancelled;
   }
 }

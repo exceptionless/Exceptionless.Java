@@ -43,7 +43,7 @@ class SessionE2ETest {
     try (TestClient client =
         project.newClient(
             c ->
-                c.setUserIdentity(identity, "Session User")
+                c.userIdentity(identity, "Session User")
                     .useSessions()
                     .addDefaultTags(run, "identity"))) {
       client

@@ -30,25 +30,23 @@ final class RecordingSubmissionClient implements SubmissionClient {
 
   @Override
   @SuppressWarnings("unchecked")
-  public SubmissionResponse postEvents(String eventsJson, ExceptionlessConfiguration config) {
+  public SubmissionResponse postEvents(String eventsJson) {
     events.addAll((List<Map<String, Object>>) JsonParser.parse(eventsJson));
     return new SubmissionResponse(202, null, null);
   }
 
   @Override
-  public SubmissionResponse postUserDescription(
-      String referenceId, UserDescription description, ExceptionlessConfiguration config) {
+  public SubmissionResponse postUserDescription(String referenceId, UserDescription description) {
     return new SubmissionResponse(202, null, null);
   }
 
   @Override
-  public SettingsResponse getSettings(int version, ExceptionlessConfiguration config) {
-    return SettingsResponse.notModifiedResponse();
+  public SettingsResponse getSettings(int version) {
+    return new SettingsResponse.NotModified();
   }
 
   @Override
-  public SubmissionResponse sendHeartbeat(
-      String sessionIdOrUserId, boolean closeSession, ExceptionlessConfiguration config) {
+  public SubmissionResponse sendHeartbeat(String sessionIdOrUserId, boolean closeSession) {
     return new SubmissionResponse(200, null, null);
   }
 

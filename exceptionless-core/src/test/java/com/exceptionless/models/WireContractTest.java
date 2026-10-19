@@ -95,22 +95,22 @@ class WireContractTest {
             TestClients.config().includeModules(true).submissionClient(submission))) {
       Map<String, List<String>> headers = new LinkedHashMap<>();
       headers.put("Accept", List.of("text/html"));
+      RequestInfo request = new RequestInfo();
+      request.setHttpMethod("GET");
+      request.setSecure(true);
+      request.setHost("h");
+      request.setPort(443);
+      request.setPath("/p");
+      request.setReferrer("r");
+      request.setUserAgent("ua");
+      request.setClientIpAddress("1.2.3.4");
+      request.setHeaders(headers);
+      request.setCookies(Map.of("c", "v"));
+      request.setQueryString(Map.of("q", "v"));
+      request.setPostData(Map.of("f", "v"));
       client
           .createException(new IllegalStateException("outer", new RuntimeException("inner")))
-          .setRequestInfo(
-              new RequestInfo()
-                  .setHttpMethod("GET")
-                  .setSecure(true)
-                  .setHost("h")
-                  .setPort(443)
-                  .setPath("/p")
-                  .setReferrer("r")
-                  .setUserAgent("ua")
-                  .setClientIpAddress("1.2.3.4")
-                  .setHeaders(headers)
-                  .setCookies(Map.of("c", "v"))
-                  .setQueryString(Map.of("q", "v"))
-                  .setPostData(Map.of("f", "v")))
+          .setRequestInfo(request)
           .setUserIdentity("id", "name")
           .setUserDescription("a@b.c", "d")
           .setManualStackingKey("key", "title")

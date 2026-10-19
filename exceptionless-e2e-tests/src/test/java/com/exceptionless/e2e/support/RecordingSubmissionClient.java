@@ -34,8 +34,8 @@ public final class RecordingSubmissionClient implements SubmissionClient {
   }
 
   @Override
-  public SubmissionResponse postEvents(String eventsJson, ExceptionlessConfiguration config) {
-    SubmissionResponse response = delegate.postEvents(eventsJson, config);
+  public SubmissionResponse postEvents(String eventsJson) {
+    SubmissionResponse response = delegate.postEvents(eventsJson);
     calls.add(
         new Call(
             "events",
@@ -48,9 +48,8 @@ public final class RecordingSubmissionClient implements SubmissionClient {
   }
 
   @Override
-  public SubmissionResponse postUserDescription(
-      String referenceId, UserDescription description, ExceptionlessConfiguration config) {
-    SubmissionResponse response = delegate.postUserDescription(referenceId, description, config);
+  public SubmissionResponse postUserDescription(String referenceId, UserDescription description) {
+    SubmissionResponse response = delegate.postUserDescription(referenceId, description);
     calls.add(
         new Call(
             "user-description",
@@ -63,24 +62,29 @@ public final class RecordingSubmissionClient implements SubmissionClient {
   }
 
   @Override
-  public SettingsResponse getSettings(int version, ExceptionlessConfiguration config) {
-    SettingsResponse response = delegate.getSettings(version, config);
-    int status = response.success() ? 200 : response.notModified() ? 304 : -1;
-    calls.add(
-        new Call(
-            "settings",
-            "v=" + version,
-            String.valueOf(response.settings()),
-            status,
-            response.version(),
-            response.message()));
+  public SettingsResponse getSettings(int version) {
+    SettingsResponse response = delegate.getSettings(version);
+    String detail = "v=" + version;
+    if (response instanceof SettingsResponse.Updated updated) {
+      calls.add(
+          new Call(
+              "settings",
+              detail,
+              String.valueOf(updated.settings()),
+              200,
+              updated.version(),
+              null));
+    } else if (response instanceof SettingsResponse.Failed failed) {
+      calls.add(new Call("settings", detail, null, -1, null, failed.message()));
+    } else {
+      calls.add(new Call("settings", detail, null, 304, null, null));
+    }
     return response;
   }
 
   @Override
-  public SubmissionResponse sendHeartbeat(
-      String sessionIdOrUserId, boolean closeSession, ExceptionlessConfiguration config) {
-    SubmissionResponse response = delegate.sendHeartbeat(sessionIdOrUserId, closeSession, config);
+  public SubmissionResponse sendHeartbeat(String sessionIdOrUserId, boolean closeSession) {
+    SubmissionResponse response = delegate.sendHeartbeat(sessionIdOrUserId, closeSession);
     calls.add(
         new Call(
             "heartbeat",

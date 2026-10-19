@@ -1,14 +1,10 @@
-package com.exceptionless.settings;
+package com.exceptionless.internal;
 
 import com.exceptionless.ExceptionlessConfiguration;
-import com.exceptionless.internal.Log;
-import com.exceptionless.json.JsonParser;
-import com.exceptionless.json.JsonWriter;
 import com.exceptionless.storage.KeyValueStorage;
 import com.exceptionless.submission.SettingsResponse;
 import com.exceptionless.submission.SubmissionClient;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import org.jspecify.annotations.Nullable;
 
@@ -47,18 +43,9 @@ public final class SettingsManager {
       return false;
     }
     try {
-      Map<String, Object> json = JsonParser.parseObject(saved);
-      Map<String, String> settings = new LinkedHashMap<>();
-      if (json.get("settings") instanceof Map<?, ?> values) {
-        for (Map.Entry<?, ?> entry : values.entrySet()) {
-          if (entry.getValue() != null) {
-            settings.put(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
-          }
-        }
-      }
-      int savedVersion = json.get("version") instanceof Number n ? n.intValue() : 0;
-      config.applyServerSettings(settings);
-      version = savedVersion;
+      SettingsJson.Parsed parsed = SettingsJson.parse(saved);
+      config.applyServerSettings(parsed.settings());
+      version = Objects.requireNonNullElse(parsed.version(), 0);
       return true;
     } catch (IllegalArgumentException e) {
       LOG.warn("Ignoring unreadable saved settings", e);
@@ -79,21 +66,15 @@ public final class SettingsManager {
       return;
     }
     try {
-      SettingsResponse response = submissionClient.getSettings(version, config);
-      if (response.notModified()) {
-        return;
+      SettingsResponse response = submissionClient.getSettings(version);
+      if (response instanceof SettingsResponse.Failed failed) {
+        LOG.debug(failed::message);
+      } else if (response instanceof SettingsResponse.Updated updated) {
+        config.applyServerSettings(updated.settings());
+        version = updated.version();
+        storage.write(STORAGE_KEY, SettingsJson.write(updated.settings(), updated.version()));
+        LOG.debug(() -> "Applied settings version " + updated.version());
       }
-      if (!response.success()) {
-        LOG.debug(() -> String.valueOf(response.message()));
-        return;
-      }
-      config.applyServerSettings(response.settings());
-      version = response.version();
-      storage.write(
-          STORAGE_KEY,
-          JsonWriter.toJson(
-              Map.of("version", response.version(), "settings", response.settings())));
-      LOG.debug(() -> "Applied settings version " + response.version());
     } catch (RuntimeException e) {
       LOG.warn("Unable to update settings", e);
     } finally {

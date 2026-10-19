@@ -3,6 +3,7 @@ package com.exceptionless.settings;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.exceptionless.LogLevel;
+import com.exceptionless.internal.Strings;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -46,9 +47,9 @@ class ClientSettingsTest {
 
   @Test
   void splitsLists() {
-    assertThat(ClientSettings.splitList(" *password* , ;secret\n\r token ,"))
+    assertThat(Strings.splitList(" *password* , ;secret\n\r token ,"))
         .containsExactly("*password*", "secret", "token");
-    assertThat(ClientSettings.splitList(null)).isEmpty();
+    assertThat(Strings.splitList(null)).isEmpty();
   }
 
   @Test

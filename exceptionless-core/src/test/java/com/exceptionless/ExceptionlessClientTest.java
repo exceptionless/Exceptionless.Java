@@ -279,7 +279,7 @@ class ExceptionlessClientTest {
   @Test
   void configVersionHeaderTriggersSettingsRefresh() {
     submission.eventsResponse = json -> new SubmissionResponse(202, null, 5);
-    submission.settingsResponse = SettingsResponse.of(Map.of("@@log:*", "error"), 5);
+    submission.settingsResponse = new SettingsResponse.Updated(Map.of("@@log:*", "error"), 5);
     client.submitLog("x");
     client.flush(Duration.ofSeconds(5));
     assertThat(submission.settingsRequests).contains(0);
@@ -294,7 +294,7 @@ class ExceptionlessClientTest {
 
   @Test
   void updateSettingsOnDemand() throws Exception {
-    submission.settingsResponse = SettingsResponse.of(Map.of("feature", "on"), 1);
+    submission.settingsResponse = new SettingsResponse.Updated(Map.of("feature", "on"), 1);
     client.updateSettings().get(5, TimeUnit.SECONDS);
     assertThat(config.getSettings().getString("feature")).isEqualTo("on");
   }
@@ -317,7 +317,7 @@ class ExceptionlessClientTest {
   void sessionHeartbeatsAndEnd() throws Exception {
     assertThat(client.submitSessionHeartbeat(null).get(5, TimeUnit.SECONDS).statusCode())
         .isEqualTo(-1);
-    config.setUserIdentity("user-1");
+    config.userIdentity("user-1");
     client.submitSessionHeartbeat(null).get(5, TimeUnit.SECONDS);
     client.submitSessionEnd("explicit-id").get(5, TimeUnit.SECONDS);
     assertThat(submission.heartbeats).containsExactly("user-1", "explicit-id:close");
@@ -325,7 +325,7 @@ class ExceptionlessClientTest {
 
   @Test
   void sessionsStartOnStartupAndEndOnClose() {
-    config.setUserIdentity("user-1", "Ann").useSessions(false, Duration.ofMinutes(1), false);
+    config.userIdentity("user-1", "Ann").useSessions(false, Duration.ofMinutes(1), false);
     client.startup();
     client.close();
     assertThat(submission.events())
@@ -355,7 +355,7 @@ class ExceptionlessClientTest {
   @Test
   void heartbeatsAreSentOnTheInterval() throws Exception {
     ExceptionlessConfiguration hbConfig =
-        TestClients.config().submissionClient(submission).setUserIdentity("hb-user");
+        TestClients.config().submissionClient(submission).userIdentity("hb-user");
     hbConfig.useSessions(true, Duration.ofSeconds(30), false);
     // Use the plugin directly with a short interval through reflection-free access: replace with a
     // fast heartbeat.
@@ -376,7 +376,7 @@ class ExceptionlessClientTest {
 
   @Test
   void sessionEndStopsHeartbeats() throws Exception {
-    config.setUserIdentity("user-2").useSessions(true, Duration.ofMinutes(1), false);
+    config.userIdentity("user-2").useSessions(true, Duration.ofMinutes(1), false);
     client.submitLog("starts the heartbeat");
     com.exceptionless.plugins.HeartbeatPlugin heartbeat =
         (com.exceptionless.plugins.HeartbeatPlugin)
@@ -463,7 +463,7 @@ class ExceptionlessClientTest {
 
   @Test
   void savedSettingsApplyBeforeTheFirstRequest(@TempDir Path dir) {
-    submission.settingsResponse = SettingsResponse.of(Map.of("@@log:*", "off"), 3);
+    submission.settingsResponse = new SettingsResponse.Updated(Map.of("@@log:*", "off"), 3);
     try (ExceptionlessClient c =
         new ExceptionlessClient(
             TestClients.config().submissionClient(submission).useFileStorage(dir))) {
@@ -479,7 +479,9 @@ class ExceptionlessClientTest {
 
   @Test
   void manualEventSubmission() {
-    Event event = new Event().setType("custom").setMessage("hand built");
+    Event event = new Event();
+    event.setType("custom");
+    event.setMessage("hand built");
     EventPluginContext context = client.submitEvent(event, null);
     assertThat(context.isCancelled()).isFalse();
     assertThat(sent())

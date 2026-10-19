@@ -1,6 +1,7 @@
 package com.exceptionless.plugins;
 
 import com.exceptionless.ExceptionlessClient;
+import java.util.function.Consumer;
 
 /**
  * A step in the event pipeline. Plugins run in ascending {@link #getPriority() priority} order on
@@ -8,6 +9,21 @@ import com.exceptionless.ExceptionlessClient;
  * request...). They must be fast and must not block.
  */
 public interface EventPlugin {
+  /**
+   * Creates a plugin from a lambda.
+   *
+   * <pre>{@code
+   * config.addPlugin(EventPlugin.of("AddTenant", 100, ctx -> ctx.getEvent().addTags(tenant())));
+   * }</pre>
+   *
+   * @param name a unique name
+   * @param priority lower values run first
+   * @param action processes each event
+   */
+  static EventPlugin of(String name, int priority, Consumer<EventPluginContext> action) {
+    return new LambdaEventPlugin(name, priority, action);
+  }
+
   /** A unique name; adding a plugin with the same name replaces the existing one. */
   default String getName() {
     return getClass().getSimpleName();
