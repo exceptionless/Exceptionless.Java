@@ -2,7 +2,10 @@ package com.exceptionless.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.exceptionless.internal.DataNormalizer;
+import com.exceptionless.internal.Exclusions;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -72,6 +75,16 @@ class JsonWriterTest {
     assertThat(JsonWriter.toJson(Optional.of("x"))).isEqualTo("\"x\"");
     assertThat(JsonWriter.toJson(Optional.empty())).isEqualTo("null");
     assertThat(JsonWriter.toJson(Thread.State.NEW)).isEqualTo("\"NEW\"");
+  }
+
+  @Test
+  void writesSimpleValuesLikeTheDataNormalizer() {
+    Path path = Path.of("app.log"); // a Path is an Iterable of Paths
+    OffsetDateTime date = OffsetDateTime.of(2026, 5, 1, 10, 7, 0, 0, ZoneOffset.UTC);
+    List<Object> values = List.of(path, date, String.class, Thread.State.NEW);
+    assertThat(JsonWriter.toJson(values))
+        .isEqualTo(JsonWriter.toJson(DataNormalizer.normalize(values, 5, Exclusions.none())))
+        .isEqualTo("[\"app.log\",\"2026-05-01T10:07:00Z\",\"java.lang.String\",\"NEW\"]");
   }
 
   @Test

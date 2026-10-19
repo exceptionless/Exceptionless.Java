@@ -126,7 +126,7 @@ public final class Event implements JsonSerializable {
     this.message = message;
   }
 
-  /** The location as {@code "latitude,longitude"}. */
+  /** {@return the location as {@code "latitude,longitude"}} */
   public @Nullable String getGeo() {
     return geo;
   }
@@ -239,7 +239,7 @@ public final class Event implements JsonSerializable {
     putOrRemove(KnownDataKeys.SUBMISSION_METHOD, submissionMethod);
   }
 
-  /** The id of the session this event belongs to ({@code @ref:session}). */
+  /** {@return the id of the session this event belongs to ({@code @ref:session})} */
   public @Nullable String getSessionId() {
     return getEventReference("session");
   }

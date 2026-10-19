@@ -29,10 +29,7 @@ class ClientSmokeTest {
       assertThat(events).hasSize(1);
       Map<String, Object> event = events.get(0);
       assertThat(event.get("type")).isEqualTo("error");
-      @SuppressWarnings("unchecked")
-      Map<String, Object> data = (Map<String, Object>) event.get("data");
-      @SuppressWarnings("unchecked")
-      Map<String, Object> error = (Map<String, Object>) data.get("@error");
+      Map<String, Object> error = TestJson.object(TestJson.object(event.get("data")).get("@error"));
       assertThat(error.get("type")).isEqualTo("java.lang.IllegalStateException");
       assertThat(error.get("message")).isEqualTo("boom");
       assertThat(error).containsKey("stack_trace").containsKey("inner");

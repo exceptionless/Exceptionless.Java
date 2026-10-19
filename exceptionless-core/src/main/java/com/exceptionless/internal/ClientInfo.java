@@ -27,8 +27,9 @@ public final class ClientInfo {
         Properties properties = new Properties();
         properties.load(in);
         String version = properties.getProperty("version");
-        if (version != null && !version.isBlank() && !version.startsWith("${")) {
-          return version.trim();
+        String stripped = Strings.stripToNull(version);
+        if (stripped != null && !stripped.startsWith("${")) {
+          return stripped;
         }
       }
     } catch (Exception e) {

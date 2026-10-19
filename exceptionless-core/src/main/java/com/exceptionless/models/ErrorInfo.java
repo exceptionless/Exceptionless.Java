@@ -28,7 +28,7 @@ public final class ErrorInfo implements JsonSerializable {
     this.message = message;
   }
 
-  /** The fully qualified exception class name. */
+  /** {@return the fully qualified exception class name} */
   public @Nullable String getType() {
     return type;
   }
@@ -45,7 +45,7 @@ public final class ErrorInfo implements JsonSerializable {
     this.code = code;
   }
 
-  /** The cause of this error, if any. */
+  /** {@return the cause of this error, if any} */
   public @Nullable ErrorInfo getInner() {
     return inner;
   }
@@ -66,7 +66,7 @@ public final class ErrorInfo implements JsonSerializable {
     return data;
   }
 
-  /** The innermost (root cause) error. */
+  /** {@return the innermost (root cause) error} */
   public ErrorInfo getRootCause() {
     ErrorInfo current = this;
     while (current.inner != null) {

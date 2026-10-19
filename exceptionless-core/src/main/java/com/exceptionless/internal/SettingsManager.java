@@ -31,7 +31,7 @@ public final class SettingsManager {
     this.storage = storage;
   }
 
-  /** The version of the settings currently applied (0 when none). */
+  /** {@return the version of the settings currently applied (0 when none)} */
   public int getVersion() {
     return version;
   }

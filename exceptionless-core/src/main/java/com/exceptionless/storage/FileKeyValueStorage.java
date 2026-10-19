@@ -2,6 +2,7 @@ package com.exceptionless.storage;
 
 import com.exceptionless.internal.Log;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -22,7 +23,7 @@ public final class FileKeyValueStorage implements KeyValueStorage {
     try {
       Files.createDirectories(directory);
     } catch (IOException e) {
-      throw new IllegalArgumentException("Unable to create storage directory " + directory, e);
+      throw new UncheckedIOException("Unable to create storage directory " + directory, e);
     }
   }
 

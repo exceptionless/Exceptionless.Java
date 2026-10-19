@@ -2,6 +2,7 @@ package com.exceptionless.plugins;
 
 import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.ExceptionlessConfiguration;
+import com.exceptionless.internal.Strings;
 import com.exceptionless.models.Event;
 import com.exceptionless.models.KnownDataKeys;
 import com.exceptionless.models.UserInfo;
@@ -45,9 +46,11 @@ public final class HeartbeatPlugin implements EventPlugin {
   }
 
   private static @Nullable String identityOf(@Nullable UserInfo user) {
-    return user != null && user.identity() != null && !user.identity().isBlank()
-        ? user.identity()
-        : null;
+    if (user == null) {
+      return null;
+    }
+    String identity = user.identity();
+    return Strings.isBlank(identity) ? null : identity;
   }
 
   private synchronized void start(
@@ -59,12 +62,18 @@ public final class HeartbeatPlugin implements EventPlugin {
     identity = id;
     heartbeat =
         client.scheduleAtFixedRate(
-            () -> client.submitSessionHeartbeat(id),
+            () -> sendHeartbeat(client, id),
             config.getHeartbeatInterval(),
             config.getHeartbeatInterval());
   }
 
-  /** True while heartbeats are being sent. */
+  // Fire and forget: the next heartbeat is sent on schedule whatever this one's outcome.
+  @SuppressWarnings("FutureReturnValueIgnored")
+  private static void sendHeartbeat(ExceptionlessClient client, String id) {
+    client.submitSessionHeartbeat(id);
+  }
+
+  /** {@return whether heartbeats are being sent} */
   public synchronized boolean isRunning() {
     return heartbeat != null && !heartbeat.isDone();
   }

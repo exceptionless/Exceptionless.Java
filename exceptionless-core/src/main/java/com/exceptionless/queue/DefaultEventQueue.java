@@ -9,14 +9,15 @@ import com.exceptionless.storage.QueueStorage;
 import com.exceptionless.submission.SubmissionClient;
 import com.exceptionless.submission.SubmissionResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.InstantSource;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 /**
  * The default queue. Events are serialized when queued, so a bad event can never block the queue,
@@ -49,25 +50,26 @@ public final class DefaultEventQueue implements EventQueue {
   private final ExceptionlessConfiguration config;
   private final SubmissionClient submissionClient;
   private final QueueStorage storage;
-  private final Clock clock;
+  private final InstantSource clock;
   private final ReentrantLock processLock = new ReentrantLock();
   private final List<EventsPostedListener> listeners = new CopyOnWriteArrayList<>();
 
   private volatile Instant suspendedUntil = Instant.MIN;
   private volatile Instant discardUntil = Instant.MIN;
-  private volatile int currentBatchSize;
-  private volatile int consecutiveFailures;
+  // Only accessed while holding processLock.
+  private int currentBatchSize;
+  private int consecutiveFailures;
 
   public DefaultEventQueue(
       ExceptionlessConfiguration config, SubmissionClient submissionClient, QueueStorage storage) {
-    this(config, submissionClient, storage, Clock.systemUTC());
+    this(config, submissionClient, storage, InstantSource.system());
   }
 
   DefaultEventQueue(
       ExceptionlessConfiguration config,
       SubmissionClient submissionClient,
       QueueStorage storage,
-      Clock clock) {
+      InstantSource clock) {
     this.config = config;
     this.submissionClient = submissionClient;
     this.storage = storage;
@@ -157,18 +159,11 @@ public final class DefaultEventQueue implements EventQueue {
 
   /** Sends one batch. Returns true to keep processing. */
   private boolean send(List<QueueEntry> batch) {
-    StringBuilder json = new StringBuilder("[");
-    for (int i = 0; i < batch.size(); i++) {
-      if (i > 0) {
-        json.append(',');
-      }
-      json.append(batch.get(i).json());
-    }
-    json.append(']');
+    String json = batch.stream().map(QueueEntry::json).collect(Collectors.joining(",", "[", "]"));
 
     SubmissionResponse response;
     try {
-      response = submissionClient.postEvents(json.toString());
+      response = submissionClient.postEvents(json);
     } catch (RuntimeException e) {
       response = SubmissionResponse.failed(e);
     }
@@ -184,72 +179,75 @@ public final class DefaultEventQueue implements EventQueue {
   }
 
   private boolean handleResponse(List<QueueEntry> batch, SubmissionResponse response) {
-    int status = response.statusCode();
     if (response.isSuccess()) {
       LOG.debug(() -> "Sent " + batch.size() + " events");
       storage.remove(batch);
       consecutiveFailures = 0;
       return true;
     }
-    if (response.isTooManyRequests()) {
-      // The server throttles per organization in 15 minute windows and sends no Retry-After.
-      Instant now = clock.instant();
-      Instant window = now.truncatedTo(ChronoUnit.HOURS);
-      while (!window.isAfter(now)) {
-        window = window.plus(15, ChronoUnit.MINUTES);
+    int status = response.statusCode();
+    switch (status) {
+      case 429 -> {
+        // The server throttles per organization in 15 minute windows and sends no Retry-After.
+        Instant now = clock.instant();
+        Instant window = now.truncatedTo(ChronoUnit.HOURS);
+        while (!window.isAfter(now)) {
+          window = window.plus(15, ChronoUnit.MINUTES);
+        }
+        LOG.warn("Rate limit reached; pausing event submission until " + window);
+        suspendProcessing(Duration.between(now, window));
+        return false;
       }
-      LOG.warn("Rate limit reached; pausing event submission until " + window);
-      suspendProcessing(Duration.between(now, window));
-      return false;
-    }
-    if (response.isServiceUnavailable()) {
-      LOG.warn("Server unavailable (503); pausing event submission for 5 minutes");
-      suspendProcessing(Duration.ofMinutes(5));
-      return false;
-    }
-    if (response.isPaymentRequired()) {
-      LOG.warn("Event limit reached for this billing period; discarding events for an hour");
-      suspendProcessing(Duration.ofHours(1), true, true);
-      return false;
-    }
-    if (response.isUnauthorized() || response.isForbidden()) {
-      LOG.error(
-          "Unable to send events: the API key is invalid or not authorized (" + status + ")", null);
-      storage.remove(batch);
-      suspendProcessing(Duration.ofMinutes(15));
-      return false;
-    }
-    if (response.isBadRequest() || response.isNotFound()) {
-      LOG.error("Unable to send events (HTTP " + status + "): " + response.message(), null);
-      storage.remove(batch);
-      suspendProcessing(Duration.ofHours(4));
-      return false;
-    }
-    if (response.isRequestEntityTooLarge()) {
-      if (batch.size() > 1) {
-        // Shrink from what was actually sent, which may be fewer events than the batch size
-        // when the byte limit applied.
-        currentBatchSize = Math.max(1, batch.size() / 2);
-        LOG.info("Batch too large; retrying with " + currentBatchSize + " events per batch");
+      case 503 -> {
+        LOG.warn("Server unavailable (503); pausing event submission for 5 minutes");
+        suspendProcessing(Duration.ofMinutes(5));
+        return false;
+      }
+      case 402 -> {
+        LOG.warn("Event limit reached for this billing period; discarding events for an hour");
+        suspendProcessing(Duration.ofHours(1), true, true);
+        return false;
+      }
+      case 401, 403 -> {
+        LOG.error(
+            "Unable to send events: the API key is invalid or not authorized (" + status + ")");
+        storage.remove(batch);
+        suspendProcessing(Duration.ofMinutes(15));
+        return false;
+      }
+      case 400, 404 -> {
+        LOG.error("Unable to send events (HTTP " + status + "): " + response.message());
+        storage.remove(batch);
+        suspendProcessing(Duration.ofHours(4));
+        return false;
+      }
+      case 413 -> {
+        if (batch.size() > 1) {
+          // Shrink from what was actually sent, which may be fewer events than the batch size
+          // when the byte limit applied.
+          currentBatchSize = Math.max(1, batch.size() / 2);
+          LOG.info("Batch too large; retrying with " + currentBatchSize + " events per batch");
+          return true;
+        }
+        LOG.error("Discarding an event that is too large to send");
+        storage.remove(batch);
         return true;
       }
-      LOG.error("Discarding an event that is too large to send", null);
-      storage.remove(batch);
-      return true;
+      default -> {
+        // Network errors, timeouts and 5xx: retry with backoff.
+        storage.incrementAttempts(batch);
+        consecutiveFailures++;
+        long seconds = Math.min(300, 15L << Math.min(consecutiveFailures - 1, 5));
+        LOG.warn(
+            "Unable to send events ("
+                + (status < 0 ? response.message() : "HTTP " + status)
+                + "); retrying in "
+                + seconds
+                + " seconds");
+        suspendProcessing(Duration.ofSeconds(seconds));
+        return false;
+      }
     }
-
-    // Network errors, timeouts and 5xx: retry with backoff.
-    storage.incrementAttempts(batch);
-    int failures = ++consecutiveFailures;
-    long seconds = Math.min(300, 15L << Math.min(failures - 1, 5));
-    LOG.warn(
-        "Unable to send events ("
-            + (status < 0 ? response.message() : "HTTP " + status)
-            + "); retrying in "
-            + seconds
-            + " seconds");
-    suspendProcessing(Duration.ofSeconds(seconds));
-    return false;
   }
 
   @Override

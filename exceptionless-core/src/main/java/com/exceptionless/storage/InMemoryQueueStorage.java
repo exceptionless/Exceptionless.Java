@@ -1,16 +1,13 @@
 package com.exceptionless.storage;
 
 import com.exceptionless.internal.Log;
-import java.time.Instant;
+import java.time.InstantSource;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 /** Keeps queued events in memory. When full, the oldest events are dropped. */
 public final class InMemoryQueueStorage implements QueueStorage {
@@ -18,8 +15,10 @@ public final class InMemoryQueueStorage implements QueueStorage {
   private static final Log LOG = Log.get(InMemoryQueueStorage.class);
 
   private final int maxItems;
+  private final InstantSource clock;
+  // Guarded by this. Insertion order is queue order.
   private final Map<String, QueueEntry> entries = new LinkedHashMap<>();
-  private final AtomicLong sequence = new AtomicLong();
+  private long sequence;
   private long dropped;
 
   public InMemoryQueueStorage() {
@@ -27,10 +26,20 @@ public final class InMemoryQueueStorage implements QueueStorage {
   }
 
   public InMemoryQueueStorage(int maxItems) {
+    this(maxItems, InstantSource.system());
+  }
+
+  /**
+   * Creates a storage that drops the oldest events beyond {@code maxItems}.
+   *
+   * @param clock records when each event was queued
+   */
+  public InMemoryQueueStorage(int maxItems, InstantSource clock) {
     if (maxItems < 1) {
       throw new IllegalArgumentException("maxItems must be at least 1");
     }
     this.maxItems = maxItems;
+    this.clock = clock;
   }
 
   @Override
@@ -43,8 +52,8 @@ public final class InMemoryQueueStorage implements QueueStorage {
         LOG.warn("Event queue is full (" + maxItems + " items); dropping the oldest events");
       }
     }
-    String id = Long.toString(sequence.incrementAndGet());
-    entries.put(id, new QueueEntry(id, json, 0, Instant.now()));
+    String id = Long.toString(++sequence);
+    entries.put(id, new QueueEntry(id, json, 0, clock.instant()));
   }
 
   @Override
@@ -68,15 +77,9 @@ public final class InMemoryQueueStorage implements QueueStorage {
 
   @Override
   public synchronized void incrementAttempts(Collection<QueueEntry> toUpdate) {
-    Set<String> ids = new HashSet<>();
     for (QueueEntry entry : toUpdate) {
-      ids.add(entry.id());
-    }
-    for (Map.Entry<String, QueueEntry> item : entries.entrySet()) {
-      if (ids.contains(item.getKey())) {
-        QueueEntry e = item.getValue();
-        item.setValue(new QueueEntry(e.id(), e.json(), e.attempts() + 1, e.enqueuedAt()));
-      }
+      entries.computeIfPresent(
+          entry.id(), (id, current) -> current.withAttempts(current.attempts() + 1));
     }
   }
 

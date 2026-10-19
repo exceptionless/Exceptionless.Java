@@ -26,6 +26,7 @@ import com.exceptionless.submission.DefaultSubmissionClient;
 import com.exceptionless.submission.SubmissionClient;
 import com.exceptionless.submission.SubmissionResponse;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Collections;
@@ -77,6 +78,7 @@ public final class ExceptionlessClient implements AutoCloseable {
   }
 
   private final ExceptionlessConfiguration config;
+  private final Clock clock;
   private final Object lifecycleLock = new Object();
   private volatile State state = State.NEW;
 
@@ -99,7 +101,13 @@ public final class ExceptionlessClient implements AutoCloseable {
 
   /** Creates a client. It starts automatically when first used. */
   public ExceptionlessClient(ExceptionlessConfiguration configuration) {
+    this(configuration, Clock.systemDefaultZone());
+  }
+
+  /** For tests: {@code clock} dates new events, in its time zone. */
+  ExceptionlessClient(ExceptionlessConfiguration configuration, Clock clock) {
     this.config = configuration;
+    this.clock = clock;
   }
 
   /**
@@ -179,7 +187,7 @@ public final class ExceptionlessClient implements AutoCloseable {
       id = Ids.newGuid();
       stateStorage.write("install-id", id);
     }
-    installId = id.trim();
+    installId = id.strip();
 
     SubmissionClient client = config.getSubmissionClient();
     if (client == null) {
@@ -270,7 +278,17 @@ public final class ExceptionlessClient implements AutoCloseable {
     previousHandler = previous;
   }
 
-  /** True once the client has started and until it is closed. */
+  /**
+   * Whether the default handler is still the one this client installed. Identity is what matters:
+   * if the application replaced it since, the replacement must be left alone.
+   */
+  @SuppressWarnings("ReferenceEquality")
+  private boolean isOurUncaughtExceptionHandlerInstalled() {
+    return installedHandler != null
+        && Thread.getDefaultUncaughtExceptionHandler() == installedHandler;
+  }
+
+  /** {@return whether the client has started and is not yet closed} */
   public boolean isStarted() {
     return state == State.STARTED;
   }
@@ -299,8 +317,7 @@ public final class ExceptionlessClient implements AutoCloseable {
         // Already shutting down.
       }
     }
-    if (installedHandler != null
-        && Thread.getDefaultUncaughtExceptionHandler() == installedHandler) {
+    if (isOurUncaughtExceptionHandlerInstalled()) {
       Thread.setDefaultUncaughtExceptionHandler(previousHandler);
     }
 
@@ -363,7 +380,7 @@ public final class ExceptionlessClient implements AutoCloseable {
   /** Creates an event of any type. */
   public EventBuilder createEvent() {
     Event event = new Event();
-    event.setDate(OffsetDateTime.now());
+    event.setDate(OffsetDateTime.now(clock));
     return new EventBuilder(this, event, new ContextData());
   }
 
@@ -463,10 +480,10 @@ public final class ExceptionlessClient implements AutoCloseable {
       context.cancel();
       return context;
     }
-    SUBMITTING.set(Boolean.TRUE);
+    SUBMITTING.set(true);
     try {
       if (event.getDate() == null) {
-        event.setDate(OffsetDateTime.now());
+        event.setDate(OffsetDateTime.now(clock));
       }
       runPlugins(context);
       if (context.isCancelled()) {
@@ -548,7 +565,7 @@ public final class ExceptionlessClient implements AutoCloseable {
     return this;
   }
 
-  /** The reference id of the last error submitted, to show to users. */
+  /** {@return the reference id of the last error submitted, to show to users} */
   public @Nullable String getLastReferenceId() {
     return lastReferenceId;
   }
@@ -650,7 +667,7 @@ public final class ExceptionlessClient implements AutoCloseable {
   // ---------------------------------------------------------------------------------------------
   // Queue and background work
 
-  /** The event queue. */
+  /** {@return the event queue} */
   public EventQueue getQueue() {
     ensureStarted();
     EventQueue eventQueue = queue;
@@ -703,7 +720,7 @@ public final class ExceptionlessClient implements AutoCloseable {
         : runAsync(settings::updateSettings);
   }
 
-  /** A unique id for this installation, persisted when file storage is used. */
+  /** {@return a unique id for this installation, persisted when file storage is used} */
   public @Nullable String getInstallId() {
     ensureStarted();
     return installId;
@@ -721,6 +738,9 @@ public final class ExceptionlessClient implements AutoCloseable {
         safe(task), initialDelay.toMillis(), Math.max(1, period.toMillis()), TimeUnit.MILLISECONDS);
   }
 
+  // The futures of the client's own tasks aren't needed: the tasks end when close() shuts the
+  // executor down, and safe() logs their failures.
+  @SuppressWarnings("FutureReturnValueIgnored")
   private void scheduleWithFixedDelay(Runnable task, Duration initialDelay, Duration delay) {
     requireScheduler()
         .scheduleWithFixedDelay(
@@ -730,6 +750,7 @@ public final class ExceptionlessClient implements AutoCloseable {
             TimeUnit.MILLISECONDS);
   }
 
+  @SuppressWarnings("FutureReturnValueIgnored") // see scheduleWithFixedDelay
   private void schedule(Runnable task, Duration delay) {
     requireScheduler().schedule(safe(task), delay.toMillis(), TimeUnit.MILLISECONDS);
   }

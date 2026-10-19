@@ -4,7 +4,6 @@ import com.exceptionless.internal.DataNormalizer;
 import com.exceptionless.internal.Exclusions;
 import com.exceptionless.internal.Ids;
 import com.exceptionless.internal.Strings;
-import com.exceptionless.internal.Wildcard;
 import com.exceptionless.json.JsonSerializable;
 import com.exceptionless.models.Event;
 import com.exceptionless.models.EventTags;
@@ -16,11 +15,9 @@ import com.exceptionless.plugins.ContextData;
 import com.exceptionless.plugins.EventPluginContext;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -47,7 +44,7 @@ public final class EventBuilder {
     this.contextData = contextData;
   }
 
-  /** The event being built. */
+  /** {@return the event being built} */
   public Event getEvent() {
     return event;
   }
@@ -190,7 +187,7 @@ public final class EventBuilder {
 
   /** Sets the application version ({@code @version}) for this event. */
   public EventBuilder setVersion(@Nullable String version) {
-    event.setVersion(Strings.trimToNull(version));
+    event.setVersion(Strings.stripToNull(version));
     return this;
   }
 
@@ -261,18 +258,18 @@ public final class EventBuilder {
     if (Strings.isBlank(name) || value == null) {
       return this;
     }
-    List<String> exclusions = new ArrayList<>(client.getConfiguration().getDataExclusions());
-    exclusions.addAll(List.of(excludedPropertyNames));
-    if (Wildcard.matchesAny(name, exclusions)) {
+    Exclusions excluded =
+        client
+            .getConfiguration()
+            .compiledDataExclusions()
+            .plus(Exclusions.of(List.of(excludedPropertyNames)));
+    if (excluded.test(name)) {
       return this;
     }
-    Object normalized;
-    if (value instanceof JsonSerializable) {
-      normalized = value;
-    } else {
-      Predicate<String> excluded = Exclusions.of(exclusions);
-      normalized = DataNormalizer.normalize(value, maxDepth, excluded);
-    }
+    Object normalized =
+        value instanceof JsonSerializable
+            ? value
+            : DataNormalizer.normalize(value, maxDepth, excluded);
     if (normalized != null) {
       event.getData().put(name, normalized);
     }

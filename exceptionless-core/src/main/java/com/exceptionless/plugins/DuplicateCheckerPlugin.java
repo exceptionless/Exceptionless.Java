@@ -5,6 +5,8 @@ import com.exceptionless.models.ErrorInfo;
 import com.exceptionless.models.Event;
 import com.exceptionless.models.StackFrame;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.InstantSource;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -14,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ScheduledFuture;
-import java.util.function.LongSupplier;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -27,17 +28,20 @@ public final class DuplicateCheckerPlugin implements EventPlugin {
   static final int MAX_HASHES = 50;
 
   private final Duration window;
-  private final LongSupplier clock;
-  private final Deque<long[]> processed = new ArrayDeque<>(); // {hash, timestampMillis}
+  private final InstantSource clock;
+  private final Deque<Processed> processed = new ArrayDeque<>();
   private final Map<Integer, Merged> merged = new LinkedHashMap<>();
   private @Nullable ScheduledFuture<?> timer;
   private @Nullable ExceptionlessClient client;
 
+  /** An error hash and when it was first seen in the current window. */
+  private record Processed(int hash, Instant seenAt) {}
+
   public DuplicateCheckerPlugin() {
-    this(Duration.ofSeconds(30), System::currentTimeMillis);
+    this(Duration.ofSeconds(30), InstantSource.system());
   }
 
-  DuplicateCheckerPlugin(Duration window, LongSupplier clock) {
+  DuplicateCheckerPlugin(Duration window, InstantSource clock) {
     this.window = window;
     this.clock = clock;
   }
@@ -62,7 +66,8 @@ public final class DuplicateCheckerPlugin implements EventPlugin {
       return;
     }
     int hash = hash(event);
-    long now = clock.getAsLong();
+    Instant now = clock.instant();
+    Instant cutoff = now.minus(window);
     synchronized (this) {
       Merged existing = merged.get(hash);
       if (existing != null) {
@@ -70,44 +75,53 @@ public final class DuplicateCheckerPlugin implements EventPlugin {
         context.cancel();
         return;
       }
-      for (Iterator<long[]> it = processed.iterator(); it.hasNext(); ) {
-        long[] entry = it.next();
-        if (now - entry[1] >= window.toMillis()) {
+      for (Iterator<Processed> it = processed.iterator(); it.hasNext(); ) {
+        Processed entry = it.next();
+        if (!entry.seenAt().isAfter(cutoff)) {
           it.remove();
-        } else if (entry[0] == hash) {
+        } else if (entry.hash() == hash) {
           merged.put(hash, new Merged(event, countOf(event)));
           context.cancel();
           return;
         }
       }
-      processed.addLast(new long[] {hash, now});
+      processed.addLast(new Processed(hash, now));
       while (processed.size() > MAX_HASHES) {
         processed.removeFirst();
       }
     }
   }
 
+  /** Stops the flush timer and sends the counted duplicates. */
   @Override
   public void suspend(ExceptionlessClient client) {
+    synchronized (this) {
+      if (timer != null) {
+        timer.cancel(false);
+        timer = null;
+      }
+    }
     flush();
   }
 
   /** Sends the counted duplicates. */
   public void flush() {
     List<Merged> toSend;
+    ExceptionlessClient target;
     synchronized (this) {
       if (merged.isEmpty()) {
         return;
       }
       toSend = new ArrayList<>(merged.values());
       merged.clear();
+      target = client;
     }
-    ExceptionlessClient target = client;
+    if (target == null) {
+      return;
+    }
     for (Merged item : toSend) {
       item.event.setCount(item.count);
-      if (target != null) {
-        target.getQueue().enqueue(item.event);
-      }
+      target.getQueue().enqueue(item.event);
     }
   }
 

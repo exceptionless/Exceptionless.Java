@@ -2,6 +2,7 @@ package com.exceptionless.internal;
 
 import com.exceptionless.json.JsonSerializable;
 import java.io.File;
+import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -11,6 +12,8 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
@@ -35,7 +38,8 @@ import org.jspecify.annotations.Nullable;
  * depth limit and property-name exclusions. The result can always be serialized.
  *
  * <p>Plain objects are read through their public getters and fields. Records are read through their
- * components. Anything that can't be read is converted with {@code toString()}.
+ * components. Anything that can't be read is converted with {@code toString()}. The readable
+ * properties of each class are looked up once and cached.
  */
 public final class DataNormalizer {
   /** Default depth used for custom properties. */
@@ -43,6 +47,22 @@ public final class DataNormalizer {
 
   private static final int MAX_ITEMS = 1000;
   private static final Log LOG = Log.get(DataNormalizer.class);
+
+  /** The getters and public fields of a class, in the order they are read. */
+  private static final ClassValue<List<Property>> PROPERTIES =
+      new ClassValue<>() {
+        @Override
+        protected List<Property> computeValue(Class<?> type) {
+          return properties(type);
+        }
+      };
+
+  /** A readable property: a getter or a public instance field. */
+  private record Property(String name, AccessibleObject member) {
+    @Nullable Object read(Object target) throws ReflectiveOperationException {
+      return member instanceof Method method ? method.invoke(target) : ((Field) member).get(target);
+    }
+  }
 
   private final int maxDepth;
   private final Predicate<String> excluded;
@@ -79,7 +99,11 @@ public final class DataNormalizer {
     return map;
   }
 
-  /** True when {@code value} is serialized as-is (no nested properties to normalize). */
+  /**
+   * True when {@code value} is a single value with no nested properties to normalize. Except for
+   * strings, numbers and booleans, these are converted with {@link #simpleValueToString}. {@link
+   * com.exceptionless.json.JsonWriter} uses the same rules.
+   */
   public static boolean isSimpleValue(@Nullable Object value) {
     return value == null
         || value instanceof CharSequence
@@ -103,6 +127,26 @@ public final class DataNormalizer {
         || value instanceof Class<?>;
   }
 
+  /**
+   * Converts a {@link #isSimpleValue simple value} to the string sent to the server: enum names,
+   * class names, ISO 8601 dates and otherwise {@code toString()}.
+   */
+  public static String simpleValueToString(Object value) {
+    if (value instanceof Enum<?> enumValue) {
+      return enumValue.name();
+    }
+    if (value instanceof Class<?> type) {
+      return type.getName();
+    }
+    if (value instanceof OffsetDateTime dateTime) {
+      return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(dateTime);
+    }
+    if (value instanceof Date date) {
+      return date.toInstant().toString();
+    }
+    return value.toString();
+  }
+
   private @Nullable Object convert(@Nullable Object value, int depth) {
     if (value == null) {
       return null;
@@ -113,14 +157,8 @@ public final class DataNormalizer {
     if (value instanceof Number || value instanceof Boolean || value instanceof JsonSerializable) {
       return value;
     }
-    if (value instanceof Class<?> type) {
-      return type.getName();
-    }
-    if (value instanceof Enum<?> enumValue) {
-      return enumValue.name();
-    }
     if (isSimpleValue(value)) {
-      return value instanceof Date date ? date.toInstant().toString() : value.toString();
+      return simpleValueToString(value);
     }
     if (value instanceof Optional<?> optional) {
       return convert(optional.orElse(null), depth);
@@ -214,45 +252,47 @@ public final class DataNormalizer {
 
   private Object convertBean(Object value, int depth) {
     Class<?> type = value.getClass();
+    List<Property> properties = PROPERTIES.get(type);
+    if (properties.isEmpty()) {
+      return safeToString(value);
+    }
     Map<String, Object> result = new LinkedHashMap<>();
-    boolean anyProperty = false;
-    for (Method method : type.getMethods()) {
-      String name = propertyName(method);
-      if (name == null) {
-        continue;
-      }
-      anyProperty = true;
+    for (Property property : properties) {
+      String name = property.name();
       if (excluded.test(name) || result.containsKey(name)) {
         continue;
       }
-      if (!accessible(method, value)) {
+      if (!accessible(property.member(), value)) {
         continue;
       }
       try {
-        put(result, name, method.invoke(value), depth);
+        put(result, name, property.read(value), depth);
       } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
         LOG.trace(() -> "Unable to read property " + name + " of " + type.getName() + ": " + e);
       }
     }
-    for (Field field : type.getFields()) {
-      if (Modifier.isStatic(field.getModifiers())) {
-        continue;
+    return result;
+  }
+
+  /** The getters, then the public instance fields, of {@code type}. */
+  private static List<Property> properties(Class<?> type) {
+    List<Property> properties = new ArrayList<>();
+    try {
+      for (Method method : type.getMethods()) {
+        String name = propertyName(method);
+        if (name != null) {
+          properties.add(new Property(name, method));
+        }
       }
-      anyProperty = true;
-      String name = field.getName();
-      if (excluded.test(name) || result.containsKey(name)) {
-        continue;
+      for (Field field : type.getFields()) {
+        if (!Modifier.isStatic(field.getModifiers())) {
+          properties.add(new Property(field.getName(), field));
+        }
       }
-      if (!accessible(field, value)) {
-        continue;
-      }
-      try {
-        put(result, name, field.get(value), depth);
-      } catch (ReflectiveOperationException | RuntimeException e) {
-        LOG.trace(() -> "Unable to read field " + name + " of " + type.getName() + ": " + e);
-      }
+    } catch (RuntimeException | LinkageError e) {
+      LOG.debug(() -> "Unable to read the properties of " + type.getName() + ": " + e);
     }
-    return anyProperty ? result : safeToString(value);
+    return List.copyOf(properties);
   }
 
   /**
@@ -260,7 +300,7 @@ public final class DataNormalizer {
    * setAccessible}, which only works when the package is open to this library (always the case on
    * the class path).
    */
-  private static boolean accessible(java.lang.reflect.AccessibleObject member, Object target) {
+  private static boolean accessible(AccessibleObject member, Object target) {
     try {
       return member.canAccess(target) || member.trySetAccessible();
     } catch (RuntimeException e) {

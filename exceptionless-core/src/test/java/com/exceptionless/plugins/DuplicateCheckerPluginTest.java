@@ -5,11 +5,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.TestClients;
 import com.exceptionless.TestClients.CapturingSubmissionClient;
+import com.exceptionless.TestClock;
 import com.exceptionless.internal.ErrorConverter;
 import com.exceptionless.models.Event;
 import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,9 +19,9 @@ class DuplicateCheckerPluginTest {
   private final CapturingSubmissionClient submission = new CapturingSubmissionClient();
   private final ExceptionlessClient client =
       new ExceptionlessClient(TestClients.config().submissionClient(submission));
-  private final AtomicLong now = new AtomicLong(1_000_000);
+  private final TestClock clock = new TestClock();
   private final DuplicateCheckerPlugin plugin =
-      new DuplicateCheckerPlugin(Duration.ofSeconds(30), now::get);
+      new DuplicateCheckerPlugin(Duration.ofSeconds(30), clock);
 
   @AfterEach
   void close() {
@@ -35,7 +37,7 @@ class DuplicateCheckerPluginTest {
 
   /** Errors created at the same call site, so they have identical stacks. */
   private static List<Event> sameErrors(int count) {
-    List<Event> events = new java.util.ArrayList<>();
+    List<Event> events = new ArrayList<>();
     for (int i = 0; i < count; i++) {
       events.add(error(new RuntimeException("duplicate")));
     }
@@ -77,7 +79,7 @@ class DuplicateCheckerPluginTest {
     plugin.startup(client);
     List<Event> events = sameErrors(2);
     PluginTestSupport.run(plugin, client, events.get(0));
-    now.addAndGet(31_000);
+    clock.advance(Duration.ofSeconds(31));
     assertThat(PluginTestSupport.run(plugin, client, events.get(1)).isCancelled()).isFalse();
   }
 
@@ -110,12 +112,34 @@ class DuplicateCheckerPluginTest {
   }
 
   @Test
+  void sameErrorJustInsideTheWindowIsStillADuplicate() {
+    plugin.startup(client);
+    List<Event> events = sameErrors(2);
+    PluginTestSupport.run(plugin, client, events.get(0));
+    clock.advance(Duration.ofSeconds(29));
+    assertThat(PluginTestSupport.run(plugin, client, events.get(1)).isCancelled()).isTrue();
+  }
+
+  @Test
+  void canStartAgainAfterSuspend() {
+    plugin.startup(client);
+    plugin.suspend(client);
+    plugin.startup(client);
+    for (Event event : sameErrors(2)) {
+      PluginTestSupport.run(plugin, client, event);
+    }
+    plugin.flush();
+    client.flush(Duration.ofSeconds(5));
+    assertThat(submission.events()).hasSize(1);
+  }
+
+  @Test
   void hashIgnoresDateButUsesStack() {
     List<Event> events = sameErrors(2);
     Event a = events.get(0);
-    a.setDate(java.time.OffsetDateTime.now());
+    a.setDate(OffsetDateTime.now(clock));
     Event b = events.get(1);
-    b.setDate(java.time.OffsetDateTime.now().minusDays(1));
+    b.setDate(OffsetDateTime.now(clock).minusDays(1));
     assertThat(DuplicateCheckerPlugin.hash(a)).isEqualTo(DuplicateCheckerPlugin.hash(b));
   }
 }

@@ -11,14 +11,24 @@ import java.util.Collections;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
-/** Collects information about the machine and JVM. Static values are computed once. */
+/**
+ * Collects information about the machine and JVM. Values that don't change while the JVM runs are
+ * computed once; the slow ones (host name and network lookups) lazily, through holder classes, so
+ * they are only computed when the privacy settings allow sending them.
+ */
 public final class EnvironmentCollector {
   private static final Log LOG = Log.get(EnvironmentCollector.class);
 
-  private static volatile @Nullable String machineName;
-  private static volatile @Nullable String ipAddresses;
   private static final @Nullable String PROCESS_NAME = processName();
   private static final String RUNTIME_VERSION = runtimeVersion();
+
+  private static final class MachineName {
+    static final @Nullable String VALUE = lookUpMachineName();
+  }
+
+  private static final class IpAddresses {
+    static final @Nullable String VALUE = lookUpIpAddresses();
+  }
 
   private EnvironmentCollector() {}
 
@@ -31,6 +41,7 @@ public final class EnvironmentCollector {
       info.setProcessorCount(runtime.availableProcessors());
       info.setProcessMemorySize(runtime.totalMemory());
       info.setProcessName(PROCESS_NAME);
+      // Deliberately not the real command line: program arguments routinely contain secrets.
       info.setCommandLine(PROCESS_NAME);
       info.setProcessId(Long.toString(ProcessHandle.current().pid()));
       Thread thread = Thread.currentThread();
@@ -88,66 +99,68 @@ public final class EnvironmentCollector {
   }
 
   static @Nullable String machineName() {
-    String name = machineName;
-    if (name == null) {
-      name = Strings.trimToNull(System.getenv("HOSTNAME"));
-      if (name == null) {
-        name = Strings.trimToNull(System.getenv("COMPUTERNAME"));
-      }
-      if (name == null) {
-        try {
-          name = InetAddress.getLocalHost().getHostName();
-        } catch (Exception e) {
-          name = "";
-        }
-      }
-      machineName = name;
-    }
-    return name.isEmpty() ? null : name;
+    return MachineName.VALUE;
   }
 
   static @Nullable String ipAddresses() {
-    String addresses = ipAddresses;
-    if (addresses == null) {
-      List<String> list = new ArrayList<>();
-      try {
-        for (NetworkInterface nic : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-          if (!nic.isUp() || nic.isLoopback() || nic.isVirtual()) {
-            continue;
-          }
-          for (InetAddress address : Collections.list(nic.getInetAddresses())) {
-            if (address.isLoopbackAddress()
-                || address.isLinkLocalAddress()
-                || address.isAnyLocalAddress()) {
-              continue;
-            }
-            String host = address.getHostAddress();
-            if (address instanceof Inet6Address) {
-              int scope = host.indexOf('%');
-              if (scope > 0) {
-                host = host.substring(0, scope);
-              }
-            }
-            if (!list.contains(host)) {
-              list.add(host);
-            }
-          }
-        }
-      } catch (Exception e) {
-        LOG.debug(() -> "Unable to read network interfaces: " + e);
-      }
-      addresses = String.join(",", list);
-      ipAddresses = addresses;
-    }
-    return addresses.isEmpty() ? null : addresses;
+    return IpAddresses.VALUE;
   }
 
+  private static @Nullable String lookUpMachineName() {
+    String name = Strings.stripToNull(System.getenv("HOSTNAME"));
+    if (name == null) {
+      name = Strings.stripToNull(System.getenv("COMPUTERNAME"));
+    }
+    if (name == null) {
+      try {
+        name = Strings.stripToNull(InetAddress.getLocalHost().getHostName());
+      } catch (Exception e) {
+        LOG.debug(() -> "Unable to look up the host name: " + e);
+      }
+    }
+    return name;
+  }
+
+  private static @Nullable String lookUpIpAddresses() {
+    List<String> list = new ArrayList<>();
+    try {
+      for (NetworkInterface nic : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+        if (!nic.isUp() || nic.isLoopback() || nic.isVirtual()) {
+          continue;
+        }
+        for (InetAddress address : Collections.list(nic.getInetAddresses())) {
+          if (address.isLoopbackAddress()
+              || address.isLinkLocalAddress()
+              || address.isAnyLocalAddress()) {
+            continue;
+          }
+          String host = address.getHostAddress();
+          if (address instanceof Inet6Address) {
+            int scope = host.indexOf('%');
+            if (scope > 0) {
+              host = host.substring(0, scope);
+            }
+          }
+          if (!list.contains(host)) {
+            list.add(host);
+          }
+        }
+      }
+    } catch (Exception e) {
+      LOG.debug(() -> "Unable to read network interfaces: " + e);
+    }
+    return list.isEmpty() ? null : String.join(",", list);
+  }
+
+  /**
+   * The file name of the main class or jar (e.g. {@code com.example.App} or {@code app.jar}). This
+   * is also reported as the command line: the program arguments are deliberately left out because
+   * they can contain secrets (see {@link JavaCommand#mainClassOrJar()}).
+   */
   private static @Nullable String processName() {
-    String command = System.getProperty("sun.java.command");
-    if (command != null && !command.isBlank()) {
-      String first = command.trim().split("\\s+", 2)[0];
-      int slash = Math.max(first.lastIndexOf('/'), first.lastIndexOf('\\'));
-      return slash >= 0 ? first.substring(slash + 1) : first;
+    String mainClassOrJar = JavaCommand.mainClassOrJar();
+    if (mainClassOrJar != null) {
+      return JavaCommand.fileName(mainClassOrJar);
     }
     try {
       return ProcessHandle.current().info().command().orElse("java");

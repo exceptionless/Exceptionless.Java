@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.exceptionless.LogLevel;
 import com.exceptionless.internal.Strings;
+import com.exceptionless.json.JsonWriter;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -52,36 +53,36 @@ class ClientSettingsTest {
     assertThat(Strings.splitList(null)).isEmpty();
   }
 
-  @Test
-  void minLogLevelUsesExactSourceFirst() {
+  @ParameterizedTest
+  @CsvSource({
+    "com.example.Noisy, OFF",
+    "com.example.Service, INFO",
+    "org.other.Thing, ERROR",
+  })
+  void minLogLevelUsesExactSourceFirst(String source, LogLevel expected) {
     ClientSettings settings =
         ClientSettings.of(
             Map.of(
-                "@@log:*",
-                "error",
-                "@@log:com.example.*",
-                "info",
-                "@@log:com.example.Noisy",
-                "off"));
-    assertThat(settings.getMinLogLevel("com.example.Noisy")).isEqualTo(LogLevel.OFF);
-    assertThat(settings.getMinLogLevel("com.example.Service")).isEqualTo(LogLevel.INFO);
-    assertThat(settings.getMinLogLevel("org.other.Thing")).isEqualTo(LogLevel.ERROR);
+                "@@log:*", "error",
+                "@@log:com.example.*", "info",
+                "@@log:com.example.Noisy", "off"));
+    assertThat(settings.getMinLogLevel(source)).isEqualTo(expected);
   }
 
-  @Test
-  void longestWildcardWins() {
+  @ParameterizedTest
+  @CsvSource({
+    "com.example.api.Users, TRACE",
+    "com.example.db.Pool, INFO",
+    "com.zzz, WARN",
+  })
+  void longestWildcardWins(String source, LogLevel expected) {
     ClientSettings settings =
         ClientSettings.of(
             Map.of(
-                "@@log:com.*",
-                "warn",
-                "@@log:com.example.api.*",
-                "trace",
-                "@@log:com.example.*",
-                "info"));
-    assertThat(settings.getMinLogLevel("com.example.api.Users")).isEqualTo(LogLevel.TRACE);
-    assertThat(settings.getMinLogLevel("com.example.db.Pool")).isEqualTo(LogLevel.INFO);
-    assertThat(settings.getMinLogLevel("com.zzz")).isEqualTo(LogLevel.WARN);
+                "@@log:com.*", "warn",
+                "@@log:com.example.api.*", "trace",
+                "@@log:com.example.*", "info"));
+    assertThat(settings.getMinLogLevel(source)).isEqualTo(expected);
   }
 
   @Test
@@ -153,6 +154,13 @@ class ClientSettingsTest {
   void unknownLevelsAreNull() {
     assertThat(LogLevel.parse("bogus")).isNull();
     assertThat(LogLevel.parse(null)).isNull();
+  }
+
+  @Test
+  void levelNamesAndWireValues() {
+    assertThat(LogLevel.WARN.value()).isEqualTo("warn");
+    assertThat(LogLevel.WARN).hasToString("WARN");
+    assertThat(JsonWriter.toJson(LogLevel.WARN)).isEqualTo("\"WARN\"");
   }
 
   @Test

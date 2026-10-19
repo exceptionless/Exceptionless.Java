@@ -2,17 +2,23 @@ package com.exceptionless.json;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A small, strict JSON parser. Objects become {@link LinkedHashMap}, arrays become {@link
- * ArrayList}, numbers become {@link Long} or {@link BigDecimal}.
+ * A small, strict JSON parser following RFC 8259. Objects become {@link LinkedHashMap}, arrays
+ * become {@link ArrayList}, numbers become {@link Long} or {@link BigDecimal}.
+ *
+ * <p>Anything outside the grammar is rejected, including leading zeros ({@code 01}), incomplete
+ * fractions or exponents ({@code 1.}, {@code 1e}), single quotes, comments and trailing commas. A
+ * byte order mark is ignored at the start of the document only.
  */
 public final class JsonParser {
   private static final int MAX_DEPTH = 256;
+  private static final char BYTE_ORDER_MARK = '\uFEFF';
 
   private final String input;
   private int pos;
@@ -29,6 +35,9 @@ public final class JsonParser {
    */
   public static @Nullable Object parse(String json) {
     JsonParser parser = new JsonParser(json);
+    if (!json.isEmpty() && json.charAt(0) == BYTE_ORDER_MARK) {
+      parser.pos++;
+    }
     parser.skipWhitespace();
     Object value = parser.readValue();
     parser.skipWhitespace();
@@ -57,8 +66,8 @@ public final class JsonParser {
       case '{' -> readObject();
       case '[' -> readArray();
       case '"' -> readString();
-      case 't' -> readLiteral("true", Boolean.TRUE);
-      case 'f' -> readLiteral("false", Boolean.FALSE);
+      case 't' -> readLiteral("true", true);
+      case 'f' -> readLiteral("false", false);
       case 'n' -> readLiteral("null", null);
       default -> {
         if (c == '-' || (c >= '0' && c <= '9')) {
@@ -161,11 +170,12 @@ public final class JsonParser {
             if (pos + 4 > input.length()) {
               throw error("Invalid unicode escape");
             }
-            try {
-              sb.append((char) Integer.parseInt(input.substring(pos, pos + 4), 16));
-            } catch (NumberFormatException e) {
-              throw error("Invalid unicode escape");
+            for (int i = pos; i < pos + 4; i++) {
+              if (!HexFormat.isHexDigit(input.charAt(i))) {
+                throw error("Invalid unicode escape");
+              }
             }
+            sb.append((char) HexFormat.fromHexDigits(input, pos, pos + 4));
             pos += 4;
           }
           default -> throw error("Invalid escape '\\" + escaped + "'");
@@ -178,36 +188,69 @@ public final class JsonParser {
     }
   }
 
+  /** Reads {@code -? (0 | [1-9][0-9]*) (. [0-9]+)? ([eE] [+-]? [0-9]+)?}. */
   private Number readNumber() {
     int start = pos;
-    if (peek() == '-') {
+    if (peekIs('-')) {
       pos++;
     }
-    boolean decimal = false;
-    while (pos < input.length()) {
-      char c = input.charAt(pos);
-      if (c >= '0' && c <= '9') {
-        pos++;
-      } else if (c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-') {
-        decimal = true;
-        pos++;
-      } else {
-        break;
+    if (peekIs('0')) {
+      pos++;
+      if (isDigit()) {
+        throw error("Leading zeros are not allowed");
       }
+    } else {
+      digits();
+    }
+    boolean integer = true;
+    if (peekIs('.')) {
+      pos++;
+      digits();
+      integer = false;
+    }
+    if (peekIs('e') || peekIs('E')) {
+      pos++;
+      if (peekIs('+') || peekIs('-')) {
+        pos++;
+      }
+      digits();
+      integer = false;
     }
     String text = input.substring(start, pos);
-    try {
-      if (!decimal) {
-        try {
-          return Long.parseLong(text);
-        } catch (NumberFormatException overflow) {
-          return new BigDecimal(text);
-        }
+    if (integer) {
+      try {
+        return Long.parseLong(text);
+      } catch (NumberFormatException overflow) {
+        // Too large for a long.
       }
+    }
+    try {
       return new BigDecimal(text);
-    } catch (NumberFormatException e) {
+    } catch (NumberFormatException | ArithmeticException e) {
       throw error("Invalid number '" + text + "'");
     }
+  }
+
+  /** Reads one or more digits. */
+  private void digits() {
+    if (!isDigit()) {
+      throw error("Expected a digit");
+    }
+    while (isDigit()) {
+      pos++;
+    }
+  }
+
+  private boolean isDigit() {
+    if (pos >= input.length()) {
+      return false;
+    }
+    char c = input.charAt(pos);
+    return c >= '0' && c <= '9';
+  }
+
+  private boolean peekIs(char expected) {
+    return pos < input.length() && input.charAt(pos) == expected;
   }
 
   private @Nullable Object readLiteral(String literal, @Nullable Object value) {
@@ -227,7 +270,7 @@ public final class JsonParser {
   private void skipWhitespace() {
     while (pos < input.length()) {
       char c = input.charAt(pos);
-      if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '﻿') {
+      if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
         pos++;
       } else {
         break;

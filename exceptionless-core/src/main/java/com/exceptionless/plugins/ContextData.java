@@ -48,7 +48,7 @@ public final class ContextData {
 
   /** Marks the error as unhandled (it crashed a thread or request). */
   public ContextData markAsUnhandledError() {
-    return put(IS_UNHANDLED, Boolean.TRUE);
+    return put(IS_UNHANDLED, true);
   }
 
   public @Nullable String getSubmissionMethod() {

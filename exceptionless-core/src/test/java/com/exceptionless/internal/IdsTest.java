@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class IdsTest {
   @Test
@@ -18,16 +20,25 @@ class IdsTest {
     assertThat(ids).hasSize(10_000);
   }
 
-  @Test
-  void validatesReferenceIdsLikeTheServer() {
-    assertThat(Ids.isValidReferenceId("abcd1234")).isTrue();
-    assertThat(Ids.isValidReferenceId("ABC-123-xyz")).isTrue();
-    assertThat(Ids.isValidReferenceId("a".repeat(100))).isTrue();
-    assertThat(Ids.isValidReferenceId("short")).isFalse();
-    assertThat(Ids.isValidReferenceId("a".repeat(101))).isFalse();
-    assertThat(Ids.isValidReferenceId("has space1")).isFalse();
-    assertThat(Ids.isValidReferenceId("under_score")).isFalse();
-    assertThat(Ids.isValidReferenceId(null)).isFalse();
+  @ParameterizedTest
+  @CsvSource(
+      value = {
+        "abcd1234, true",
+        "ABC-123-xyz, true",
+        "short, false",
+        "has space1, false",
+        "under_score, false",
+        "null, false",
+      },
+      nullValues = "null")
+  void validatesReferenceIdsLikeTheServer(String id, boolean valid) {
+    assertThat(Ids.isValidReferenceId(id)).isEqualTo(valid);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"8, true", "100, true", "101, false"})
+  void limitsReferenceIdLength(int length, boolean valid) {
+    assertThat(Ids.isValidReferenceId("a".repeat(length))).isEqualTo(valid);
   }
 
   @Test

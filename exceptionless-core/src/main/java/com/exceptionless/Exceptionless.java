@@ -31,7 +31,7 @@ public final class Exceptionless {
 
   private Exceptionless() {}
 
-  /** The default client, created (but not started) on first use. */
+  /** {@return the default client, created (but not started) on first use} */
   public static ExceptionlessClient getDefault() {
     ExceptionlessClient client = defaultClient;
     if (client == null) {

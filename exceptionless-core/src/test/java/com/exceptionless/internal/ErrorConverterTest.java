@@ -10,8 +10,8 @@ import com.exceptionless.models.StackFrame;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -111,9 +111,8 @@ class ErrorConverterTest {
     Exception primary = new Exception("primary");
     primary.addSuppressed(new IllegalStateException("close failed"));
     ErrorInfo error = convert(primary);
-    @SuppressWarnings("unchecked")
-    List<ErrorInfo> suppressed = (List<ErrorInfo>) error.getData().get("suppressed");
-    assertThat(suppressed)
+    assertThat(error.getData().get("suppressed"))
+        .asInstanceOf(InstanceOfAssertFactories.list(ErrorInfo.class))
         .singleElement()
         .satisfies(s -> assertThat(s.getMessage()).isEqualTo("close failed"));
   }
@@ -121,10 +120,8 @@ class ErrorConverterTest {
   @Test
   void addsCustomPropertiesAsExtendedDataWithExclusions() {
     ErrorInfo error = convert(new PaymentException("declined", "order-7", null));
-    @SuppressWarnings("unchecked")
-    Map<String, Object> ext =
-        (Map<String, Object>) error.getData().get(KnownDataKeys.EXTENDED_DATA);
-    assertThat(ext)
+    assertThat(error.getData().get(KnownDataKeys.EXTENDED_DATA))
+        .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
         .containsEntry("orderId", "order-7")
         .doesNotContainKeys(
             "password", "stackTrace", "message", "cause", "localizedMessage", "suppressed");

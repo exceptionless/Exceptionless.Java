@@ -39,7 +39,7 @@ public final class RequestInfo implements JsonSerializable {
     this.httpMethod = httpMethod;
   }
 
-  /** True when the request used HTTPS. */
+  /** {@return whether the request used HTTPS} */
   public @Nullable Boolean getSecure() {
     return secure;
   }

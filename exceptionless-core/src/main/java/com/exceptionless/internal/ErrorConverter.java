@@ -17,7 +17,7 @@ import org.jspecify.annotations.Nullable;
 /** Converts a {@link Throwable} (and its causes) into the Exceptionless error model. */
 public final class ErrorConverter {
   /** Maximum number of causes followed. */
-  static final int MAX_CAUSES = 20;
+  public static final int MAX_CAUSES = 20;
 
   /** Maximum frames kept per error. The top of the stack is kept; it decides stacking. */
   static final int MAX_FRAMES = 256;
@@ -211,7 +211,10 @@ public final class ErrorConverter {
     }
   }
 
-  private static @Nullable Throwable safeCause(Throwable throwable) {
+  /**
+   * {@return the cause of {@code throwable}, or null when it has none or {@code getCause} fails}
+   */
+  public static @Nullable Throwable safeCause(Throwable throwable) {
     try {
       return throwable.getCause();
     } catch (RuntimeException e) {

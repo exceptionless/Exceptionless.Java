@@ -17,7 +17,9 @@ public interface QueueStorage {
   /** Records a failed attempt for each entry. */
   void incrementAttempts(Collection<QueueEntry> entries);
 
+  /** Removes all entries. */
   void clear();
 
+  /** {@return the number of stored entries} */
   int size();
 }

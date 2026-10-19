@@ -7,11 +7,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.exceptionless.TestClients.CapturingSubmissionClient;
 import com.exceptionless.models.Event;
 import com.exceptionless.plugins.EventPluginContext;
+import com.exceptionless.plugins.HeartbeatPlugin;
 import com.exceptionless.submission.SettingsResponse;
 import com.exceptionless.submission.SubmissionResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -50,6 +53,15 @@ class ExceptionlessClientTest {
               assertThat(e.get("message")).isEqualTo("hello");
               assertThat(e.get("date")).isNotNull();
             });
+  }
+
+  @Test
+  void datesEventsWithTheClientsClock() {
+    TestClock clock = new TestClock();
+    try (ExceptionlessClient clocked = new ExceptionlessClient(config, clock)) {
+      assertThat(clocked.createLog("dated").submit().getEvent().getDate())
+          .isEqualTo(OffsetDateTime.ofInstant(TestClock.START, ZoneOffset.UTC));
+    }
   }
 
   @Test
@@ -267,12 +279,15 @@ class ExceptionlessClientTest {
 
   @Test
   void queueIsProcessedOnTheInterval() throws Exception {
+    CountDownLatch posted = new CountDownLatch(1);
+    submission.eventsResponse =
+        json -> {
+          posted.countDown();
+          return new SubmissionResponse(202, null, null);
+        };
     config.queueProcessInterval(Duration.ofMillis(100));
     client.submitLog("timer");
-    long deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
-    while (submission.posts.isEmpty() && System.nanoTime() < deadline) {
-      Thread.sleep(20);
-    }
+    assertThat(posted.await(5, TimeUnit.SECONDS)).isTrue();
     assertThat(submission.posts).hasSize(1);
   }
 
@@ -361,15 +376,13 @@ class ExceptionlessClientTest {
     // fast heartbeat.
     hbConfig.removePlugin("HeartbeatPlugin");
     hbConfig.addPlugin("FastHeartbeat", 100, ctx -> {});
+    CountDownLatch sent = new CountDownLatch(2);
     try (ExceptionlessClient hbClient = new ExceptionlessClient(hbConfig)) {
       hbClient.scheduleAtFixedRate(
-          () -> hbClient.submitSessionHeartbeat(null),
+          () -> hbClient.submitSessionHeartbeat(null).thenRun(sent::countDown),
           Duration.ofMillis(10),
           Duration.ofMillis(50));
-      long deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
-      while (submission.heartbeats.size() < 2 && System.nanoTime() < deadline) {
-        Thread.sleep(20);
-      }
+      assertThat(sent.await(5, TimeUnit.SECONDS)).isTrue();
     }
     assertThat(submission.heartbeats).contains("hb-user");
   }
@@ -378,12 +391,12 @@ class ExceptionlessClientTest {
   void sessionEndStopsHeartbeats() throws Exception {
     config.userIdentity("user-2").useSessions(true, Duration.ofMinutes(1), false);
     client.submitLog("starts the heartbeat");
-    com.exceptionless.plugins.HeartbeatPlugin heartbeat =
-        (com.exceptionless.plugins.HeartbeatPlugin)
-            config.getPlugins().stream()
-                .filter(p -> p instanceof com.exceptionless.plugins.HeartbeatPlugin)
-                .findFirst()
-                .orElseThrow();
+    HeartbeatPlugin heartbeat =
+        config.getPlugins().stream()
+            .filter(HeartbeatPlugin.class::isInstance)
+            .map(HeartbeatPlugin.class::cast)
+            .findFirst()
+            .orElseThrow();
     assertThat(heartbeat.isRunning()).isTrue();
     client.submitSessionEnd(null).get(5, TimeUnit.SECONDS);
     assertThat(heartbeat.isRunning()).isFalse();

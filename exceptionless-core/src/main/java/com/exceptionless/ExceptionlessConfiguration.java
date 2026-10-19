@@ -1,5 +1,6 @@
 package com.exceptionless;
 
+import com.exceptionless.internal.Exclusions;
 import com.exceptionless.internal.Log;
 import com.exceptionless.internal.Strings;
 import com.exceptionless.models.Event;
@@ -91,6 +92,10 @@ public final class ExceptionlessConfiguration {
 
   private volatile ClientSettings serverSettings = ClientSettings.empty();
   private volatile ClientSettings effectiveSettings = ClientSettings.empty();
+  // Compiled from the local data exclusions and the effective settings; rebuilt when either
+  // changes.
+  private volatile Exclusions compiledDataExclusions = Exclusions.none();
+  private final Object settingsLock = new Object();
 
   private volatile boolean includePrivateInformation = true;
   private volatile boolean includeUserName = true;
@@ -238,13 +243,13 @@ public final class ExceptionlessConfiguration {
     return sb.toString();
   }
 
-  /** Passes the trimmed value of {@code name} to {@code setter}, when it is set. */
+  /** Passes the stripped value of {@code name} to {@code setter}, when it is set. */
   private static void apply(
       Map<String, String> values,
       Function<String, String> keyMapper,
       String name,
       Consumer<String> setter) {
-    String value = Strings.trimToNull(values.get(keyMapper.apply(name)));
+    String value = Strings.stripToNull(values.get(keyMapper.apply(name)));
     if (value != null) {
       setter.accept(value);
     }
@@ -260,7 +265,7 @@ public final class ExceptionlessConfiguration {
   /** Sets the project API key. Required. */
   public ExceptionlessConfiguration apiKey(@Nullable String apiKey) {
     ensureUnlocked("apiKey");
-    String key = Strings.trimToNull(apiKey);
+    String key = Strings.stripToNull(apiKey);
     this.apiKey = key;
     this.apiKeyValid = isValidApiKey(key);
     return this;
@@ -304,17 +309,17 @@ public final class ExceptionlessConfiguration {
   }
 
   private static String normalizeUrl(String url) {
-    String trimmed = Strings.trimToNull(url);
-    if (trimmed == null) {
+    String stripped = Strings.stripToNull(url);
+    if (stripped == null) {
       throw new IllegalArgumentException("A server URL is required");
     }
-    while (trimmed.endsWith("/")) {
-      trimmed = trimmed.substring(0, trimmed.length() - 1);
+    while (stripped.endsWith("/")) {
+      stripped = stripped.substring(0, stripped.length() - 1);
     }
-    if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+    if (!stripped.startsWith("http://") && !stripped.startsWith("https://")) {
       throw new IllegalArgumentException("Server URL must start with http:// or https://: " + url);
     }
-    return trimmed;
+    return stripped;
   }
 
   /** Whether events are sent. A configuration without a valid API key is never enabled. */
@@ -370,20 +375,20 @@ public final class ExceptionlessConfiguration {
 
   /** Sets the application version, attached to every event as {@code @version}. */
   public ExceptionlessConfiguration version(@Nullable String version) {
-    this.version = Strings.trimToNull(version);
+    this.version = Strings.stripToNull(version);
     return this;
   }
 
-  /** A snapshot of the tags added to every event. */
+  /** {@return a snapshot of the tags added to every event} */
   public Set<String> getDefaultTags() {
     return Collections.unmodifiableSet(new LinkedHashSet<>(defaultTags));
   }
 
   public ExceptionlessConfiguration addDefaultTags(String... tags) {
     for (String tag : tags) {
-      String trimmed = Strings.trimToNull(tag);
-      if (trimmed != null) {
-        defaultTags.add(trimmed);
+      String stripped = Strings.stripToNull(tag);
+      if (stripped != null) {
+        defaultTags.add(stripped);
       }
     }
     return this;
@@ -396,7 +401,7 @@ public final class ExceptionlessConfiguration {
     return this;
   }
 
-  /** A snapshot of the data added to every event. */
+  /** {@return a snapshot of the data added to every event} */
   public Map<String, Object> getDefaultData() {
     return Map.copyOf(defaultData);
   }
@@ -426,12 +431,15 @@ public final class ExceptionlessConfiguration {
   // ---------------------------------------------------------------------------------------------
   // Settings, exclusions and privacy
 
-  /** The effective configuration values: local settings overlaid with the project's settings. */
+  /**
+   * {@return the effective configuration values: local settings overlaid with the project's
+   * settings}
+   */
   public ClientSettings getSettings() {
     return effectiveSettings;
   }
 
-  /** The settings most recently received from the server. */
+  /** {@return the settings most recently received from the server} */
   public ClientSettings getServerSettings() {
     return serverSettings;
   }
@@ -460,7 +468,10 @@ public final class ExceptionlessConfiguration {
   }
 
   private void recomputeSettings() {
-    effectiveSettings = ClientSettings.of(Map.copyOf(settings), serverSettings.asMap());
+    synchronized (settingsLock) {
+      effectiveSettings = ClientSettings.of(Map.copyOf(settings), serverSettings.asMap());
+      compiledDataExclusions = Exclusions.of(getDataExclusions());
+    }
   }
 
   /**
@@ -469,10 +480,13 @@ public final class ExceptionlessConfiguration {
    */
   public ExceptionlessConfiguration addDataExclusions(String... patterns) {
     for (String pattern : patterns) {
-      String trimmed = Strings.trimToNull(pattern);
-      if (trimmed != null) {
-        dataExclusions.add(trimmed);
+      String stripped = Strings.stripToNull(pattern);
+      if (stripped != null) {
+        dataExclusions.add(stripped);
       }
+    }
+    synchronized (settingsLock) {
+      compiledDataExclusions = Exclusions.of(getDataExclusions());
     }
     return this;
   }
@@ -488,12 +502,25 @@ public final class ExceptionlessConfiguration {
     return List.copyOf(all);
   }
 
+  /**
+   * Whether data named {@code name} matches the {@link #getDataExclusions() data exclusions}. The
+   * patterns are compiled once and recompiled when exclusions or settings change.
+   */
+  public boolean isDataExcluded(String name) {
+    return compiledDataExclusions.test(name);
+  }
+
+  /** A snapshot of the compiled data exclusions. */
+  Exclusions compiledDataExclusions() {
+    return compiledDataExclusions;
+  }
+
   /** Ignores requests whose user agent matches (wildcards supported, e.g. {@code *bot*}). */
   public ExceptionlessConfiguration addUserAgentBotPatterns(String... patterns) {
     for (String pattern : patterns) {
-      String trimmed = Strings.trimToNull(pattern);
-      if (trimmed != null) {
-        userAgentBotPatterns.add(trimmed);
+      String stripped = Strings.stripToNull(pattern);
+      if (stripped != null) {
+        userAgentBotPatterns.add(stripped);
       }
     }
     return this;
@@ -906,7 +933,7 @@ public final class ExceptionlessConfiguration {
   // ---------------------------------------------------------------------------------------------
   // Plugins
 
-  /** The plugins in the order they run (ascending priority). */
+  /** {@return the plugins in the order they run (ascending priority)} */
   public List<EventPlugin> getPlugins() {
     return plugins.stream().sorted(Comparator.comparingInt(EventPlugin::getPriority)).toList();
   }

@@ -19,7 +19,7 @@ public final class SubmittingEvent {
     this.contextData = contextData;
   }
 
-  /** The client submitting the event. */
+  /** {@return the client submitting the event} */
   public ExceptionlessClient getClient() {
     return client;
   }

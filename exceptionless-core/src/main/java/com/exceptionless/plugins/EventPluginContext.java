@@ -17,12 +17,12 @@ public final class EventPluginContext {
     this.contextData = contextData;
   }
 
-  /** The client processing the event. */
+  /** {@return the client processing the event} */
   public ExceptionlessClient getClient() {
     return client;
   }
 
-  /** The client's configuration. */
+  /** {@return the client's configuration} */
   public ExceptionlessConfiguration getConfiguration() {
     return client.getConfiguration();
   }

@@ -3,13 +3,25 @@ package com.exceptionless;
 import java.util.Locale;
 import org.jspecify.annotations.Nullable;
 
-/** Log levels understood by Exceptionless, in increasing order of severity. */
+/**
+ * Log levels understood by Exceptionless, in increasing order of severity.
+ *
+ * <p>Like any enum, {@link #toString()} (and JSON serialization of a level used as a data value)
+ * gives the constant name, e.g. {@code ERROR}; {@link #value()} is the lowercase form the server
+ * expects in an event's {@code @level}.
+ */
 public enum LogLevel {
+  /** The most detailed diagnostics, e.g. method entry and exit. */
   TRACE("trace"),
+  /** Diagnostics useful while developing or debugging. */
   DEBUG("debug"),
+  /** Normal operation worth recording. */
   INFO("info"),
+  /** Something unexpected that the application recovered from. */
   WARN("warn"),
+  /** A failure of the current operation. */
   ERROR("error"),
+  /** A failure the application can't recover from. */
   FATAL("fatal"),
   /** Disables logging. Only meaningful as a minimum level. */
   OFF("off");
@@ -20,7 +32,7 @@ public enum LogLevel {
     this.value = value;
   }
 
-  /** The value sent to the server in {@code @level}. */
+  /** {@return the value sent to the server in {@code @level}, e.g. {@code error}} */
   public String value() {
     return value;
   }
@@ -41,7 +53,7 @@ public enum LogLevel {
     if (value == null) {
       return null;
     }
-    return switch (value.trim().toLowerCase(Locale.ROOT)) {
+    return switch (value.strip().toLowerCase(Locale.ROOT)) {
       case "trace", "true", "yes", "1", "finest", "finer", "all", "verbose" -> TRACE;
       case "debug", "fine", "config" -> DEBUG;
       case "info", "information" -> INFO;
@@ -51,10 +63,5 @@ public enum LogLevel {
       case "off", "false", "no", "0", "none" -> OFF;
       default -> null;
     };
-  }
-
-  @Override
-  public String toString() {
-    return value;
   }
 }

@@ -27,9 +27,13 @@ public interface EventQueue {
   /** Resumes sending immediately after a suspension. */
   void resume();
 
+  /**
+   * {@return whether sending is paused} The queue pauses after errors and rate limiting, or when
+   * {@link #suspendProcessing} is called; events are still queued while it is paused.
+   */
   boolean isSuspended();
 
-  /** The number of queued events. */
+  /** {@return the number of queued events} */
   int size();
 
   /** Adds a listener called after each batch is posted. */

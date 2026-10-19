@@ -168,6 +168,28 @@ class ExceptionlessConfigurationTest {
   }
 
   @Test
+  void compiledDataExclusionsFollowLocalAndServerChanges() {
+    ExceptionlessConfiguration config = new ExceptionlessConfiguration();
+    assertThat(config.isDataExcluded("Password")).isFalse();
+
+    config.addDataExclusions("*password*");
+    assertThat(config.isDataExcluded("UserPassword")).isTrue();
+    assertThat(config.isDataExcluded("ssn")).isFalse();
+
+    config.applyServerSettings(Map.of("@@DataExclusions", "ssn"));
+    assertThat(config.isDataExcluded("SSN")).isTrue();
+
+    config.applyServerSettings(Map.of());
+    assertThat(config.isDataExcluded("ssn")).isFalse();
+    assertThat(config.isDataExcluded("password")).isTrue();
+
+    config.setting("@@DataExclusions", "token*");
+    assertThat(config.isDataExcluded("tokenValue")).isTrue();
+    config.setting("@@DataExclusions", null);
+    assertThat(config.isDataExcluded("tokenValue")).isFalse();
+  }
+
+  @Test
   void isLogLevelEnabled() {
     ExceptionlessConfiguration config = new ExceptionlessConfiguration();
     assertThat(config.isLogLevelEnabled("x", LogLevel.INFO, LogLevel.WARN)).isFalse();

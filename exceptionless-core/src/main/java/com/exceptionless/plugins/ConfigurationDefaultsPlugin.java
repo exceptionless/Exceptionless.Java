@@ -2,7 +2,6 @@ package com.exceptionless.plugins;
 
 import com.exceptionless.ExceptionlessConfiguration;
 import com.exceptionless.internal.DataNormalizer;
-import com.exceptionless.internal.Exclusions;
 import com.exceptionless.json.JsonSerializable;
 import com.exceptionless.models.Event;
 import java.util.Map;
@@ -27,7 +26,7 @@ public final class ConfigurationDefaultsPlugin implements EventPlugin {
     if (defaults.isEmpty()) {
       return;
     }
-    Predicate<String> excluded = Exclusions.of(config.getDataExclusions());
+    Predicate<String> excluded = config::isDataExcluded;
     for (Map.Entry<String, Object> entry : defaults.entrySet()) {
       String key = entry.getKey();
       if (event.getData().containsKey(key) || excluded.test(key)) {

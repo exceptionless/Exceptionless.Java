@@ -5,6 +5,7 @@ import com.exceptionless.LogLevel;
 import com.exceptionless.internal.Log;
 import com.exceptionless.models.ErrorInfo;
 import com.exceptionless.models.Event;
+import com.exceptionless.models.EventTypes;
 import com.exceptionless.settings.ClientSettings;
 import java.util.function.Predicate;
 
@@ -80,7 +81,7 @@ public final class EventExclusionPlugin implements EventPlugin {
 
     ErrorInfo error = event.getError();
     while (error != null) {
-      if (!settings.getTypeAndSourceSetting("error", error.getType(), true)) {
+      if (!settings.getTypeAndSourceSetting(EventTypes.ERROR, error.getType(), true)) {
         String errorType = error.getType();
         LOG.debug(() -> "Cancelling error from excluded exception type " + errorType);
         context.cancel();

@@ -12,8 +12,10 @@ import org.jspecify.annotations.Nullable;
 public final class VersionPlugin implements EventPlugin {
   public static final int PRIORITY = 80;
 
-  private volatile @Nullable String detected;
-  private volatile boolean detectionAttempted;
+  /** Lazily initialized holder: the version is looked up once, the first time it is needed. */
+  private static final class Detected {
+    static final @Nullable String VERSION = detect();
+  }
 
   @Override
   public int getPriority() {
@@ -28,24 +30,20 @@ public final class VersionPlugin implements EventPlugin {
     }
     String version = context.getConfiguration().getVersion();
     if (version == null) {
-      version = detect();
+      version = Detected.VERSION;
     }
     if (version != null) {
       event.setVersion(version);
     }
   }
 
-  private @Nullable String detect() {
-    if (!detectionAttempted) {
-      for (ModuleInfo module : ModuleCollector.getModules()) {
-        String version = module.version();
-        if (module.entry() && version != null) {
-          detected = version;
-          break;
-        }
+  /** The version of the module containing the application's entry point, if it has one. */
+  private static @Nullable String detect() {
+    for (ModuleInfo module : ModuleCollector.getModules()) {
+      if (module.entry() && module.version() != null) {
+        return module.version();
       }
-      detectionAttempted = true;
     }
-    return detected;
+    return null;
   }
 }

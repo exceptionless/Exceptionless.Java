@@ -5,13 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.exceptionless.ExceptionlessConfiguration;
 import com.exceptionless.TestClients;
 import com.exceptionless.TestClients.CapturingSubmissionClient;
+import com.exceptionless.TestClock;
 import com.exceptionless.models.Event;
 import com.exceptionless.storage.InMemoryQueueStorage;
 import com.exceptionless.submission.SubmissionResponse;
-import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -19,34 +17,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class DefaultEventQueueTest {
-  /** A clock tests can move. */
-  static final class MutableClock extends Clock {
-    Instant now = Instant.parse("2026-05-01T10:07:00Z");
-
-    @Override
-    public ZoneOffset getZone() {
-      return ZoneOffset.UTC;
-    }
-
-    @Override
-    public Clock withZone(java.time.ZoneId zone) {
-      return this;
-    }
-
-    @Override
-    public Instant instant() {
-      return now;
-    }
-
-    void advance(Duration duration) {
-      now = now.plus(duration);
-    }
-  }
-
   private final ExceptionlessConfiguration config = TestClients.config().submissionBatchSize(10);
   private final CapturingSubmissionClient submission = new CapturingSubmissionClient();
-  private final InMemoryQueueStorage storage = new InMemoryQueueStorage(1000);
-  private final MutableClock clock = new MutableClock();
+  private final TestClock clock = new TestClock();
+  private final InMemoryQueueStorage storage = new InMemoryQueueStorage(1000, clock);
   private final DefaultEventQueue queue = new DefaultEventQueue(config, submission, storage, clock);
 
   private void enqueue(int count) {
@@ -224,10 +198,8 @@ class DefaultEventQueueTest {
   void dropsEventsOlderThanMaxAge() {
     config.queueMaxAge(Duration.ofHours(1));
     enqueue(2);
-    DefaultEventQueue later =
-        new DefaultEventQueue(
-            config, submission, storage, Clock.offset(Clock.systemUTC(), Duration.ofHours(2)));
-    later.process();
+    clock.advance(Duration.ofHours(2));
+    queue.process();
     assertThat(submission.posts).isEmpty();
     assertThat(storage.size()).isZero();
   }

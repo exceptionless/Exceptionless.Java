@@ -172,7 +172,7 @@ public final class DefaultSubmissionClient implements SubmissionClient {
       return null;
     }
     try {
-      return Integer.parseInt(value.trim());
+      return Integer.parseInt(value.strip());
     } catch (NumberFormatException e) {
       return null;
     }

@@ -1,13 +1,12 @@
 package com.exceptionless.json;
 
+import com.exceptionless.internal.DataNormalizer;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.TemporalAccessor;
-import java.util.Date;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HexFormat;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -20,9 +19,14 @@ import org.jspecify.annotations.Nullable;
 /**
  * A small streaming JSON writer. It never throws for unexpected value types: anything it does not
  * understand is written using {@link Object#toString()}, so serializing an event can't fail.
+ *
+ * <p>Simple values (dates, enums, UUIDs, paths and so on) are written as strings exactly like
+ * {@link DataNormalizer} converts them, so a value looks the same whether or not it was normalized
+ * first.
  */
 public final class JsonWriter {
   private static final int MAX_DEPTH = 64;
+  private static final HexFormat HEX = HexFormat.of();
 
   private final StringBuilder out;
   // One entry per open container: true when the next element needs a leading comma.
@@ -30,10 +34,12 @@ public final class JsonWriter {
   private int depth;
   private boolean afterName;
 
+  /** Creates a writer with its own buffer; read the result with {@link #toString()}. */
   public JsonWriter() {
     this(new StringBuilder(256));
   }
 
+  /** Creates a writer that appends to {@code out}. */
   public JsonWriter(StringBuilder out) {
     this.out = out;
   }
@@ -45,6 +51,7 @@ public final class JsonWriter {
     return writer.toString();
   }
 
+  /** Starts an object: write {@link #name(String) name}/value pairs, then {@link #endObject()}. */
   public JsonWriter beginObject() {
     beforeValue();
     out.append('{');
@@ -52,12 +59,14 @@ public final class JsonWriter {
     return this;
   }
 
+  /** Ends the current object. */
   public JsonWriter endObject() {
     pop();
     out.append('}');
     return this;
   }
 
+  /** Starts an array: write values, then {@link #endArray()}. */
   public JsonWriter beginArray() {
     beforeValue();
     out.append('[');
@@ -65,6 +74,7 @@ public final class JsonWriter {
     return this;
   }
 
+  /** Ends the current array. */
   public JsonWriter endArray() {
     pop();
     out.append(']');
@@ -105,13 +115,14 @@ public final class JsonWriter {
     if (value instanceof Map<?, ?> map && map.isEmpty()) {
       return this;
     }
-    if (value instanceof java.util.Collection<?> collection && collection.isEmpty()) {
+    if (value instanceof Collection<?> collection && collection.isEmpty()) {
       return this;
     }
     name(name);
     return value(value);
   }
 
+  /** Writes {@code null}. */
   public JsonWriter nullValue() {
     beforeValue();
     out.append("null");
@@ -145,6 +156,10 @@ public final class JsonWriter {
     }
     if (value instanceof Number number) {
       return number(number);
+    }
+    if (DataNormalizer.isSimpleValue(value)) {
+      // Before Iterable: a Path is an Iterable of Paths.
+      return string(DataNormalizer.simpleValueToString(value));
     }
     if (value instanceof Map<?, ?> map) {
       beginObject();
@@ -181,27 +196,20 @@ public final class JsonWriter {
     if (value instanceof OptionalDouble optional) {
       return optional.isPresent() ? number(optional.getAsDouble()) : nullValue();
     }
-    if (value instanceof Enum<?> enumValue) {
-      return string(enumValue.name());
-    }
-    if (value instanceof OffsetDateTime dateTime) {
-      return string(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(dateTime));
-    }
-    if (value instanceof Date date) {
-      return string(date.toInstant().toString());
-    }
-    if (value instanceof Instant || value instanceof TemporalAccessor) {
-      return string(value.toString());
-    }
     return string(String.valueOf(value));
   }
 
+  /** Writes a string value, escaping it as needed. */
   public JsonWriter string(String value) {
     beforeValue();
     writeString(value);
     return this;
   }
 
+  /**
+   * Writes a number. Whole floating point values are written without a fraction; NaN and infinity,
+   * which JSON can't represent, are written as {@code null}.
+   */
   public JsonWriter number(Number value) {
     if (value instanceof Double || value instanceof Float) {
       double d = value.doubleValue();
@@ -239,6 +247,7 @@ public final class JsonWriter {
     return this;
   }
 
+  /** {@return the JSON written so far} */
   @Override
   public String toString() {
     return out.toString();
@@ -259,9 +268,7 @@ public final class JsonWriter {
 
   private void push() {
     if (depth == needsComma.length) {
-      boolean[] grown = new boolean[needsComma.length * 2];
-      System.arraycopy(needsComma, 0, grown, 0, needsComma.length);
-      needsComma = grown;
+      needsComma = Arrays.copyOf(needsComma, needsComma.length * 2);
     }
     needsComma[depth++] = false;
   }
@@ -287,7 +294,7 @@ public final class JsonWriter {
         case '\f' -> out.append("\\f");
         default -> {
           if (c < 0x20 || c == ' ' || c == ' ') {
-            out.append(String.format("\\u%04x", (int) c));
+            out.append("\\u").append(HEX.toHexDigits(c));
           } else if (Character.isSurrogate(c)) {
             // Keep valid surrogate pairs; replace lone surrogates so the output is valid UTF-8.
             if (Character.isHighSurrogate(c)

@@ -18,8 +18,8 @@ import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Discovers the libraries on the class path from their jar manifests. The result is computed once
- * and cached, because scanning can take a few milliseconds.
+ * Discovers the libraries on the class path from their jar manifests. The result is computed once,
+ * on first use, and cached, because scanning can take a few milliseconds.
  */
 public final class ModuleCollector {
   static final int MAX_MODULES = 500;
@@ -27,23 +27,16 @@ public final class ModuleCollector {
   private static final Pattern JAR_NAME =
       Pattern.compile("(?:^|[/!])([^/!]+?)(?:-(\\d+(?:\\.\\w+)*(?:[-.+][\\w.]+)?))?\\.jar(?:!|$)");
 
-  private static volatile @Nullable List<ModuleInfo> cached;
-
   private ModuleCollector() {}
+
+  /** Lazily initialized holder: the JVM runs {@code collect()} once, on first access. */
+  private static final class Modules {
+    static final List<ModuleInfo> ALL = List.copyOf(collect());
+  }
 
   /** The modules on the class path, sorted by name. Never throws. */
   public static List<ModuleInfo> getModules() {
-    List<ModuleInfo> modules = cached;
-    if (modules == null) {
-      synchronized (ModuleCollector.class) {
-        modules = cached;
-        if (modules == null) {
-          modules = List.copyOf(collect());
-          cached = modules;
-        }
-      }
-    }
-    return modules;
+    return Modules.ALL;
   }
 
   static List<ModuleInfo> collect() {
@@ -57,7 +50,7 @@ public final class ModuleCollector {
       if (loader == null) {
         return List.of();
       }
-      String entryPoint = entryPoint();
+      String entryPoint = JavaCommand.mainClassOrJar();
       Enumeration<URL> manifests = loader.getResources("META-INF/MANIFEST.MF");
       while (manifests.hasMoreElements() && byName.size() < MAX_MODULES) {
         URL url = manifests.nextElement();
@@ -133,22 +126,9 @@ public final class ModuleCollector {
         entryPoint != null
             && (entryPoint.equals(mainClass)
                 || entryPoint.equals(startClass)
-                || (entryPoint.endsWith(".jar") && location.contains(fileNameOf(entryPoint))));
+                || (entryPoint.endsWith(".jar")
+                    && location.contains(JavaCommand.fileName(entryPoint))));
     return new Library(name, version, entry);
-  }
-
-  private static @Nullable String entryPoint() {
-    String command = System.getProperty("sun.java.command");
-    if (command == null || command.isBlank()) {
-      return null;
-    }
-    int space = command.indexOf(' ');
-    return space > 0 ? command.substring(0, space) : command;
-  }
-
-  private static String fileNameOf(String path) {
-    int slash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
-    return slash >= 0 ? path.substring(slash + 1) : path;
   }
 
   private static @Nullable String symbolicName(@Nullable String value) {
@@ -156,13 +136,14 @@ public final class ModuleCollector {
       return null;
     }
     int semicolon = value.indexOf(';');
-    return semicolon > 0 ? value.substring(0, semicolon).trim() : value.trim();
+    return (semicolon > 0 ? value.substring(0, semicolon) : value).strip();
   }
 
   private static @Nullable String firstNonBlank(@Nullable String... values) {
     for (String value : values) {
-      if (value != null && !value.isBlank()) {
-        return value.trim();
+      String stripped = Strings.stripToNull(value);
+      if (stripped != null) {
+        return stripped;
       }
     }
     return null;

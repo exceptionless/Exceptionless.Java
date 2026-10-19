@@ -2,6 +2,7 @@ package com.exceptionless.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.exceptionless.TestJson;
 import com.exceptionless.json.JsonWriter;
 import com.exceptionless.models.UserInfo;
 import java.math.BigDecimal;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
 class DataNormalizerTest {
@@ -100,9 +102,7 @@ class DataNormalizerTest {
             new BigDecimal("9.99"),
             new Customer("Ann", new Address("Main", "Dallas"), List.of("vip"), "secret"));
     Object normalized = DataNormalizer.normalize(order, 5, NONE);
-    assertThat(normalized).isInstanceOf(Map.class);
-    @SuppressWarnings("unchecked")
-    Map<String, Object> map = (Map<String, Object>) normalized;
+    Map<String, Object> map = TestJson.object(normalized);
     assertThat(map)
         .containsEntry("id", "o-1")
         .containsEntry("total", new BigDecimal("9.99"))
@@ -209,12 +209,16 @@ class DataNormalizerTest {
     for (int i = 0; i < 5000; i++) {
       big.add(i);
     }
-    assertThat((List<?>) DataNormalizer.normalize(big, 5, NONE)).hasSize(1000);
+    assertThat(DataNormalizer.normalize(big, 5, NONE))
+        .asInstanceOf(InstanceOfAssertFactories.LIST)
+        .hasSize(1000);
     Map<Integer, Integer> bigMap = new HashMap<>();
     for (int i = 0; i < 5000; i++) {
       bigMap.put(i, i);
     }
-    assertThat((Map<?, ?>) DataNormalizer.normalize(bigMap, 5, NONE)).hasSize(1000);
+    assertThat(DataNormalizer.normalize(bigMap, 5, NONE))
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .hasSize(1000);
   }
 
   @Test

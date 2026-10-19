@@ -1,13 +1,14 @@
 package com.exceptionless.plugins;
 
 import com.exceptionless.ExceptionlessConfiguration;
-import com.exceptionless.internal.Exclusions;
+import com.exceptionless.internal.Strings;
 import com.exceptionless.models.Event;
 import com.exceptionless.models.RequestInfo;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.jspecify.annotations.Nullable;
@@ -57,7 +58,7 @@ public final class RequestInfoPlugin implements EventPlugin {
 
   /** Applies the privacy settings and data exclusions to {@code request} in place. */
   private static void sanitize(RequestInfo request, ExceptionlessConfiguration config) {
-    Predicate<String> excluded = Exclusions.of(config.getDataExclusions());
+    Predicate<String> excluded = config::isDataExcluded;
 
     if (!config.isIncludeIpAddress()) {
       request.setClientIpAddress(null);
@@ -79,7 +80,7 @@ public final class RequestInfoPlugin implements EventPlugin {
       for (Map.Entry<?, ?> entry : form.entrySet()) {
         String key = String.valueOf(entry.getKey());
         if (!excluded.test(key) && entry.getValue() != null) {
-          filtered.put(key, truncate(entry.getValue()));
+          filtered.put(key, truncateFormValue(entry.getValue()));
         }
       }
       request.setPostData(filtered.isEmpty() ? null : filtered);
@@ -97,7 +98,11 @@ public final class RequestInfoPlugin implements EventPlugin {
             || entry.getValue() == null) {
           continue;
         }
-        List<String> values = entry.getValue().stream().map(v -> (String) truncate(v)).toList();
+        List<String> values =
+            entry.getValue().stream()
+                .filter(Objects::nonNull)
+                .map(RequestInfoPlugin::truncate)
+                .toList();
         filtered.put(name, values);
       }
       request.setHeaders(filtered.isEmpty() ? null : filtered);
@@ -112,16 +117,18 @@ public final class RequestInfoPlugin implements EventPlugin {
     Map<String, String> filtered = new LinkedHashMap<>();
     for (Map.Entry<String, String> entry : values.entrySet()) {
       if (entry.getKey() != null && entry.getValue() != null && !excluded.test(entry.getKey())) {
-        filtered.put(entry.getKey(), (String) truncate(entry.getValue()));
+        filtered.put(entry.getKey(), truncate(entry.getValue()));
       }
     }
     return filtered.isEmpty() ? null : filtered;
   }
 
-  private static Object truncate(Object value) {
-    if (value instanceof String s && s.length() > MAX_VALUE_LENGTH) {
-      return s.substring(0, MAX_VALUE_LENGTH);
-    }
-    return value;
+  private static String truncate(String value) {
+    return Strings.truncate(value, MAX_VALUE_LENGTH);
+  }
+
+  /** Form values are usually strings, but integrations may pass other simple values as-is. */
+  private static Object truncateFormValue(Object value) {
+    return value instanceof String text ? truncate(text) : value;
   }
 }

@@ -1,44 +1,42 @@
 package com.exceptionless.internal;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /** String helpers. */
 public final class Strings {
+  private static final Pattern LIST_SEPARATORS = Pattern.compile("[,;\\r\\n]");
+
   private Strings() {}
 
   public static boolean isBlank(@Nullable String value) {
     return value == null || value.isBlank();
   }
 
-  public static @Nullable String trimToNull(@Nullable String value) {
+  /** {@return {@code value} without leading and trailing white space, or null when blank} */
+  public static @Nullable String stripToNull(@Nullable String value) {
     if (value == null) {
       return null;
     }
-    String trimmed = value.trim();
-    return trimmed.isEmpty() ? null : trimmed;
+    String stripped = value.strip();
+    return stripped.isEmpty() ? null : stripped;
   }
 
-  /** Splits a comma, semicolon or newline separated list, trimming and dropping blanks. */
+  /** Splits a comma, semicolon or newline separated list, stripping and dropping blanks. */
   public static List<String> splitList(@Nullable String value) {
-    if (value == null || value.isBlank()) {
+    if (isBlank(value)) {
       return List.of();
     }
-    List<String> result = new ArrayList<>();
-    for (String part : value.split("[,;\\r\\n]")) {
-      String trimmed = part.trim();
-      if (!trimmed.isEmpty()) {
-        result.add(trimmed);
-      }
-    }
-    return List.copyOf(result);
+    return LIST_SEPARATORS
+        .splitAsStream(value)
+        .map(String::strip)
+        .filter(part -> !part.isEmpty())
+        .toList();
   }
 
-  public static @Nullable String truncate(@Nullable String value, int maxLength) {
-    if (value == null || value.length() <= maxLength) {
-      return value;
-    }
-    return value.substring(0, maxLength);
+  /** {@return {@code value}, cut to at most {@code maxLength} characters} */
+  public static String truncate(String value, int maxLength) {
+    return value.length() <= maxLength ? value : value.substring(0, maxLength);
   }
 }

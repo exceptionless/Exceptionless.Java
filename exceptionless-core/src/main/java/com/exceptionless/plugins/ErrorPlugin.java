@@ -2,11 +2,11 @@ package com.exceptionless.plugins;
 
 import com.exceptionless.ExceptionlessConfiguration;
 import com.exceptionless.internal.ErrorConverter;
-import com.exceptionless.internal.Exclusions;
 import com.exceptionless.internal.ModuleCollector;
 import com.exceptionless.models.Event;
 import com.exceptionless.models.EventTypes;
 import com.exceptionless.models.ModuleInfo;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -20,8 +20,8 @@ import java.util.WeakHashMap;
 public final class ErrorPlugin implements EventPlugin {
   public static final int PRIORITY = 20;
 
-  private final Set<Throwable> processed =
-      Collections.newSetFromMap(Collections.synchronizedMap(new WeakHashMap<>()));
+  /** Exceptions already reported. Weak, so reported exceptions can still be collected. */
+  private final Set<Throwable> processed = Collections.newSetFromMap(new WeakHashMap<>());
 
   @Override
   public int getPriority() {
@@ -45,8 +45,7 @@ public final class ErrorPlugin implements EventPlugin {
     }
     ExceptionlessConfiguration config = context.getConfiguration();
     List<ModuleInfo> modules = config.isIncludeModules() ? ModuleCollector.getModules() : List.of();
-    event.setError(
-        ErrorConverter.convert(exception, Exclusions.of(config.getDataExclusions()), modules));
+    event.setError(ErrorConverter.convert(exception, config::isDataExcluded, modules));
   }
 
   /**
@@ -54,10 +53,10 @@ public final class ErrorPlugin implements EventPlugin {
    * wrapper of an already reported exception (or a cause of one) isn't sent again.
    */
   private boolean markProcessed(Throwable exception) {
-    List<Throwable> chain = new java.util.ArrayList<>();
+    List<Throwable> chain = new ArrayList<>();
     for (Throwable t = exception;
-        t != null && chain.size() < 20 && !chain.contains(t);
-        t = t.getCause()) {
+        t != null && chain.size() < ErrorConverter.MAX_CAUSES && !chain.contains(t);
+        t = ErrorConverter.safeCause(t)) {
       chain.add(t);
     }
     synchronized (processed) {
@@ -73,6 +72,8 @@ public final class ErrorPlugin implements EventPlugin {
 
   /** Visible for tests: forgets which exceptions were reported. */
   void reset() {
-    processed.clear();
+    synchronized (processed) {
+      processed.clear();
+    }
   }
 }

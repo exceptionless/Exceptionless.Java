@@ -51,6 +51,10 @@ public final class Log {
     logger.log(System.Logger.Level.WARNING, message, error);
   }
 
+  public void error(String message) {
+    logger.log(System.Logger.Level.ERROR, message);
+  }
+
   public void error(String message, @Nullable Throwable error) {
     logger.log(System.Logger.Level.ERROR, message, error);
   }

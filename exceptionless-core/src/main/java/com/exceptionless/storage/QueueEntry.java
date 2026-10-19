@@ -10,4 +10,9 @@ import java.time.Instant;
  * @param attempts how many times sending it has failed
  * @param enqueuedAt when it was queued
  */
-public record QueueEntry(String id, String json, int attempts, Instant enqueuedAt) {}
+public record QueueEntry(String id, String json, int attempts, Instant enqueuedAt) {
+  /** {@return a copy of this entry with {@code attempts} replaced} */
+  public QueueEntry withAttempts(int attempts) {
+    return new QueueEntry(id, json, attempts, enqueuedAt);
+  }
+}

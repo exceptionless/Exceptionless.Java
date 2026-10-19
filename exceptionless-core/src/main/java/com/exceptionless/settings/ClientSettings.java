@@ -150,7 +150,7 @@ public final class ClientSettings {
     if (value == null) {
       return null;
     }
-    return switch (value.trim().toLowerCase(Locale.ROOT)) {
+    return switch (value.strip().toLowerCase(Locale.ROOT)) {
       case "true", "yes", "1", "on" -> Boolean.TRUE;
       case "false", "no", "0", "off" -> Boolean.FALSE;
       default -> null;
