@@ -44,7 +44,15 @@ Test helpers shared between modules (`FakeServer`, `TestClients`) live in
   (`Duration`, `InstantSource`) instead of numbers, immutable collections from getters, and plain
   JavaBeans (`void` setters) for the mutable models.
 
-## Releasing
+## Versions and releases
 
-Push a tag like `v2.0.0`. The release workflow builds, signs and publishes every module to Maven Central
-and creates a GitHub release.
+Versions come from git tags through [MinVer](https://github.com/adamralph/minver), the same as the
+other Exceptionless builds. Local builds are `2.0.0-SNAPSHOT`; CI passes the computed version as
+`-Drevision`.
+
+- To release, push a tag such as `v2.0.0` or `v2.1.0-beta.1`, or create a GitHub release with one. The
+  Build workflow tests that commit and publishes every module to Maven Central under the tag's version.
+- Every other push publishes a pre-release build to GitHub Packages, versioned from the latest tag:
+  `2.0.1-preview.0.12` on `main`, `2.0.1-preview.my-branch.0.12` on a branch.
+- Pull requests build and test only. Add the `e2e` label to also run the end-to-end tests; pushes
+  always run them.
