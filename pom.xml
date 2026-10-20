@@ -100,6 +100,7 @@
         <spotless-maven-plugin.version>3.10.4</spotless-maven-plugin.version>
         <google-java-format.version>1.35.0</google-java-format.version>
         <central-publishing-maven-plugin.version>0.9.0</central-publishing-maven-plugin.version>
+        <build-helper-maven-plugin.version>3.6.2</build-helper-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -108,14 +109,6 @@
                 <groupId>com.exceptionless</groupId>
                 <artifactId>exceptionless-core</artifactId>
                 <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <!-- Shared test helpers (FakeServer, TestClients); see exceptionless-core/pom.xml. -->
-                <groupId>com.exceptionless</groupId>
-                <artifactId>exceptionless-core</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>com.exceptionless</groupId>
@@ -258,6 +251,28 @@
                     <version>${jacoco-maven-plugin.version}</version>
                 </plugin>
                 <plugin>
+                    <!-- Compiles the shared test helpers (FakeServer, TestClients) into a module's tests.
+                         Modules opt in by declaring the plugin. Sharing the source instead of a test-jar
+                         keeps the helpers out of the published artifacts. -->
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>build-helper-maven-plugin</artifactId>
+                    <version>${build-helper-maven-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>add-test-fixtures</id>
+                            <phase>generate-test-sources</phase>
+                            <goals>
+                                <goal>add-test-source</goal>
+                            </goals>
+                            <configuration>
+                                <sources>
+                                    <source>${project.basedir}/../exceptionless-core/src/testFixtures/java</source>
+                                </sources>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
@@ -353,6 +368,9 @@
                         <version>${spotless-maven-plugin.version}</version>
                         <configuration>
                             <java>
+                                <includes>
+                                    <include>src/*/java/**/*.java</include>
+                                </includes>
                                 <googleJavaFormat>
                                     <version>${google-java-format.version}</version>
                                 </googleJavaFormat>

@@ -37,12 +37,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.exceptionless</groupId>
-            <artifactId>exceptionless-core</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
             <scope>test</scope>
@@ -79,6 +73,10 @@
                         <arg>-Xlint:-classfile</arg>
                     </compilerArgs>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

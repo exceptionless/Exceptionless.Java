@@ -21,6 +21,10 @@ unless you ask for them:
 
 Test the Spring Boot starter against Spring Boot 4 with `-Pspring-boot-4`.
 
+Test helpers shared between modules (`FakeServer`, `TestClients`) live in
+`exceptionless-core/src/testFixtures/java`. A module compiles them into its tests by declaring
+`build-helper-maven-plugin` in its `pom.xml`; they are not published.
+
 ## Guidelines
 
 - `exceptionless-core` has **no runtime dependencies**. Keep it that way: use the JDK (`java.net.http`,

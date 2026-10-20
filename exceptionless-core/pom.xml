@@ -57,30 +57,8 @@
                 </executions>
             </plugin>
             <plugin>
-                <!-- Publishes the shared test helpers as exceptionless-core-tests.jar for the integration
-                     modules' tests. Only the helpers: the core tests and their resources (such as
-                     exceptionless.properties) must not leak onto other modules' test class paths. -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>test-jar</id>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                        <configuration>
-                            <includes>
-                                <include>com/exceptionless/FakeServer*.class</include>
-                                <include>com/exceptionless/TestClients*.class</include>
-                            </includes>
-                            <archive>
-                                <manifestEntries>
-                                    <Automatic-Module-Name>com.exceptionless.core.testing</Automatic-Module-Name>
-                                </manifestEntries>
-                            </archive>
-                        </configuration>
-                    </execution>
-                </executions>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
