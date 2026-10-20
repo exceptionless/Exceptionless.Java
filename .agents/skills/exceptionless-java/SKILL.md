@@ -6,7 +6,7 @@ description: Use this skill when a developer wants to install, configure, troubl
 # Exceptionless Java Client
 
 Produce source-accurate setup code and guidance for the Exceptionless Java client (`com.exceptionless:*`,
-version 2.x, Java 17+). Keep answers compact and copyable, with imports.
+version 0.9 and later, Java 17+). Keep answers compact and copyable, with imports.
 
 ## Pick the module
 

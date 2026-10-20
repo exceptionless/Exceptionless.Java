@@ -25,7 +25,7 @@ Use the BOM to keep module versions aligned:
     <dependency>
       <groupId>com.exceptionless</groupId>
       <artifactId>exceptionless-bom</artifactId>
-      <version>2.0.0</version>
+      <version>0.9.0-beta.1</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>
@@ -50,7 +50,7 @@ Use the BOM to keep module versions aligned:
 Gradle:
 
 ```kotlin
-implementation(platform("com.exceptionless:exceptionless-bom:2.0.0"))
+implementation(platform("com.exceptionless:exceptionless-bom:0.9.0-beta.1"))
 implementation("com.exceptionless:exceptionless-core")
 ```
 
@@ -282,7 +282,7 @@ config.addEventExclusion(event -> event.isNotFound() && event.getSource().endsWi
 
 ## Upgrading from 0.1
 
-2.0 is a rewrite; see [MIGRATION.md](MIGRATION.md).
+0.9 is a rewrite; see [MIGRATION.md](MIGRATION.md).
 
 ## Samples
 

@@ -15,7 +15,7 @@ class ClientInfoTest {
     "3, 3.0",
     "1.2.3.4.5, 1.2.3.4",
     "2.0.0-rc.1+abc, 2.0.0",
-    "garbage, 2.0.0"
+    "garbage, 0.9.0"
   })
   void numericVersionIsParsableByTheServer(String version, String expected) {
     assertThat(ClientInfo.numericVersion(version)).isEqualTo(expected);

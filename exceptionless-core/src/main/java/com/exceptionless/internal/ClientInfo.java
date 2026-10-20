@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 public final class ClientInfo {
   public static final String NAME = "exceptionless-java";
 
-  /** The full version, e.g. {@code 2.0.0-SNAPSHOT}. */
+  /** The full version, e.g. {@code 0.9.0-SNAPSHOT}. */
   public static final String VERSION = loadVersion();
 
   /**
@@ -35,13 +35,13 @@ public final class ClientInfo {
     } catch (Exception e) {
       // Fall through to the default.
     }
-    return "2.0.0";
+    return "0.9.0";
   }
 
   static String numericVersion(String version) {
     Matcher matcher = Pattern.compile("^(\\d+)(\\.\\d+)?(\\.\\d+)?(\\.\\d+)?").matcher(version);
     if (!matcher.find()) {
-      return "2.0.0";
+      return "0.9.0";
     }
     String result = matcher.group();
     return result.contains(".") ? result : result + ".0";

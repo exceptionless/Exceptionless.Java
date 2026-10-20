@@ -1,12 +1,12 @@
-# Migrating from 0.1 to 2.0
+# Migrating from 0.1 to 0.9
 
-2.0 is a rewrite. The 0.1 client sent data in a format the current Exceptionless server no longer
+0.9 is a rewrite. The 0.1 client sent data in a format the current Exceptionless server no longer
 reads (stack traces, environment and request details were dropped), so upgrading is strongly
 recommended.
 
 ## Dependencies
 
-| 0.1 | 2.0 |
+| 0.1 | 0.9 |
 | --- | --- |
 | `com.exceptionless:exceptionless-client` | `com.exceptionless:exceptionless-core` (plus integrations, see the README) |
 | Java 11 | Java 17 |
@@ -16,7 +16,7 @@ Remove any OkHttp version pins you added for the old client.
 
 ## Packages and types
 
-| 0.1 | 2.0 |
+| 0.1 | 0.9 |
 | --- | --- |
 | `com.exceptionless.exceptionlessclient.ExceptionlessClient` | `com.exceptionless.ExceptionlessClient` |
 | `ExceptionlessClient.from(apiKey, serverUrl)` | `ExceptionlessClient.create(c -> c.apiKey(apiKey).serverUrl(serverUrl))` or `Exceptionless.startup(...)` |

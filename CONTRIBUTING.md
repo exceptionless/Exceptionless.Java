@@ -47,12 +47,14 @@ Test helpers shared between modules (`FakeServer`, `TestClients`) live in
 ## Versions and releases
 
 Versions come from git tags through [MinVer](https://github.com/adamralph/minver), the same as the
-other Exceptionless builds. Local builds are `2.0.0-SNAPSHOT`; CI passes the computed version as
+other Exceptionless builds. Local builds are `0.9.0-SNAPSHOT`; CI passes the computed version as
 `-Drevision`.
 
-- To release, push a tag such as `v2.0.0` or `v2.1.0-beta.1`, or create a GitHub release with one. The
+- To release, push a tag such as `v0.9.0-beta.1` or `v1.0.0`, or create a GitHub release with one. The
   Build workflow tests that commit and publishes every module to Maven Central under the tag's version.
 - Every other push publishes a pre-release build to GitHub Packages, versioned from the latest tag:
-  `2.0.1-preview.0.12` on `main`, `2.0.1-preview.my-branch.0.12` on a branch.
+  `0.9.0-alpha.0.12` on `main`, `0.9.0-alpha.my-branch.0.12` on a branch.
+- Pre-release tags use `alpha`, `beta` or `rc` (`v1.0.0-rc.1`). Maven sorts other labels, such as
+  `preview`, after the release, so `1.0.0-preview.1` would count as newer than `1.0.0`.
 - Pull requests build and test only. Add the `e2e` label to also run the end-to-end tests; pushes
   always run them.
