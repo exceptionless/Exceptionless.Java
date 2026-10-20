@@ -1,0 +1,4 @@
+interface:
+  display_name: "Exceptionless Java"
+  short_description: "Configure the Exceptionless Java client"
+  default_prompt: "Use $exceptionless-java to configure, document, or troubleshoot the Exceptionless Java client."

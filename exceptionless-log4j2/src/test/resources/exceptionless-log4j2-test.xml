@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn">
+  <Appenders>
+    <Exceptionless name="Exceptionless"
+                   apiKey="LhhP1C9gijpSKCslHHCvwdSIz298twx271nTest"
+                   serverUrl="${sys:exceptionless.test.serverUrl}"
+                   minimumLevel="info"
+                   includeMdc="false" />
+  </Appenders>
+  <Loggers>
+    <Root level="debug">
+      <AppenderRef ref="Exceptionless" />
+    </Root>
+  </Loggers>
+</Configuration>

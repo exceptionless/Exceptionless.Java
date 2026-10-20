@@ -25,3 +25,6 @@ hs_err_pid*
 .idea/
 *.iml
 target/
+# Maven
+.flattened-pom.xml
+!.mvn/wrapper/maven-wrapper.jar

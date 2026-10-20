@@ -1,0 +1,12 @@
+<configuration>
+  <appender name="EXCEPTIONLESS" class="com.exceptionless.logback.ExceptionlessAppender">
+    <apiKey>LhhP1C9gijpSKCslHHCvwdSIz298twx271nTest</apiKey>
+    <serverUrl>${exceptionlessServerUrl}</serverUrl>
+    <minimumLevel>info</minimumLevel>
+    <includeMdc>false</includeMdc>
+  </appender>
+
+  <root level="DEBUG">
+    <appender-ref ref="EXCEPTIONLESS" />
+  </root>
+</configuration>
