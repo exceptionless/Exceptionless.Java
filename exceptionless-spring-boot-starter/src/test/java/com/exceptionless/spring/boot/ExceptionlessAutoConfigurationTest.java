@@ -346,12 +346,15 @@ class ExceptionlessAutoConfigurationTest {
   void addsTheAppenderAgainWhenLogbackIsReset() throws Exception {
     LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
     AtomicReference<LogbackAppenderRegistration> registration = new AtomicReference<>();
+    List<ExceptionlessAppender> added = new ArrayList<>();
     try {
       runner.run(
           context -> {
             ExceptionlessClient client = context.getBean(ExceptionlessClient.class);
             registration.set(context.getBean(LogbackAppenderRegistration.class));
             ExceptionlessAppender original = registration.get().getAppender();
+            assertThat(original).isNotNull();
+            added.add(original);
             assertThat(rootAppenders()).contains(original);
 
             // What Logback does when it reloads a changed logback.xml (scan="true").
@@ -359,6 +362,7 @@ class ExceptionlessAutoConfigurationTest {
 
             ExceptionlessAppender replacement = registration.get().getAppender();
             assertThat(replacement).isNotNull().isNotSameAs(original);
+            added.add(replacement);
             assertThat(replacement.isStarted()).isTrue();
             assertThat(original.isStarted()).isFalse();
             assertThat(rootAppenders()).contains(replacement).doesNotContain(original);
@@ -368,8 +372,8 @@ class ExceptionlessAutoConfigurationTest {
                 .extracting(e -> e.get("message"))
                 .contains("After reset");
           });
-      assertThat(rootAppenders())
-          .noneMatch(a -> LogbackAppenderRegistration.APPENDER_NAME.equals(a.getName()));
+      // Only this context's appenders: a cached context from another test class can have its own.
+      assertThat(rootAppenders()).doesNotContainAnyElementsOf(added);
       assertThat(loggerContext.getCopyOfListenerList()).doesNotContain(registration.get());
     } finally {
       // Restore the default configuration (logback-test.xml or Logback's defaults).
