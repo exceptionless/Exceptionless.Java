@@ -67,7 +67,7 @@
         <project.build.outputTimestamp>2026-01-01T00:00:00Z</project.build.outputTimestamp>
 
         <!-- Integration targets (provided scope; the consumer brings their own version) -->
-        <jspecify.version>1.0.0</jspecify.version>
+        <jspecify.version>1.0.1</jspecify.version>
         <slf4j.version>2.0.17</slf4j.version>
         <logback.version>1.5.34</logback.version>
         <log4j2.version>2.24.3</log4j2.version>
