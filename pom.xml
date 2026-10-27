@@ -69,7 +69,7 @@
         <!-- Integration targets (provided scope; the consumer brings their own version) -->
         <jspecify.version>1.0.0</jspecify.version>
         <slf4j.version>2.0.17</slf4j.version>
-        <logback.version>1.5.18</logback.version>
+        <logback.version>1.5.34</logback.version>
         <log4j2.version>2.24.3</log4j2.version>
         <jakarta.servlet.version>6.0.0</jakarta.servlet.version>
         <spring-boot.version>3.5.16</spring-boot.version>
