@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.exceptionless</groupId>
+        <artifactId>exceptionless-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>exceptionless-e2e-tests</artifactId>
+    <name>Exceptionless End-to-End Tests</name>
+    <description>
+        Submits events with the Java client to a real Exceptionless server running in Docker and verifies what
+        the server stored. Not published. Skipped unless run with -De2e=true (or -Pe2e).
+    </description>
+
+    <properties>
+        <automatic.module.name>com.exceptionless.e2e</automatic.module.name>
+        <testcontainers.version>2.0.5</testcontainers.version>
+        <!-- The published all-in-one image (server + jobs + Elasticsearch). Override with -De2e.image=... -->
+        <e2e.image>exceptionless/exceptionless:8.10.0</e2e.image>
+        <!-- Use an already running server instead of Docker, e.g. -De2e.serverUrl=http://localhost:7110 -->
+        <e2e.serverUrl></e2e.serverUrl>
+        <skipE2E>true</skipE2E>
+
+        <maven.install.skip>true</maven.install.skip>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <jacoco.skip>true</jacoco.skip>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.exceptionless</groupId>
+            <artifactId>exceptionless-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- Testcontainers brings slf4j-api 1.7; slf4j-simple 2.x needs the 2.x API to bind. -->
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <skipTests>${skipE2E}</skipTests>
+                    <groups>e2e</groups>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <systemPropertyVariables>
+                        <e2e.image>${e2e.image}</e2e.image>
+                        <e2e.serverUrl>${e2e.serverUrl}</e2e.serverUrl>
+                        <e2e.outputDirectory>${project.build.directory}/e2e</e2e.outputDirectory>
+                        <org.slf4j.simpleLogger.defaultLogLevel>info</org.slf4j.simpleLogger.defaultLogLevel>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>e2e</id>
+            <activation>
+                <property>
+                    <name>e2e</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <skipE2E>false</skipE2E>
+            </properties>
+        </profile>
+    </profiles>
+</project>

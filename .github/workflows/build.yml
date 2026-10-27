@@ -1,0 +1,227 @@
+name: Build
+
+# Versions come from git tags (MinVer), like the other Exceptionless builds:
+# - A v* tag (v0.9.0-beta.1, v1.0.0) builds that version and publishes it to Maven Central.
+# - Other pushes build a pre-release version, such as 0.9.0-alpha.0.12 on main or
+#   0.9.0-alpha.my-branch.0.12 on a branch, and publish it to GitHub Packages.
+# Pre-release labels must be alpha, beta or rc: Maven orders unknown labels such as "preview"
+# after the release (1.0.0-preview.1 > 1.0.0).
+# - Pull requests build and test only.
+#
+# Required secrets for releases: CENTRAL_USERNAME and CENTRAL_PASSWORD (a Central Portal user
+# token), GPG_PRIVATE_KEY and GPG_PASSPHRASE.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Never cancel a tag build; it may be publishing a release.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  MAVEN_ARGS: --batch-mode --no-transfer-progress
+
+jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET for MinVer
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Compute version
+        id: version
+        run: |
+          # Pre-release versions from branches other than main, maintenance branches (1.x, 1.2),
+          # tags and pull requests carry the branch name.
+          branch="${GITHUB_REF##*/}"
+          if [[ "$GITHUB_REF" != refs/heads/* || "$branch" == main || "$branch" =~ ^[0-9]+\.(x|[0-9]+)$ ]]; then
+            branch=""
+          fi
+          branch="$(tr -c 'A-Za-z0-9-' '-' <<< "$branch" | sed -E 's/-+$//')"
+          suffix="${branch:+$branch.}"
+
+          dotnet tool install --global minver-cli --version 8.0.0
+          version="$(minver --tag-prefix v --default-pre-release-identifiers "alpha.${suffix}0" --minimum-major-minor 0.9)"
+
+          # After a pre-release tag (v1.1.0-beta.1) MinVer appends only the height; add the branch.
+          if [[ -n "$branch" && "$version" != *"$branch"* ]]; then
+            version="$(sed -E "s/\.([0-9]+)$/.${suffix}\1/" <<< "$version")"
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "### Version: $version" >> "$GITHUB_STEP_SUMMARY"
+          echo "Version: $version (ref: $GITHUB_REF, event: $GITHUB_EVENT_NAME)"
+
+  build:
+    name: JDK ${{ matrix.java }} on ${{ matrix.os }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        java: [17, 21, 25]
+        include:
+          - os: windows-latest
+            java: 21
+          - os: macos-latest
+            java: 21
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          cache: maven
+
+      - name: Build and test
+        run: ./mvnw verify -Drevision="$VERSION"
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-reports-${{ matrix.os }}-jdk${{ matrix.java }}
+          path: '**/target/surefire-reports/'
+
+  spring-boot-4:
+    name: Spring Boot 4 compatibility
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Test the starter against Spring Boot 4
+        run: ./mvnw -pl exceptionless-spring-boot-starter -am verify -Pspring-boot-4 -Drevision="$VERSION"
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+
+  e2e:
+    name: End-to-end (real Exceptionless server)
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Every push (so every published build) and pull requests labeled e2e.
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'e2e')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Run end-to-end tests
+        run: ./mvnw -pl exceptionless-e2e-tests -am verify -De2e=true -Drevision="$VERSION"
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+
+  publish-ci:
+    name: Publish CI packages
+    needs: [version, build, spring-boot-4, e2e]
+    if: github.event_name != 'pull_request' && startsWith(github.ref, 'refs/heads/') && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+
+      - name: Publish to GitHub Packages
+        # A CI package is a convenience; failing to publish one doesn't fail the build.
+        continue-on-error: true
+        run: >-
+          ./mvnw deploy -DskipTests -Drevision="$VERSION"
+          -DaltDeploymentRepository="github::https://maven.pkg.github.com/$GITHUB_REPOSITORY"
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          GITHUB_TOKEN: ${{ github.token }}
+
+  release:
+    name: Publish to Maven Central
+    needs: [version, build, spring-boot-4, e2e]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check the version matches the tag
+        run: |
+          if [[ "$VERSION" != "${GITHUB_REF_NAME#v}" ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME is not a version tag (computed version: $VERSION)."
+            exit 1
+          fi
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: GPG_PASSPHRASE
+
+      - name: Publish to Maven Central
+        run: ./mvnw deploy -Prelease -DskipTests -Drevision="$VERSION"
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

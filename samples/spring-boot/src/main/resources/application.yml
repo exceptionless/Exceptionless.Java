@@ -1,0 +1,7 @@
+exceptionless:
+  api-key: ${EXCEPTIONLESS_API_KEY:}
+  # server-url: http://localhost:5200
+  default-tags: sample, spring-boot
+  use-sessions: false
+  logging:
+    minimum-level: warn

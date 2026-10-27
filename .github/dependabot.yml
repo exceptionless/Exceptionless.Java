@@ -1,0 +1,23 @@
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      test-dependencies:
+        patterns: ["org.junit*", "org.assertj*", "org.awaitility*", "org.testcontainers*", "org.eclipse.jetty*"]
+      maven-plugins:
+        patterns: ["org.apache.maven.plugins*", "org.codehaus.mojo*", "org.jacoco*", "org.sonatype.central*", "com.diffplug.spotless*"]
+    # Integration targets (Logback, Log4j, the Servlet API, Spring Boot) are provided dependencies:
+    # applications bring their own version, so these only set what the integrations are compiled
+    # and tested against, and are bumped deliberately (e.g. alongside the -Pspring-boot-4 profile).
+    ignore:
+      - dependency-name: "ch.qos.logback:*"
+      - dependency-name: "org.apache.logging.log4j:*"
+      - dependency-name: "jakarta.servlet:*"
+      - dependency-name: "org.springframework.boot:*"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
