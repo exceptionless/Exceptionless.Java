@@ -75,14 +75,56 @@ class EventEnvironmentTest {
   }
 
   @Test
-  void nullOverrideSendsTheEventUnspecifiedInsteadOfTheDefault() {
+  void nullOverrideMeansNoOverrideAndTheDefaultApplies() {
+    config.environment("production");
+
+    client.createLog("null").setEnvironment(null).submit();
+
+    assertThat(sent())
+        .singleElement()
+        .satisfies(e -> assertThat(e).containsEntry("environment", "production"));
+  }
+
+  @Test
+  void nullClearsAnEarlierOverrideSoTheDefaultApplies() {
     config.environment("production");
 
     client.createLog("cleared").setEnvironment("staging").setEnvironment(null).submit();
 
     assertThat(sent())
         .singleElement()
+        .satisfies(e -> assertThat(e).containsEntry("environment", "production"));
+  }
+
+  @Test
+  void nullAfterAnInvalidOverrideLetsTheDefaultApplyAgain() {
+    config.environment("production");
+
+    client.createLog("cleared").setEnvironment("   ").setEnvironment(null).submit();
+
+    assertThat(sent())
+        .singleElement()
+        .satisfies(e -> assertThat(e).containsEntry("environment", "production"));
+  }
+
+  @Test
+  void nullWithoutADefaultSendsTheEventUnspecified() {
+    client.createLog("none").setEnvironment("staging").setEnvironment(null).submit();
+
+    assertThat(sent())
+        .singleElement()
         .satisfies(e -> assertThat(e).doesNotContainKey("environment"));
+  }
+
+  @Test
+  void validOverrideAfterAnInvalidOneIsSent() {
+    config.environment("production");
+
+    client.createLog("again").setEnvironment("   ").setEnvironment("qa").submit();
+
+    assertThat(sent())
+        .singleElement()
+        .satisfies(e -> assertThat(e).containsEntry("environment", "qa"));
   }
 
   @ParameterizedTest

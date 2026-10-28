@@ -210,7 +210,8 @@ not set one. The Spring Boot starter uses the active profile only when no enviro
 and exactly one profile is active; a configured empty or invalid value leaves events unspecified
 instead. Names are trimmed and limited to 64 characters, preserving the supplied casing. The server
 filters case-insensitively and normalizes aggregation keys. Missing or invalid names remain
-unspecified, and an invalid or null per-event name does not fall back to the configured default. The
+unspecified, and an invalid per-event name (non-null but empty, too long or with control characters)
+does not fall back to the configured default; pass `null` to `setEnvironment` to use the default. The
 top-level event `environment` is separate from machine diagnostics in `data.@environment`; stacks and
 fixed versions remain shared across environments. Older self hosted servers ignore the property, so
 upgrade the server first.

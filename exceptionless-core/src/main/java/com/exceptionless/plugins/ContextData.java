@@ -62,8 +62,8 @@ public final class ContextData {
   }
 
   /**
-   * Whether the event's deployment environment was chosen for this event, even if it was cleared,
-   * so the configured default must not replace it.
+   * Whether a non-null deployment environment was chosen for this event, even one that is not valid
+   * and leaves the event unspecified, so the configured default must not replace it.
    */
   public boolean hasEnvironmentOverride() {
     return Boolean.TRUE.equals(values.get(ENVIRONMENT_OVERRIDE));

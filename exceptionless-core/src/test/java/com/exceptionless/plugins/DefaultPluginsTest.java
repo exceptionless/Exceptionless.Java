@@ -86,7 +86,7 @@ class DefaultPluginsTest {
   }
 
   @Test
-  void configurationDefaultsKeepAnEnvironmentThatWasClearedOnPurpose() {
+  void configurationDefaultsKeepAnInvalidEnvironmentOverride() {
     config.environment("production");
     Event event = new Event();
     PluginTestSupport.run(
