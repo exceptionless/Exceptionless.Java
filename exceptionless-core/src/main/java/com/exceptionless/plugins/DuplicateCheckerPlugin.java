@@ -130,7 +130,7 @@ public final class DuplicateCheckerPlugin implements EventPlugin {
   }
 
   static int hash(Event event) {
-    int hash = Objects.hash(event.getType(), event.getSource());
+    int hash = Objects.hash(event.getEnvironment(), event.getType(), event.getSource());
     ErrorInfo error = event.getError();
     while (error != null) {
       hash = 31 * hash + Objects.hashCode(error.getType());

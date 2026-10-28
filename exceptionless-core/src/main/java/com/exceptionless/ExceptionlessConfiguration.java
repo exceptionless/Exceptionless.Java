@@ -1,5 +1,6 @@
 package com.exceptionless;
 
+import com.exceptionless.internal.DeploymentEnvironment;
 import com.exceptionless.internal.Exclusions;
 import com.exceptionless.internal.Log;
 import com.exceptionless.internal.Strings;
@@ -82,6 +83,9 @@ public final class ExceptionlessConfiguration {
   private volatile boolean locked;
   private volatile @Nullable String version;
 
+  private final Object environmentLock = new Object();
+  private volatile EnvironmentSetting environment = EnvironmentSetting.UNSET;
+
   private final Set<String> defaultTags = new CopyOnWriteArraySet<>();
   private final Map<String, Object> defaultData = new ConcurrentHashMap<>();
   private final Map<String, String> settings = new ConcurrentHashMap<>();
@@ -134,6 +138,15 @@ public final class ExceptionlessConfiguration {
   private volatile boolean registerShutdownHook = true;
   private volatile Duration shutdownTimeout = Duration.ofSeconds(5);
 
+  /**
+   * The default deployment environment and where it came from. {@code configured} is true for a
+   * value from code or external configuration, even an invalid one that leaves events without an
+   * environment; only a fallback is replaced by later sources.
+   */
+  private record EnvironmentSetting(@Nullable String name, boolean configured, boolean setInCode) {
+    static final EnvironmentSetting UNSET = new EnvironmentSetting(null, false, false);
+  }
+
   public ExceptionlessConfiguration() {
     addDefaultPlugins();
   }
@@ -144,9 +157,13 @@ public final class ExceptionlessConfiguration {
    * variables and {@code exceptionless.*} system properties.
    *
    * <p>Supported keys: {@code apiKey}, {@code serverUrl}, {@code configServerUrl}, {@code
-   * heartbeatServerUrl}, {@code enabled}, {@code version}, {@code storagePath}, {@code
-   * includePrivateInformation}, {@code defaultTags} and {@code settings.<name>}. Environment
-   * variables use the upper snake case form, e.g. {@code EXCEPTIONLESS_API_KEY}.
+   * heartbeatServerUrl}, {@code enabled}, {@code version}, {@code environment}, {@code
+   * storagePath}, {@code includePrivateInformation}, {@code defaultTags} and {@code
+   * settings.<name>}. Environment variables use the upper snake case form, e.g. {@code
+   * EXCEPTIONLESS_API_KEY} and {@code EXCEPTIONLESS_ENVIRONMENT}.
+   *
+   * <p>A deployment environment set in code with {@link #environment(String)} takes precedence over
+   * these sources, whichever is applied first.
    */
   public static ExceptionlessConfiguration fromEnvironment() {
     ExceptionlessConfiguration config = new ExceptionlessConfiguration();
@@ -203,6 +220,11 @@ public final class ExceptionlessConfiguration {
     apply(values, keyMapper, "heartbeatServerUrl", this::heartbeatServerUrl);
     apply(values, keyMapper, "enabled", value -> enabled(Boolean.parseBoolean(value)));
     apply(values, keyMapper, "version", this::version);
+    // An empty value is still a choice: it leaves events without an environment.
+    String configuredEnvironment = values.get(keyMapper.apply("environment"));
+    if (configuredEnvironment != null) {
+      applyConfiguredEnvironment(configuredEnvironment);
+    }
     apply(values, keyMapper, "storagePath", value -> useFileStorage(Path.of(value)));
     apply(
         values,
@@ -377,6 +399,65 @@ public final class ExceptionlessConfiguration {
   public ExceptionlessConfiguration version(@Nullable String version) {
     this.version = Strings.stripToNull(version);
     return this;
+  }
+
+  /** {@return the default deployment environment sent with events, or null when unspecified} */
+  public @Nullable String getEnvironment() {
+    return environment.name();
+  }
+
+  /**
+   * Whether a deployment environment was configured in code or by external configuration. An
+   * invalid configured value counts: events are then sent without an environment, and {@link
+   * #environmentFallback(String)} has no effect.
+   */
+  public boolean isEnvironmentConfigured() {
+    return environment.configured();
+  }
+
+  /**
+   * Sets the default deployment environment, such as {@code production} or {@code staging}, for
+   * events that don't set their own with {@link EventBuilder#setEnvironment}. A value set here wins
+   * over {@code exceptionless.properties}, system properties and environment variables, whichever
+   * is read last.
+   *
+   * <p>The name is trimmed and keeps its casing. Empty names, names longer than 64 characters and
+   * names with control characters leave events without an environment (and still win over external
+   * configuration). Pass null to forget a value set here.
+   */
+  public ExceptionlessConfiguration environment(@Nullable String environment) {
+    synchronized (environmentLock) {
+      this.environment =
+          environment == null
+              ? EnvironmentSetting.UNSET
+              : new EnvironmentSetting(DeploymentEnvironment.normalize(environment), true, true);
+    }
+    return this;
+  }
+
+  /**
+   * Sets a deployment environment that applies only when none is configured, in code or by external
+   * configuration. Framework integrations use it for the environment name the framework already
+   * has, such as a Spring profile. It has no effect once an environment is configured, and a later
+   * configured value replaces it.
+   */
+  public ExceptionlessConfiguration environmentFallback(@Nullable String environment) {
+    synchronized (environmentLock) {
+      if (!this.environment.configured()) {
+        this.environment =
+            new EnvironmentSetting(DeploymentEnvironment.normalize(environment), false, false);
+      }
+    }
+    return this;
+  }
+
+  private void applyConfiguredEnvironment(String environment) {
+    synchronized (environmentLock) {
+      if (!this.environment.setInCode()) {
+        this.environment =
+            new EnvironmentSetting(DeploymentEnvironment.normalize(environment), true, false);
+      }
+    }
   }
 
   /** {@return a snapshot of the tags added to every event} */

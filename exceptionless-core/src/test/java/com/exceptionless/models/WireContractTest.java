@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 class WireContractTest {
   private static final Set<String> EVENT =
       Set.of(
+          "environment",
           "type",
           "source",
           "date",
@@ -114,6 +115,7 @@ class WireContractTest {
           .setUserIdentity("id", "name")
           .setUserDescription("a@b.c", "d")
           .setManualStackingKey("key", "title")
+          .setEnvironment("production")
           .setGeo(1, 2)
           .setValue(3)
           .setCount(2)
@@ -153,6 +155,7 @@ class WireContractTest {
     assertThat(environment.get("process_id")).isInstanceOf(String.class);
     assertThat(environment.get("thread_id")).isInstanceOf(String.class);
     assertThat(event.get("count")).isEqualTo(2L);
+    assertThat(event.get("environment")).isEqualTo("production");
     assertThat(event.get("date"))
         .asString()
         .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?([+-]\\d{2}:\\d{2}|Z)");

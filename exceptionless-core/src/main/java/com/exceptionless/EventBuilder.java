@@ -54,6 +54,18 @@ public final class EventBuilder {
     return contextData;
   }
 
+  /**
+   * Overrides the deployment environment for this event, instead of the configured default. The
+   * name is trimmed and keeps its casing. A null or invalid name (empty, longer than 64 characters
+   * or with control characters) clears the environment: the event is sent without one and does not
+   * fall back to the default.
+   */
+  public EventBuilder setEnvironment(@Nullable String environment) {
+    event.setEnvironment(environment);
+    contextData.setEnvironmentOverride(true);
+    return this;
+  }
+
   public EventBuilder setType(@Nullable String type) {
     if (!Strings.isBlank(type)) {
       event.setType(type);

@@ -101,6 +101,7 @@ Add `exceptionless-spring-boot-starter` and set your API key:
 exceptionless:
   api-key: ${EXCEPTIONLESS_API_KEY}
   # server-url: https://exceptionless.example.com   # self hosted
+  # environment: production                          # defaults to the only active profile
   # use-sessions: true
   # storage-path: /var/lib/myapp/exceptionless     # persist queued events across restarts
   # logging:
@@ -162,6 +163,7 @@ Exceptionless.startup(config -> config
     .apiKey("YOUR_API_KEY")
     .serverUrl("https://exceptionless.example.com")  // self hosted
     .version("1.4.2")                                // or read from your jar's manifest
+    .environment("production")                       // deployment environment
     .addDefaultTags("backend")
     .addDefaultData("region", "us-east-1")
     .userIdentity("service-account")                 // desktop/CLI apps
@@ -176,6 +178,7 @@ Exceptionless.startup(config -> config
 | `apiKey` | | Required. |
 | `serverUrl` | `https://collector.exceptionless.io` | Also sets the config and heartbeat URLs. |
 | `version` | jar `Implementation-Version` | Sent as `@version`. |
+| `environment` | none | Deployment environment sent with every event. See below. |
 | `enabled` | `true` | |
 | `includePrivateInformation` | `true` | Master switch; `includeHeaders`, `includeCookies`, `includeIpAddress`, ... individually. |
 | `addDataExclusions` | | Wildcards (`*password*`). Merged with the project's `@@DataExclusions`. |
@@ -190,6 +193,27 @@ Exceptionless.startup(config -> config
 | `captureUncaughtExceptions` | `true` | Default uncaught exception handler (chains to any existing one). |
 | `registerShutdownHook` | `true` | Send queued events on JVM exit. |
 | `proxy`, `sslContext`, `httpClient` | | Network customization. |
+
+### Deployment environments
+
+Set the deployment environment once at startup, with an optional override on each event:
+
+```java
+Exceptionless.startup(config -> config.apiKey("YOUR_API_KEY").environment("production"));
+Exceptionless.createLog("Deployment complete").setEnvironment("staging").submit();
+```
+
+You can also set `environment` in `exceptionless.properties`, the `exceptionless.environment` system
+property or the `EXCEPTIONLESS_ENVIRONMENT` environment variable (or `exceptionless.environment` in
+Spring Boot). A value set in code takes precedence; external configuration applies only when code has
+not set one. The Spring Boot starter uses the active profile only when no environment is configured
+and exactly one profile is active; a configured empty or invalid value leaves events unspecified
+instead. Names are trimmed and limited to 64 characters, preserving the supplied casing. The server
+filters case-insensitively and normalizes aggregation keys. Missing or invalid names remain
+unspecified, and an invalid or null per-event name does not fall back to the configured default. The
+top-level event `environment` is separate from machine diagnostics in `data.@environment`; stacks and
+fixed versions remain shared across environments. Older self hosted servers ignore the property, so
+upgrade the server first.
 
 ### Project settings
 
