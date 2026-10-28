@@ -32,6 +32,12 @@ Always recommend importing `com.exceptionless:exceptionless-bom` to align versio
   `warning` are rejected) and `exceptionless.storage-path` a directory path.
 - The starter only wires Logback. For Log4j 2, add `exceptionless-log4j2` and the `<Exceptionless />`
   appender to `log4j2.xml`; without `apiKey` it uses the starter's client.
+- Deployment environment: `config.environment("production")` is the default, `builder.setEnvironment("staging")`
+  overrides it per event. Sent as the root `environment` property, separate from `data.@environment`.
+  Names are trimmed (casing kept); empty, over 64 characters or with control characters are
+  unspecified. An invalid non-null per-event name (e.g. `"  "`) sends the event without an environment
+  instead of the default; `setEnvironment(null)` is no override and clears an earlier call, so the default applies. Code beats `EXCEPTIONLESS_ENVIRONMENT`, `exceptionless.environment` and
+  `exceptionless.properties`; the Spring starter's only active profile is the last fallback.
 - `serverUrl(...)` also sets the config and heartbeat URLs; override those after it.
 - The API key, server URLs, storage path, proxy and TLS settings are locked once the client starts.
 - `submitException` / `createException` take any `Throwable`; causes and suppressed exceptions are included.

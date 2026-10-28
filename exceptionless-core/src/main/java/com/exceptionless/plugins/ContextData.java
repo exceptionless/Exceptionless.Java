@@ -14,6 +14,7 @@ public final class ContextData {
   private static final String IS_UNHANDLED = "@@_IsUnhandledError";
   private static final String SUBMISSION_METHOD = "@@_SubmissionMethod";
   private static final String REQUEST_INFO = "@@_RequestInfo";
+  private static final String ENVIRONMENT_OVERRIDE = "@@_EnvironmentOverride";
 
   private final Map<String, Object> values = new LinkedHashMap<>();
 
@@ -58,6 +59,18 @@ public final class ContextData {
   /** How the event was captured, e.g. {@code uncaughtExceptionHandler} or {@code servletFilter}. */
   public ContextData setSubmissionMethod(@Nullable String submissionMethod) {
     return put(SUBMISSION_METHOD, submissionMethod);
+  }
+
+  /**
+   * Whether a non-null deployment environment was chosen for this event, even one that is not valid
+   * and leaves the event unspecified, so the configured default must not replace it.
+   */
+  public boolean hasEnvironmentOverride() {
+    return Boolean.TRUE.equals(values.get(ENVIRONMENT_OVERRIDE));
+  }
+
+  public ContextData setEnvironmentOverride(boolean override) {
+    return put(ENVIRONMENT_OVERRIDE, override ? true : null);
   }
 
   public @Nullable RequestInfo getRequestInfo() {

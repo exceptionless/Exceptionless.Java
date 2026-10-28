@@ -134,8 +134,174 @@ class ExceptionlessConfigurationTest {
     assertThat(config.getSettings().getString("FEATURE_X")).isEqualTo("on");
   }
 
+  @Test
+  void environmentIsUnspecifiedByDefault() {
+    ExceptionlessConfiguration config = new ExceptionlessConfiguration();
+    assertThat(config.getEnvironment()).isNull();
+    assertThat(config.isEnvironmentConfigured()).isFalse();
+  }
+
+  @Test
+  void environmentIsNormalizedAndKeepsCasing() {
+    ExceptionlessConfiguration config =
+        new ExceptionlessConfiguration().environment(" Production ");
+    assertThat(config.getEnvironment()).isEqualTo("Production");
+    assertThat(config.isEnvironmentConfigured()).isTrue();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "  ", "prod\nuction"})
+  void invalidEnvironmentIsUnspecifiedButConfigured(String value) {
+    ExceptionlessConfiguration config = new ExceptionlessConfiguration().environment(value);
+    assertThat(config.getEnvironment()).isNull();
+    assertThat(config.isEnvironmentConfigured()).isTrue();
+  }
+
+  @Test
+  void environmentLongerThanSixtyFourCharactersIsUnspecified() {
+    assertThat(new ExceptionlessConfiguration().environment("x".repeat(64)).getEnvironment())
+        .hasSize(64);
+    assertThat(new ExceptionlessConfiguration().environment("x".repeat(65)).getEnvironment())
+        .isNull();
+  }
+
+  @Test
+  void environmentSetInCodeBeatsExternalConfigurationReadAfterwards() {
+    ExceptionlessConfiguration config =
+        new ExceptionlessConfiguration()
+            .environment("code")
+            .readFromValues(
+                Map.of("EXCEPTIONLESS_ENVIRONMENT", "external"),
+                ExceptionlessConfiguration::environmentName);
+    assertThat(config.getEnvironment()).isEqualTo("code");
+  }
+
+  @Test
+  void environmentSetInCodeBeatsExternalConfigurationReadBefore() {
+    ExceptionlessConfiguration config =
+        new ExceptionlessConfiguration()
+            .readFromValues(
+                Map.of("EXCEPTIONLESS_ENVIRONMENT", "external"),
+                ExceptionlessConfiguration::environmentName)
+            .environment("code");
+    assertThat(config.getEnvironment()).isEqualTo("code");
+  }
+
+  @Test
+  void invalidEnvironmentSetInCodeStillBeatsExternalConfiguration() {
+    ExceptionlessConfiguration config =
+        new ExceptionlessConfiguration()
+            .environment(" ")
+            .readFromValues(
+                Map.of("EXCEPTIONLESS_ENVIRONMENT", "external"),
+                ExceptionlessConfiguration::environmentName);
+    assertThat(config.getEnvironment()).isNull();
+    assertThat(config.isEnvironmentConfigured()).isTrue();
+  }
+
+  @Test
+  void externalConfigurationAppliesWhenCodeHasNotSetAnEnvironment() {
+    ExceptionlessConfiguration config =
+        new ExceptionlessConfiguration()
+            .readFromValues(
+                Map.of("EXCEPTIONLESS_ENVIRONMENT", " Staging "),
+                ExceptionlessConfiguration::environmentName);
+    assertThat(config.getEnvironment()).isEqualTo("Staging");
+    assertThat(config.isEnvironmentConfigured()).isTrue();
+  }
+
+  @Test
+  void laterExternalSourcesReplaceEarlierOnes() {
+    ExceptionlessConfiguration config =
+        new ExceptionlessConfiguration()
+            .readFromValues(
+                Map.of("exceptionless.environment", "file"), key -> "exceptionless." + key)
+            .readFromValues(
+                Map.of("EXCEPTIONLESS_ENVIRONMENT", "variable"),
+                ExceptionlessConfiguration::environmentName);
+    assertThat(config.getEnvironment()).isEqualTo("variable");
+  }
+
+  @Test
+  void emptyExternalEnvironmentLeavesEventsUnspecified() {
+    ExceptionlessConfiguration config =
+        new ExceptionlessConfiguration()
+            .readFromValues(
+                Map.of("EXCEPTIONLESS_ENVIRONMENT", " "),
+                ExceptionlessConfiguration::environmentName)
+            .environmentFallback("fallback");
+    assertThat(config.getEnvironment()).isNull();
+    assertThat(config.isEnvironmentConfigured()).isTrue();
+  }
+
+  @Test
+  void clearingTheEnvironmentInCodeLetsExternalConfigurationApplyAgain() {
+    ExceptionlessConfiguration config = new ExceptionlessConfiguration().environment("code");
+    config.environment(null);
+    assertThat(config.isEnvironmentConfigured()).isFalse();
+    config.readFromValues(
+        Map.of("EXCEPTIONLESS_ENVIRONMENT", "external"),
+        ExceptionlessConfiguration::environmentName);
+    assertThat(config.getEnvironment()).isEqualTo("external");
+  }
+
+  @Test
+  void environmentFallbackOnlyAppliesWhenNothingIsConfigured() {
+    ExceptionlessConfiguration config = new ExceptionlessConfiguration().environmentFallback("dev");
+    assertThat(config.getEnvironment()).isEqualTo("dev");
+    assertThat(config.isEnvironmentConfigured()).isFalse();
+
+    config.environment("code").environmentFallback("other");
+    assertThat(config.getEnvironment()).isEqualTo("code");
+
+    ExceptionlessConfiguration external =
+        new ExceptionlessConfiguration()
+            .environmentFallback("dev")
+            .readFromValues(
+                Map.of("EXCEPTIONLESS_ENVIRONMENT", "external"),
+                ExceptionlessConfiguration::environmentName)
+            .environmentFallback("dev");
+    assertThat(external.getEnvironment()).isEqualTo("external");
+  }
+
+  @Test
+  void invalidFallbackLeavesEnvironmentUnspecified() {
+    assertThat(
+            new ExceptionlessConfiguration().environmentFallback("x".repeat(65)).getEnvironment())
+        .isNull();
+    assertThat(new ExceptionlessConfiguration().environmentFallback(null).getEnvironment())
+        .isNull();
+  }
+
+  @Test
+  void readsTheEnvironmentFromSystemProperties() {
+    System.setProperty("exceptionless.environment", "from-system-property");
+    try {
+      assertThat(ExceptionlessConfiguration.fromEnvironment().getEnvironment())
+          .isEqualTo("from-system-property");
+    } finally {
+      System.clearProperty("exceptionless.environment");
+    }
+  }
+
+  @Test
+  void systemPropertiesDoNotOverrideAnEnvironmentSetInCode() {
+    System.setProperty("exceptionless.environment", "from-system-property");
+    try {
+      assertThat(
+              new ExceptionlessConfiguration()
+                  .environment("code")
+                  .readFromEnvironment()
+                  .getEnvironment())
+          .isEqualTo("code");
+    } finally {
+      System.clearProperty("exceptionless.environment");
+    }
+  }
+
   @ParameterizedTest
   @CsvSource({
+    "environment, EXCEPTIONLESS_ENVIRONMENT",
     "apiKey, EXCEPTIONLESS_API_KEY",
     "serverUrl, EXCEPTIONLESS_SERVER_URL",
     "settings., EXCEPTIONLESS_SETTINGS_",
