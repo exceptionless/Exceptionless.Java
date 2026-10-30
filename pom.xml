@@ -78,7 +78,7 @@
         <junit.version>5.13.4</junit.version>
         <assertj.version>3.27.7</assertj.version>
         <awaitility.version>4.3.0</awaitility.version>
-        <errorprone.version>2.50.0</errorprone.version>
+        <errorprone.version>2.51.0</errorprone.version>
         <nullaway.version>0.14.2</nullaway.version>
 
         <!-- Plugins (all pinned; the enforcer's requirePluginVersions rule checks it) -->
