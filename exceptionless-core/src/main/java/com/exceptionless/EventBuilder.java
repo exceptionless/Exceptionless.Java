@@ -54,6 +54,20 @@ public final class EventBuilder {
     return contextData;
   }
 
+  /**
+   * Overrides the deployment environment for this event, instead of the configured default. The
+   * name is trimmed and keeps its casing, then must match {@code
+   * ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$}. A name that is not valid (such as {@code "Staging West"} or
+   * an empty one) is still an override: the event is sent without an environment and does not fall
+   * back to the default. Null means no override: it clears any earlier call on this builder, and
+   * the configured default applies.
+   */
+  public EventBuilder setEnvironment(@Nullable String environment) {
+    event.setEnvironment(environment);
+    contextData.setEnvironmentOverride(environment != null);
+    return this;
+  }
+
   public EventBuilder setType(@Nullable String type) {
     if (!Strings.isBlank(type)) {
       event.setType(type);

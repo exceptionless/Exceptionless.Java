@@ -73,6 +73,31 @@ class DefaultPluginsTest {
   }
 
   @Test
+  void configurationDefaultsAddTheEnvironmentWithoutOverwritingIt() {
+    config.environment(" Production ");
+    Event event = new Event();
+    PluginTestSupport.run(new ConfigurationDefaultsPlugin(), client, event);
+    assertThat(event.getEnvironment()).isEqualTo("Production");
+
+    Event own = new Event();
+    own.setEnvironment("qa");
+    PluginTestSupport.run(new ConfigurationDefaultsPlugin(), client, own);
+    assertThat(own.getEnvironment()).isEqualTo("qa");
+  }
+
+  @Test
+  void configurationDefaultsKeepAnInvalidEnvironmentOverride() {
+    config.environment("production");
+    Event event = new Event();
+    PluginTestSupport.run(
+        new ConfigurationDefaultsPlugin(),
+        client,
+        event,
+        new ContextData().setEnvironmentOverride(true));
+    assertThat(event.getEnvironment()).isNull();
+  }
+
+  @Test
   void configurationDefaultsNormalizeObjects() {
     config.addDefaultData("info", Map.of("nested", List.of(1, 2)));
     config.userIdentity("user-1", "Ann");

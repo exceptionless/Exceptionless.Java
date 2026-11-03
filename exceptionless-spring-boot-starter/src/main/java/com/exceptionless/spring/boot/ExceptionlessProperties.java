@@ -36,6 +36,12 @@ public class ExceptionlessProperties {
   /** The application version. Defaults to the version from build-info (BuildProperties). */
   private @Nullable String version;
 
+  /**
+   * The default deployment environment, such as production or staging. When unset, the only active
+   * Spring profile is used.
+   */
+  private @Nullable String environment;
+
   /** Tags added to every event. */
   private List<String> defaultTags = new ArrayList<>();
 
@@ -105,6 +111,14 @@ public class ExceptionlessProperties {
 
   public void setVersion(@Nullable String version) {
     this.version = version;
+  }
+
+  public @Nullable String getEnvironment() {
+    return environment;
+  }
+
+  public void setEnvironment(@Nullable String environment) {
+    this.environment = environment;
   }
 
   public List<String> getDefaultTags() {

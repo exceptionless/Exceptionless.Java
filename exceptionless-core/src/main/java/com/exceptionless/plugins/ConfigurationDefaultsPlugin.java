@@ -7,7 +7,11 @@ import com.exceptionless.models.Event;
 import java.util.Map;
 import java.util.function.Predicate;
 
-/** Adds the configured default tags and data to every event. */
+/**
+ * Adds the configured default deployment environment, tags and data to every event. An event that
+ * already has an environment, or whose environment was chosen with {@link
+ * com.exceptionless.EventBuilder#setEnvironment}, keeps it.
+ */
 public final class ConfigurationDefaultsPlugin implements EventPlugin {
   public static final int PRIORITY = 10;
 
@@ -20,6 +24,9 @@ public final class ConfigurationDefaultsPlugin implements EventPlugin {
   public void run(EventPluginContext context) {
     ExceptionlessConfiguration config = context.getConfiguration();
     Event event = context.getEvent();
+    if (event.getEnvironment() == null && !context.getContextData().hasEnvironmentOverride()) {
+      event.setEnvironment(config.getEnvironment());
+    }
     event.addTags(config.getDefaultTags());
 
     Map<String, Object> defaults = config.getDefaultData();

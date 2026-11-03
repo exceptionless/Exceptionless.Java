@@ -32,6 +32,7 @@ import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.MapPropertySource;
 import reactor.core.publisher.Mono;
@@ -133,6 +134,99 @@ class ExceptionlessAutoConfigurationTest {
                 assertThat(
                         context.getBean(ExceptionlessClient.class).getConfiguration().getVersion())
                     .isEqualTo("1.0.0"));
+  }
+
+  private static String environmentOf(ApplicationContext context) {
+    return context.getBean(ExceptionlessClient.class).getConfiguration().getEnvironment();
+  }
+
+  @Test
+  void usesTheEnvironmentProperty() {
+    runner
+        .withPropertyValues("exceptionless.environment= Staging ")
+        .run(context -> assertThat(environmentOf(context)).isEqualTo("Staging"));
+  }
+
+  @Test
+  void leavesTheEnvironmentUnspecifiedWithoutPropertyOrProfile() {
+    runner.run(
+        context -> {
+          assertThat(environmentOf(context)).isNull();
+          assertThat(
+                  context
+                      .getBean(ExceptionlessClient.class)
+                      .getConfiguration()
+                      .isEnvironmentConfigured())
+              .isFalse();
+        });
+  }
+
+  @Test
+  void fallsBackToTheOnlyActiveProfile() {
+    runner
+        .withInitializer(context -> context.getEnvironment().setActiveProfiles("prod"))
+        .run(context -> assertThat(environmentOf(context)).isEqualTo("prod"));
+  }
+
+  @Test
+  void doesNotGuessAnEnvironmentFromSeveralProfiles() {
+    runner
+        .withInitializer(context -> context.getEnvironment().setActiveProfiles("prod", "metrics"))
+        .run(context -> assertThat(environmentOf(context)).isNull());
+  }
+
+  @Test
+  void environmentPropertyBeatsTheActiveProfile() {
+    runner
+        .withInitializer(context -> context.getEnvironment().setActiveProfiles("prod"))
+        .withPropertyValues("exceptionless.environment=staging")
+        .run(context -> assertThat(environmentOf(context)).isEqualTo("staging"));
+  }
+
+  @Test
+  void emptyEnvironmentPropertyLeavesEventsUnspecifiedInsteadOfUsingTheProfile() {
+    runner
+        .withInitializer(context -> context.getEnvironment().setActiveProfiles("prod"))
+        .withPropertyValues("exceptionless.environment=")
+        .run(context -> assertThat(environmentOf(context)).isNull());
+  }
+
+  @Test
+  void externalEnvironmentConfigurationBeatsTheActiveProfile() {
+    System.setProperty("exceptionless.environment", "from-system-property");
+    try {
+      runner
+          .withInitializer(context -> context.getEnvironment().setActiveProfiles("prod"))
+          .run(context -> assertThat(environmentOf(context)).isEqualTo("from-system-property"));
+    } finally {
+      System.clearProperty("exceptionless.environment");
+    }
+  }
+
+  @Test
+  void customizersBeatThePropertyAndTheProfile() {
+    runner
+        .withInitializer(context -> context.getEnvironment().setActiveProfiles("prod"))
+        .withPropertyValues("exceptionless.environment=staging")
+        .withBean(
+            "environmentCustomizer",
+            ExceptionlessConfigurationCustomizer.class,
+            () -> config -> config.environment("from-code"))
+        .run(context -> assertThat(environmentOf(context)).isEqualTo("from-code"));
+  }
+
+  @Test
+  void sendsTheConfiguredEnvironmentWithEvents() {
+    runner
+        .withPropertyValues("exceptionless.environment=staging")
+        .run(
+            context -> {
+              ExceptionlessClient client = context.getBean(ExceptionlessClient.class);
+              client.submitLog("hello");
+              assertThat(recorder.flush(client))
+                  .singleElement()
+                  .satisfies(e -> assertThat(e).containsEntry("environment", "staging"));
+            });
   }
 
   @Test

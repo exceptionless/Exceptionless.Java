@@ -45,6 +45,30 @@ class DuplicateCheckerPluginTest {
   }
 
   @Test
+  void sameErrorInDifferentEnvironmentsIsNotMerged() {
+    plugin.startup(client);
+    List<Event> events = sameErrors(4);
+    events.get(0).setEnvironment("production");
+    events.get(1).setEnvironment("staging");
+    events.get(2).setEnvironment("production");
+    // events.get(3) has no environment.
+    assertThat(PluginTestSupport.run(plugin, client, events.get(0)).isCancelled()).isFalse();
+    assertThat(PluginTestSupport.run(plugin, client, events.get(1)).isCancelled()).isFalse();
+    assertThat(PluginTestSupport.run(plugin, client, events.get(3)).isCancelled()).isFalse();
+    // The same error in an environment that was already seen is a duplicate.
+    assertThat(PluginTestSupport.run(plugin, client, events.get(2)).isCancelled()).isTrue();
+    plugin.flush();
+    client.flush(Duration.ofSeconds(5));
+    assertThat(submission.events())
+        .singleElement()
+        .satisfies(
+            e -> {
+              assertThat(e.get("environment")).isEqualTo("production");
+              assertThat(e.get("count")).isEqualTo(1L);
+            });
+  }
+
+  @Test
   void countsDuplicatesWithinTheWindowAndSendsOneMergedEvent() {
     plugin.startup(client);
     List<Event> events = sameErrors(5);

@@ -5,6 +5,7 @@ import com.exceptionless.ExceptionlessClient;
 import com.exceptionless.ExceptionlessConfiguration;
 import com.exceptionless.servlet.ExceptionlessFilter;
 import java.nio.file.Path;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -16,6 +17,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
 
 /**
@@ -29,7 +31,8 @@ import org.springframework.util.StringUtils;
  *
  * <ul>
  *   <li>an {@link ExceptionlessClient} bean, configured from the {@link ExceptionlessProperties
- *       exceptionless.*} properties and any {@link ExceptionlessConfigurationCustomizer} beans. It
+ *       exceptionless.*} properties and any {@link ExceptionlessConfigurationCustomizer} beans.
+ *       When no deployment environment is configured, the only active Spring profile is used. It
  *       becomes the {@link Exceptionless#getDefault() default client} (used by logging integrations
  *       without their own API key) and is closed, sending queued events, when the application
  *       context closes;
@@ -57,7 +60,8 @@ public class ExceptionlessAutoConfiguration {
   public ExceptionlessClient exceptionlessClient(
       ExceptionlessProperties properties,
       ObjectProvider<ExceptionlessConfigurationCustomizer> customizers,
-      ObjectProvider<BuildProperties> buildProperties) {
+      ObjectProvider<BuildProperties> buildProperties,
+      Environment environment) {
     ExceptionlessConfiguration config = ExceptionlessConfiguration.fromEnvironment();
     apply(properties, config);
     if (config.getVersion() == null) {
@@ -69,8 +73,18 @@ public class ExceptionlessAutoConfiguration {
     // The application context closes the client.
     config.registerShutdownHook(false);
     customizers.orderedStream().forEach(customizer -> customizer.customize(config));
+    config.environmentFallback(onlyActiveProfile(environment));
 
     return new ExceptionlessClient(config).startup();
+  }
+
+  /**
+   * The active profile when there is exactly one. Several profiles don't name a deployment
+   * environment (such as {@code prod,metrics}), so none is guessed.
+   */
+  static @Nullable String onlyActiveProfile(Environment environment) {
+    String[] profiles = environment.getActiveProfiles();
+    return profiles.length == 1 ? profiles[0] : null;
   }
 
   static void apply(ExceptionlessProperties properties, ExceptionlessConfiguration config) {
@@ -82,6 +96,10 @@ public class ExceptionlessAutoConfiguration {
     }
     if (StringUtils.hasText(properties.getVersion())) {
       config.version(properties.getVersion());
+    }
+    // An empty value is a choice too: it leaves events without an environment.
+    if (properties.getEnvironment() != null) {
+      config.environment(properties.getEnvironment());
     }
     config.addDefaultTags(properties.getDefaultTags().toArray(String[]::new));
     properties.getDefaultData().forEach(config::addDefaultData);

@@ -1,5 +1,6 @@
 package com.exceptionless.models;
 
+import com.exceptionless.internal.DeploymentEnvironment;
 import com.exceptionless.json.JsonSerializable;
 import com.exceptionless.json.JsonWriter;
 import java.math.BigDecimal;
@@ -18,6 +19,7 @@ import org.jspecify.annotations.Nullable;
  * serialized when they are queued.
  */
 public final class Event implements JsonSerializable {
+  private @Nullable String environment;
   private @Nullable String type;
   private @Nullable String source;
   private @Nullable OffsetDateTime date;
@@ -28,6 +30,24 @@ public final class Event implements JsonSerializable {
   private @Nullable Integer count;
   private final Map<String, Object> data = new LinkedHashMap<>();
   private @Nullable String referenceId;
+
+  /**
+   * The deployment environment, such as {@code production} or {@code staging}. This is the event's
+   * root {@code environment} property, not the machine details in {@code @environment}. See {@link
+   * #getEnvironmentInfo()} for those.
+   */
+  public @Nullable String getEnvironment() {
+    return environment;
+  }
+
+  /**
+   * Sets the deployment environment. The name is trimmed and keeps its casing, then must match
+   * {@code ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$}. Any other name is not valid and clears the
+   * environment, so the event is sent without one; names are never rewritten.
+   */
+  public void setEnvironment(@Nullable String environment) {
+    this.environment = DeploymentEnvironment.normalize(environment);
+  }
 
   public @Nullable String getType() {
     return type;
@@ -264,6 +284,7 @@ public final class Event implements JsonSerializable {
   public void toJson(JsonWriter writer) {
     writer
         .beginObject()
+        .fieldIfNotEmpty("environment", environment)
         .fieldIfNotEmpty("type", type)
         .fieldIfNotEmpty("source", source)
         .field("date", date)
