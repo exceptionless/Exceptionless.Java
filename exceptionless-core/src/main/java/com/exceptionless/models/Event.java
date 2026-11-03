@@ -41,9 +41,9 @@ public final class Event implements JsonSerializable {
   }
 
   /**
-   * Sets the deployment environment. The name is trimmed and keeps its casing. Empty names, names
-   * longer than 64 characters and names with control characters are not valid and clear the
-   * environment, so the event is sent without one.
+   * Sets the deployment environment. The name is trimmed and keeps its casing, then must match
+   * {@code ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$}. Any other name is not valid and clears the
+   * environment, so the event is sent without one; names are never rewritten.
    */
   public void setEnvironment(@Nullable String environment) {
     this.environment = DeploymentEnvironment.normalize(environment);

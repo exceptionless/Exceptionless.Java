@@ -152,6 +152,20 @@ class EventEnvironmentTest {
   }
 
   @Test
+  void overrideOutsideTheNamingRuleSendsTheEventUnspecifiedInsteadOfTheDefault() {
+    config.environment("production");
+
+    client.createLog("space").setEnvironment("Staging West").submit();
+    client.createLog("slash").setEnvironment("prod/eu").submit();
+    client.createLog("unicode").setEnvironment("produ\u00e7\u00e3o").submit();
+    client.createLog("ok").setEnvironment("Staging-EU").submit();
+
+    assertThat(sent())
+        .extracting(e -> e.get("environment"))
+        .containsExactlyInAnyOrder(null, null, null, "Staging-EU");
+  }
+
+  @Test
   void invalidDefaultSendsEventsUnspecified() {
     config.environment("x".repeat(65));
 
@@ -251,6 +265,10 @@ class EventEnvironmentTest {
     event.setEnvironment(" Production ");
     assertThat(event.getEnvironment()).isEqualTo("Production");
     event.setEnvironment("x".repeat(65));
+    assertThat(event.getEnvironment()).isNull();
+    event.setEnvironment("Staging-EU");
+    assertThat(event.getEnvironment()).isEqualTo("Staging-EU");
+    event.setEnvironment("Staging West");
     assertThat(event.getEnvironment()).isNull();
   }
 }

@@ -421,9 +421,10 @@ public final class ExceptionlessConfiguration {
    * over {@code exceptionless.properties}, system properties and environment variables, whichever
    * is read last.
    *
-   * <p>The name is trimmed and keeps its casing. Empty names, names longer than 64 characters and
-   * names with control characters leave events without an environment (and still win over external
-   * configuration). Pass null to forget a value set here.
+   * <p>The name is trimmed and keeps its casing, then must match {@code
+   * ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$}. Any other name leaves events without an environment (and
+   * still wins over external configuration); names are never rewritten. Pass null to forget a value
+   * set here.
    */
   public ExceptionlessConfiguration environment(@Nullable String environment) {
     synchronized (environmentLock) {

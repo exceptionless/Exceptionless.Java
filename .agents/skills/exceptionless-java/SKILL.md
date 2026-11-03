@@ -34,8 +34,8 @@ Always recommend importing `com.exceptionless:exceptionless-bom` to align versio
   appender to `log4j2.xml`; without `apiKey` it uses the starter's client.
 - Deployment environment: `config.environment("production")` is the default, `builder.setEnvironment("staging")`
   overrides it per event. Sent as the root `environment` property, separate from `data.@environment`.
-  Names are trimmed (casing kept); empty, over 64 characters or with control characters are
-  unspecified. An invalid non-null per-event name (e.g. `"  "`) sends the event without an environment
+  Names are trimmed (casing kept), then must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`; anything
+  else (`Staging West`, `prod/eu`, `produção`, empty, over 64 characters) is unspecified and never rewritten. An invalid non-null per-event name (e.g. `"  "`) sends the event without an environment
   instead of the default; `setEnvironment(null)` is no override and clears an earlier call, so the default applies. Code beats `EXCEPTIONLESS_ENVIRONMENT`, `exceptionless.environment` and
   `exceptionless.properties`; the Spring starter's only active profile is the last fallback.
 - `serverUrl(...)` also sets the config and heartbeat URLs; override those after it.

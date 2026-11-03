@@ -150,7 +150,16 @@ class ExceptionlessConfigurationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"", "  ", "prod\nuction"})
+  @ValueSource(
+      strings = {
+        "",
+        "  ",
+        "prod\nuction",
+        "Staging West",
+        "prod/eu",
+        "-prod",
+        "produ\u00e7\u00e3o"
+      })
   void invalidEnvironmentIsUnspecifiedButConfigured(String value) {
     ExceptionlessConfiguration config = new ExceptionlessConfiguration().environment(value);
     assertThat(config.getEnvironment()).isNull();

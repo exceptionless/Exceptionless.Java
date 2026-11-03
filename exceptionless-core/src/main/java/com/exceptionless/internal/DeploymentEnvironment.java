@@ -1,21 +1,22 @@
 package com.exceptionless.internal;
 
+import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Normalizes deployment environment names the way the server does, so the client never sends a
- * value the server would discard.
+ * Validates deployment environment names the way the server does, so the client never sends a value
+ * the server would discard.
  */
 public final class DeploymentEnvironment {
-  /** The longest name the server accepts. */
-  public static final int MAX_LENGTH = 64;
+  /** ASCII letters, digits, {@code .}, {@code _} and {@code -}; starts with a letter or digit. */
+  private static final Pattern VALID_NAME = Pattern.compile("^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$");
 
   private DeploymentEnvironment() {}
 
   /**
-   * Trims the name and returns it with its casing preserved, or null when the server would treat it
-   * as unspecified: empty, longer than {@value #MAX_LENGTH} characters or containing a control
-   * character.
+   * Trims the name and returns it with its casing preserved, or null when it is not a valid
+   * deployment environment name: ASCII letters, digits, {@code .}, {@code _} and {@code -},
+   * starting with a letter or digit, at most 64 characters. Names are never rewritten.
    */
   public static @Nullable String normalize(@Nullable String value) {
     if (value == null) {
@@ -29,21 +30,13 @@ public final class DeploymentEnvironment {
     while (end > start && isTrimmable(value.charAt(end - 1))) {
       end--;
     }
-    if (start == end || end - start > MAX_LENGTH) {
-      return null;
-    }
-    for (int i = start; i < end; i++) {
-      if (Character.isISOControl(value.charAt(i))) {
-        return null;
-      }
-    }
-    return value.substring(start, end);
+    String name = value.substring(start, end);
+    return VALID_NAME.matcher(name).matches() ? name : null;
   }
 
   /**
-   * Whether the server's trim removes the character: white space plus the Unicode space, line and
-   * paragraph separators. This is wider than {@link String#strip()}, which keeps non-breaking
-   * spaces.
+   * Whether the trim removes the character: white space plus the Unicode space, line and paragraph
+   * separators. This is wider than {@link String#strip()}, which keeps non-breaking spaces.
    */
   private static boolean isTrimmable(char c) {
     if ((c >= '\t' && c <= '\r') || c == ' ' || c == '\u0085') {

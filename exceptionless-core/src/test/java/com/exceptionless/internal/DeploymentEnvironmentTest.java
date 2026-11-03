@@ -14,39 +14,59 @@ class DeploymentEnvironmentTest {
       delimiter = '|',
       value = {
         "production|production",
+        "Staging-EU|Staging-EU",
+        "qa.2|qa.2",
+        "dev_local|dev_local",
+        "a|a",
+        "0|0",
         "  Production |Production",
-        "Prod West|Prod West",
       })
-  void trimsSurroundingWhiteSpaceAndKeepsCasing(String value, String expected) {
+  void validNamesAreTrimmedAndKeepTheirCasing(String value, String expected) {
     assertThat(DeploymentEnvironment.normalize(value)).isEqualTo(expected);
   }
 
   @Test
   void trimsControlWhiteSpaceAndUnicodeSpaces() {
-    // The server trims non-breaking and Unicode spaces too, which String.strip() keeps.
     assertThat(DeploymentEnvironment.normalize("\tProduction\n")).isEqualTo("Production");
     assertThat(DeploymentEnvironment.normalize("\u00a0Production\u00a0")).isEqualTo("Production");
     assertThat(DeploymentEnvironment.normalize("\u2003Production\u2028")).isEqualTo("Production");
     assertThat(DeploymentEnvironment.normalize("\u0085Production")).isEqualTo("Production");
   }
 
-  @Test
-  void keepsInnerCasingAndSpacing() {
-    assertThat(DeploymentEnvironment.normalize(" Prod  West ")).isEqualTo("Prod  West");
-    assertThat(DeploymentEnvironment.normalize(" QA ")).isEqualTo("QA");
-  }
-
   @ParameterizedTest
   @NullSource
-  @ValueSource(strings = {"", " ", "\t\n", " ", "  "})
+  @ValueSource(strings = {"", " ", "\t\n", "\u00a0", "  "})
   void emptyIsUnspecified(String value) {
     assertThat(DeploymentEnvironment.normalize(value)).isNull();
   }
 
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "Staging West",
+        " Prod  West ",
+        "prod/eu",
+        "prod:eu",
+        "-prod",
+        ".prod",
+        "_prod",
+        "produ\u00e7\u00e3o",
+        "prod\u200b"
+      })
+  void namesOutsideTheRuleAreUnspecifiedAndNeverRewritten(String value) {
+    assertThat(DeploymentEnvironment.normalize(value)).isNull();
+  }
+
+  @Test
+  void nonAsciiLettersAreUnspecifiedEvenWithinTheLengthLimit() {
+    assertThat(DeploymentEnvironment.normalize("\u0130".repeat(64))).isNull();
+  }
+
   @Test
   void allowsSixtyFourCharactersAndRejectsSixtyFive() {
-    assertThat(DeploymentEnvironment.normalize("x".repeat(64))).isEqualTo("x".repeat(64));
-    assertThat(DeploymentEnvironment.normalize("x".repeat(65))).isNull();
+    String name = "a" + "b".repeat(63);
+    assertThat(DeploymentEnvironment.normalize(name)).isEqualTo(name);
+    assertThat(DeploymentEnvironment.normalize("a".repeat(65))).isNull();
   }
 
   @Test

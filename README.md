@@ -208,10 +208,11 @@ property or the `EXCEPTIONLESS_ENVIRONMENT` environment variable (or `exceptionl
 Spring Boot). A value set in code takes precedence; external configuration applies only when code has
 not set one. The Spring Boot starter uses the active profile only when no environment is configured
 and exactly one profile is active; a configured empty or invalid value leaves events unspecified
-instead. Names are trimmed and limited to 64 characters, preserving the supplied casing. The server
+instead. Names are trimmed, then must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`: ASCII letters, digits,
+`.`, `_` and `-`, starting with a letter or digit, at most 64 characters. Casing is preserved and
+names are never rewritten, so `Staging West`, `prod/eu` or `produção` are invalid. The server
 filters case-insensitively and normalizes aggregation keys. Missing or invalid names remain
-unspecified, and an invalid per-event name (non-null but empty, too long or with control characters)
-does not fall back to the configured default; pass `null` to `setEnvironment` to use the default. The
+unspecified, and an invalid non-null per-event name does not fall back to the configured default; pass `null` to `setEnvironment` to use the default. The
 top-level event `environment` is separate from machine diagnostics in `data.@environment`; stacks and
 fixed versions remain shared across environments. Older self hosted servers ignore the property, so
 upgrade the server first.
