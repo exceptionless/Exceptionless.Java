@@ -15,7 +15,7 @@
 
     <properties>
         <automatic.module.name>com.exceptionless.servlet</automatic.module.name>
-        <jetty.version>12.1.14</jetty.version>
+        <jetty.version>12.1.15</jetty.version>
     </properties>
 
     <dependencies>
